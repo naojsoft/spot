@@ -62,11 +62,6 @@ class SkyCam(GingaPlugin.LocalPlugin):
         self.crop_circ = self.dc.Circle(xc, yc, r)
         self.crop_circ.crdmap = self.viewer.get_coordmap('data')
 
-        # set up some settings in our channel
-        self.fitsimage.settings.set(autozoom='off', autocenter='off',
-                                    auto_orient=False)
-        self.fitsimage.transform(False, False, False)
-
         self.gui_up = False
 
     def build_gui(self, container):
@@ -109,6 +104,11 @@ class SkyCam(GingaPlugin.LocalPlugin):
         return True
 
     def start(self):
+        # set up some settings in our channel
+        self.fitsimage.settings.set(autozoom='off', autocenter='off',
+                                    auto_orient=False)
+        self.fitsimage.transform(False, False, False)
+
         # insert canvas, if not already
         p_canvas = self.fitsimage.get_canvas()
         if self.canvas not in p_canvas:

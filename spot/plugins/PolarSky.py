@@ -207,12 +207,13 @@ class PolarSky(GingaPlugin.LocalPlugin):
         #circ_fill = 'palegreen1'
         circ_fill = '#fdf6f6'
         image = self.viewer.get_image()
-        #alpha = 0.5 if image is None else 0.0
+        #fillalpha = 0.5 if image is None else 0.0
+        fillalpha = 0.0
         alpha = 1.0
         x, y, r = self.r2xyr(90)
         self.base_circ = self.dc.Circle(x, y, r, color=circ_color, linewidth=2,
                                         fill=True, fillcolor=circ_fill,
-                                        fillalpha=0.5, alpha=1.0)
+                                        fillalpha=fillalpha, alpha=1.0)
         objs.append(self.base_circ)
 
         x, y, r = self.r2xyr(1)

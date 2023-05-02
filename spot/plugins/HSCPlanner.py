@@ -146,8 +146,8 @@ class HSCPlanner(GingaPlugin.LocalPlugin):
         self.ctr_ra_deg = 0.0
         self.ctr_deg_deg = 0.0
         self.targets = []
-        self.target_radius = 0.01
-        #self.target_radius = 20
+        #self.target_radius = 0.01
+        self.target_radius = 20
         self.pa_deg = 0.0
 
         # default dra/ddec is 120"
@@ -157,16 +157,16 @@ class HSCPlanner(GingaPlugin.LocalPlugin):
         self.rdith = 120.0
 
         # TODO: get this from a module
-        #self.px_scale = 0.000280178318866
-        self.px_scale = 0.000047
-        self.fov_deg = 2.0
+        ##self.px_scale = 0.000280178318866
+        #self.px_scale = 0.000047
+        #self.fov_deg = 2.0
 
         self.dc = fv.get_draw_classes()
         canvas = self.dc.DrawingCanvas()
         canvas.add_callback('cursor-down', self.btn_down_cb)
         canvas.enable_edit(True)
         #canvas.set_drawtype(self.pickshape, color='cyan', linestyle='dash')
-        #canvas.set_callback('edit-event', self.edit_cb)
+        canvas.set_callback('edit-event', self.edit_cb)
         canvas.set_draw_mode('edit')
         canvas.register_for_cursor_drawing(self.fitsimage)
 
@@ -199,7 +199,7 @@ class HSCPlanner(GingaPlugin.LocalPlugin):
         b.equinox.set_enabled(False)
         b.add_target.add_callback('activated', lambda w: self.add_target_cb())
         b.clear_all.add_callback('activated', lambda w: self.clear_targets_cb())
-        b.fov.set_text(str(self.fov_deg))
+        #b.fov.set_text(str(self.fov_deg))
 
         b.set_pointing.add_callback('activated',
                                     lambda w: self.set_pointing_cb())
@@ -627,11 +627,12 @@ class HSCPlanner(GingaPlugin.LocalPlugin):
         l = []
         start, stop, posns = self.get_dither_positions()
         i = start
-        for ra, dec in posns:
-            l.append(Text(ra, dec, text="%d" % i, color='yellow',
-                          coord='wcs'))
-            l.append(Point(ra, dec, self.target_radius, color='yellow',
-                           style='plus', coord='wcs'))
+        for ra_deg, dec_deg in posns:
+            x, y = image.radectopix(ra_deg, dec_deg)
+            l.append(Text(x, y, text="%d" % i, color='yellow',
+                          coord='data'))
+            l.append(Point(x, y, self.target_radius, color='yellow',
+                           style='plus', coord='data'))
             i += 1
         obj = CompoundObject(*l)
         obj.opaque = True
@@ -641,7 +642,14 @@ class HSCPlanner(GingaPlugin.LocalPlugin):
         self.canvas.add(obj, tag='dither_positions')
 
     def draw_targets(self):
-        self.canvas.delete_objects(self.canvas.get_objects_by_tag_pfx('target'))
+        tgts = list(self.canvas.get_objects_by_tag_pfx('target'))
+        if len(tgts) > 0:
+            self.canvas.delete_objects(tgts)
+
+        for i, obj in enumerate(self.targets):
+            self.canvas.add(obj, tag='target%d' % (i))
+
+    def make_target(self, ra_deg, dec_deg, equinox):
 
         Point = self.canvas.get_draw_class('point')
         Circle = self.canvas.get_draw_class('circle')
@@ -649,23 +657,20 @@ class HSCPlanner(GingaPlugin.LocalPlugin):
 
         image = self.fitsimage.get_image()
 
-        for i, tgt in enumerate(self.targets):
-            # obj = CompoundObject(
-            #     Point(tgt.ra_deg, tgt.dec_deg, self.target_radius,
-            #           linewidth=1, color='skyblue', coord='wcs'),
-            #     Circle(tgt.ra_deg, tgt.dec_deg, self.target_radius,
-            #            linewidth=4, color='skyblue', coord='wcs'))
-            x, y = image.radectopix(tgt.ra_deg, tgt.dec_deg)
-            obj = CompoundObject(
-                Point(x, y, self.target_radius,
-                      linewidth=1, color='skyblue', coord='data'),
-                Circle(x, y, self.target_radius,
-                       linewidth=4, color='skyblue', coord='data'))
-            obj.objects[0].editable = False
-            obj.objects[1].editable = False
-            obj.opaque = True
-            obj.editable = True
-            self.canvas.add(obj, tag='target%d' % (i))
+        x, y = image.radectopix(ra_deg, dec_deg)
+        obj = CompoundObject(
+            Point(x, y, self.target_radius,
+                  linewidth=1, color='skyblue', coord='data'),
+            Circle(x, y, self.target_radius,
+                   linewidth=4, color='skyblue', coord='data'))
+        obj.objects[0].editable = False
+        obj.objects[1].editable = False
+        obj.opaque = True
+        obj.editable = True
+        self.targets.append(obj)
+        i = len(self.targets)
+        self.canvas.add(obj, tag='target%d' % (i))
+        return obj
 
     def clear_overlays(self):
         self.canvas.delete_object_by_tag('dither_positions')
@@ -703,16 +708,14 @@ class HSCPlanner(GingaPlugin.LocalPlugin):
             tgt_dec_deg = wcs.dmsStrToDeg(dec)
             tgt_equinox = float(eq)
 
-            # TODO: use 'target' entity from qplan?
-            tgt = Bunch.Bunch(ra_deg=tgt_ra_deg, dec_deg=tgt_dec_deg,
-                              equinox=tgt_equinox, name=name)
-            self.targets.append(tgt)
+            self.make_target(tgt_ra_deg, tgt_dec_deg, tgt_equinox)
 
-            self.draw_targets()
+            #self.draw_targets()
 
         except Exception as e:
             errmsg = "Failed to process target: %s" % (str(e))
             self.fv.show_error(errmsg)
+            self.logger.error(errmsg, exc_info=True)
         return True
 
     def clear_targets_cb(self):
@@ -727,6 +730,13 @@ class HSCPlanner(GingaPlugin.LocalPlugin):
         ra_deg, dec_deg = image.pixtoradec(data_x, data_y)
         self._set_radec(ra_deg, dec_deg)
         self.logger.info("cursor callback done")
+        return True
+
+    def edit_cb(self, canvas, obj):
+        image = self.fitsimage.get_image()
+        pt = obj.objects[0]
+        ra_deg, dec_deg = image.pixtoradec(pt.x, pt.y)
+        self.logger.info("edit callback done")
         return True
 
     def __str__(self):

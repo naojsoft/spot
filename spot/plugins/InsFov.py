@@ -77,7 +77,7 @@ class InsFov(GingaPlugin.LocalPlugin):
         fr = Widgets.Frame("Instrument")
 
         captions = (('Instrument:', 'label', 'instrument', 'combobox',
-                     'PA (deg):', 'label', 'pa', 'spinbutton',
+                     'PA (deg):', 'label', 'pa', 'entryset',
                      'Flip', 'checkbox'),
                     )
 
@@ -92,9 +92,8 @@ class InsFov(GingaPlugin.LocalPlugin):
         b.instrument.add_callback('activated', self.select_inst_cb)
         b.instrument.set_tooltip("Choose instrument")
 
-        b.pa.set_limits(-359, 359, incr_value=1)
-        b.pa.set_value(0)
-        b.pa.add_callback('value-changed', self.set_pa_cb)
+        b.pa.set_text("0.00")
+        b.pa.add_callback('activated', self.set_pa_cb)
         b.pa.set_tooltip("Set desired position angle")
         b.flip.set_state(self.flip)
         b.flip.set_tooltip("Flip orientation")
@@ -211,8 +210,8 @@ class InsFov(GingaPlugin.LocalPlugin):
 
             self.redo()
 
-    def set_pa_cb(self, w, val):
-        self.pa_deg = val
+    def set_pa_cb(self, w):
+        self.pa_deg = float(w.get_text().strip())
         self.redo()
 
     def toggle_flip_cb(self, w, tf):
@@ -244,7 +243,7 @@ class InsFov(GingaPlugin.LocalPlugin):
         else:
             pa_deg = self.rot_deg + img_rot_deg
         self.logger.info(f"PA is now {pa_deg} deg")
-        self.w.pa.set_value(int(pa_deg))
+        self.w.pa.set_text("%.2f" % (pa_deg))
 
     def calc_ang(self, image, righthand=False):
         data_x, data_y = self.viewer.get_pan(coord='data')[:2]
