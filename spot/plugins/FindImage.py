@@ -15,20 +15,27 @@ import numpy as np
 
 import re
 
+import tempfile
+
+from astropy.io import fits
 from astropy import units as u
+from astropy.coordinates import SkyCoord
+from astroquery.skyview import SkyView
+from astroquery.sdss import SDSS
 
 # ginga
 from ginga.gw import Widgets, GwHelp
 from ginga import GingaPlugin, trcalc
 from ginga.util import wcs, catalog, dp
 
+from ginga.AstroImage import AstroImage
 
 image_sources = {
-    'SkyView: DSS1+Blue': dict(),
-    'SkyView: DSS1+Red': dict(),
-    'SkyView: DSS2+Red': dict(),
-    'SkyView: DSS2+Blue': dict(),
-    'SkyView: DSS2+IR': dict(),
+    'SkyView: DSS1 Blue': dict(),
+    'SkyView: DSS1 Red': dict(),
+    'SkyView: DSS2 Red': dict(),
+    'SkyView: DSS2 Blue': dict(),
+    'SkyView: DSS2 IR': dict(),
     'SkyView: SDSSg': dict(),
     'SkyView: SDSSi': dict(),
     'SkyView: SDSSr': dict(),
@@ -37,17 +44,17 @@ image_sources = {
     'SkyView: 2MASS-J': dict(),
     'SkyView: 2MASS-H': dict(),
     'SkyView: 2MASS-K': dict(),
-    'SkyView: WISE+3.4': dict(),
-    'SkyView: WISE+4.6': dict(),
-    'SkyView: WISE+12': dict(),
-    'SkyView: WISE+22': dict(),
-    'SkyView: AKAIR+N60': dict(),
-    'SkyView: AKAIR+WIDE-S': dict(),
-    'SkyView: AKAIR+WIDE-L': dict(),
-    'SkyView: AKAIR+N160': dict(),
+    'SkyView: WISE 3.4': dict(),
+    'SkyView: WISE 4.6': dict(),
+    'SkyView: WISE 12': dict(),
+    'SkyView: WISE 22': dict(),
+    'SkyView: AKAIR N60': dict(),
+    'SkyView: AKAIR WIDE-S': dict(),
+    'SkyView: AKAIR WIDE-L': dict(),
+    'SkyView: AKAIR N160': dict(),
     'SkyView: NAVSS': dict(),
-    'SkyView: GALEX+Near+UV': dict(),
-    'SkyView: GALEX+Far+UV': dict(),
+    'SkyView: GALEX Near UV': dict(),
+    'SkyView: GALEX Far UV': dict(),
     'ESO: DSS1': dict(),
     'ESO: DSS2-red': dict(),
     'ESO: DSS2-blue': dict(),
@@ -63,16 +70,19 @@ image_sources = {
     'STScI: poss2ukstu_blue': dict(),
     'STScI: poss2ukstu_red': dict(),
     'STScI: poss2ukstu_ir': dict(),
-    'SDSS-DR16: color': dict(),
+    'SDSS: 17': dict(),
     }
 
-service_urls = {'SkyView': """https://skyview.gsfc.nasa.gov/cgi-bin/images?Survey={survey}&coordinates={coordinates}&position={position}&imscale={imscale}&size={size}&Return=FITS""",
-                'ESO': """https://archive.eso.org/dss/dss?ra={ra}&dec={dec}&mime-type=application/x-fits&x={arcmin}&y={arcmin}&Sky-Survey={survey}&equinox={equinox}""",
-                'PanSTARRS-1':  """http://ps1images.stsci.edu/cgi-bin/ps1cutouts?pos={pos}&filter={filter}&filetypes=stack&auxiliary=data&size={size}&output_size=1024&verbose=0&autoscale=99.500000&catlist=""",
-                'STScI': """https://archive.stsci.edu/cgi-bin/dss_search?v={survey}&r={ra_deg}&d={dec_deg}&e={equinox}&h={arcmin}&w={arcmin}&f=fits&c=none&fov=NONE&v3=""",
-                'SDSS-DR16': """https://skyserver.sdss.org/dr16/SkyServerWS/ImgCutout/getjpeg?ra={ra_deg}&dec={dec_deg}&scale=0.4&height={size}&width={size}""",
-                'SDSS-DR7': """https://skyservice.pha.jhu.edu/DR7/ImgCutout/getjpeg.aspx?ra={ra_deg}&dec={dec_deg}&scale=0.39612%20%20%20&width={size}&height={size}"""
-                }
+service_urls = {
+    'ESO': """https://archive.eso.org/dss/dss?ra={ra}&dec={dec}&mime-type=application/x-fits&x={arcmin}&y={arcmin}&Sky-Survey={survey}&equinox={equinox}""",
+    'PanSTARRS-1':  """http://ps1images.stsci.edu/cgi-bin/ps1cutouts?pos={pos}&filter={filter}&filetypes=stack&auxiliary=data&size={size}&output_size=1024&verbose=0&autoscale=99.500000&catlist=""",
+    'STScI': """https://archive.stsci.edu/cgi-bin/dss_search?v={survey}&r={ra_deg}&d={dec_deg}&e={equinox}&h={arcmin}&w={arcmin}&f=fits&c=none&fov=NONE&v3=""",
+}
+
+# replaced with astroquery
+# 'SkyView': """https://skyview.gsfc.nasa.gov/cgi-bin/images?Survey={survey}&coordinates={coordinates}&position={position}&imscale={imscale}&size={size}&Return=FITS""",
+# 'SDSS-DR16': """https://skyserver.sdss.org/dr16/SkyServerWS/ImgCutout/getjpeg?ra={ra_deg}&dec={dec_deg}&scale=0.4&height={size}&width={size}""",
+# 'SDSS-DR7': """https://skyservice.pha.jhu.edu/DR7/ImgCutout/getjpeg.aspx?ra={ra_deg}&dec={dec_deg}&scale=0.39612%20%20%20&width={size}&height={size}"""
 
 
 class FindImage(GingaPlugin.LocalPlugin):
@@ -257,121 +267,112 @@ class FindImage(GingaPlugin.LocalPlugin):
         radius = u.Quantity(arcmin, unit=u.arcmin)
         imscale = size = arcmin / 60.0
         service_name = service_name.strip()
-        service_url = service_urls[service_name]
+        #service_url = service_urls[service_name]
 
-                
-        try:
+        img = AstroImage(logger=self.logger)
 
-            if service_name.upper() == "SKYVIEW":
-                print('Skyview...')
-                ra_deg, dec_deg = self.get_radec()
-                position_deg = f'{ra_deg}+{dec_deg}'
-                imscale = size = arcmin / 60.0
-                equinox_str = self.w.equinox.get_text().strip()
-                
-                params = {'survey': survey,
-                          # options are: JYYYY, BYYYY, EYYYY, Galactic, ICRS
-                          'coordinates': equinox_str,
-                          'position': position_deg,
-                          'imscale': imscale,
-                          'size': size,
-                          }
-                print(f'Skyview params={params}') 
-                
-            elif service_name.upper() == "ESO":
-                print('ESO...')
-                ra_list, dec_list = self.get_radec_list()
-                ra = f'{ra_list[0]}%20{ra_list[1]}%20{ra_list[2]}'
-                dec = f'{dec_list[0]}%20{dec_list[1]}%20{dec_list[2]}'
-                
-                equinox_str = self.w.equinox.get_text().strip() 
-                equinox = re.findall('[0-9]+', equinox_str)
+        self.logger.info(f'service_name={service_name}')
 
-                if not equinox:
-                    equinox = 2000
-                else:
-                    equinox = equinox[0] 
-                
-                params = {'survey': survey,
-                          # options are: J2000 or B1950, but digits only.  e.g. J2000->2000, B1950->1950 
-                          'equinox': equinox,
-                          'ra': ra,
-                          'dec': dec,
-                          'arcmin': radius.value,
-                          }
-               
-                print(f'ESO params={params}')
+        service = service_name.upper()
+        if service == "SKYVIEW":
+            self.logger.info(f'service name={service_name}')
 
-            elif service_name.upper() == "PANSTARRS-1":
-                print('Panstarrs 1')
-                ra_list, dec_list = self.get_radec_list()
-                print(f'ra_list={ra_list}, dec_list={dec_list}')
+            sv = SkyView()
 
-                if ra_list[0].startswith("+"):
-                    ra_list[0] = ra_list[0][1:] 
-                
-                pos = f'{ra_list[0]}%3A{ra_list[1]}%3A{ra_list[2]}+{dec_list[0]}%3A{dec_list[1]}%3A{dec_list[2]}'
+            ra_deg, dec_deg = self.get_radec()
+            position = SkyCoord(ra=ra_deg*u.degree, dec=dec_deg*u.degree)
+            radius = u.Quantity(arcmin, unit=u.arcmin)
 
-                pixel_arcmin = 240 # 240 pixels/1 arcmin
-                size = arcmin * pixel_arcmin
-                
-                
-                params = {'filter': survey,
-                          'pos': pos,
-                          'size': size,
-                          }
-                
-                print(f'PanSTARRS params={params}')   
-                
+            self.logger.info(f'position={position}, survey={survey}, radius={radius}')
 
-            elif service_name.upper() == "STSCI":
-                print('STSCI...')
-                ra_deg, dec_deg = self.get_radec()
-                equinox = self.w.equinox.get_text().strip()
-                 
-                params = {'survey': survey,
-                          'ra_deg': ra_deg,
-                          'dec_deg': dec_deg,
-                          'equinox': equinox, # J2000 or B1950
-                          'arcmin': arcmin,
-                          }
+            im = sv.get_images(position=position, survey=[survey], radius=radius)
+            self.logger.info(f'im={im}')
 
-                print(f'STScI params={params}')
+            tmp_file = tempfile.mktemp()
+            self.logger.info(f'loading SkyView image. file={tmp_file}')
+            im[0].writeto(tmp_file, overwrite=True)
+            self.fv.load_file(tmp_file, chname=self.channel.name)
 
-            elif service_name.upper() == 'SDSS-DR16':
-                print('SDSS-DR16...')
-                ra_deg, dec_deg = self.get_radec()
+        elif service == "SDSS":
+            ra_deg, dec_deg = self.get_radec()
+            position = SkyCoord(ra=ra_deg*u.degree, dec=dec_deg*u.degree)
+            radius = u.Quantity(arcmin, unit=u.arcmin)
 
-                size = (arcmin*60) / 0.4
-                params = {'ra_deg': ra_deg,
-                          'dec_deg': dec_deg,
-                          'size': size,
-                          }
+            self.logger.info(f'position={position}, survey={survey}, radius={radius}')
 
-                print(f'SDSS-DR16 params={params}')
-                
-            elif service_name.upper() == 'SDSS-DR7':
-                print('SDSS-DR7...  TO DO')
-                
-                ra_deg, dec_deg = self.get_radec()
+            im = SDSS.get_images(coordinates=position, radius=radius, data_release=int(survey))
+            tmp_file = tempfile.mktemp()
+            self.logger.info(f'loading SDSS image. file={tmp_file}')
+            im[0].writeto(tmp_file, overwrite=True)
+            self.fv.load_file(tmp_file, chname=self.channel.name)
 
-                size = (arcmin*60) / 0.396127  # arcsec/pixel (the natural scale of SDSS is 0.396127)
-                params = {'ra_deg': ra_deg,
-                          'dec_deg': dec_deg,
-                          'size': size,
-                          }
-
-                print(f'SDSS-DR7 params={params}')
-                
-            service_url = service_url.format(**params)
-            print(f'service_url={service_url}')
-        except Exception as e:
-            errmsg = "Error formatting URL: {}".format(e)
-            #self.logger.error(errmsg, exc_info=True)
-            self.fv.show_error(errmsg)
             return
 
-        self.fv.open_uris([service_url], chname=self.channel.name)
+        elif service == "ESO":
+            self.logger.debug('ESO...')
+            ra_list, dec_list = self.get_radec_list()
+            ra = f'{ra_list[0]}%20{ra_list[1]}%20{ra_list[2]}'
+            dec = f'{dec_list[0]}%20{dec_list[1]}%20{dec_list[2]}'
+
+            equinox_str = self.w.equinox.get_text().strip()
+            equinox = re.findall('[0-9]+', equinox_str)
+
+            if not equinox:
+                equinox = 2000
+            else:
+                equinox = equinox[0]
+
+            params = {'survey': survey,
+                      # options are: J2000 or B1950, but digits only.
+                      # e.g. J2000->2000, B1950->1950
+                      'equinox': equinox,
+                      'ra': ra,
+                      'dec': dec,
+                      'arcmin': radius.value,
+                      }
+
+            service_url = service_urls[service_name]
+            service_url = service_url.format(**params)
+            self.logger.debug(f'ESO url={service_url}')
+            self.fv.open_uris([service_url], chname=self.channel.name)
+
+        elif service == "PANSTARRS-1":
+            self.logger.debug('Panstarrs 1...')
+            ra_list, dec_list = self.get_radec_list()
+
+            if ra_list[0].startswith("+"):
+                ra_list[0] = ra_list[0][1:]
+
+            pos = f'{ra_list[0]}%3A{ra_list[1]}%3A{ra_list[2]}+{dec_list[0]}%3A{dec_list[1]}%3A{dec_list[2]}'
+
+            pixel_arcmin = 240 # 240 pixels/1 arcmin
+            size = arcmin * pixel_arcmin
+            params = {'filter': survey,
+                      'pos': pos,
+                      'size': size,
+                      }
+
+            service_url = service_urls[service_name]
+            service_url = service_url.format(**params)
+            self.logger.debug(f'Panstarrs1 url={service_url}')
+            self.fv.open_uris([service_url], chname=self.channel.name)
+
+        elif service == "STSCI":
+            self.logger.debug('STScI...')
+            ra_deg, dec_deg = self.get_radec()
+            equinox = self.w.equinox.get_text().strip()
+
+            params = {'survey': survey,
+                      'ra_deg': ra_deg,
+                      'dec_deg': dec_deg,
+                      'equinox': equinox, # J2000 or B1950
+                      'arcmin': arcmin,
+                      }
+
+            service_url = service_urls[service_name]
+            service_url = service_url.format(**params)
+            self.logger.debug(f'STScI url={service_url}')
+            self.fv.open_uris([service_url], chname=self.channel.name)
 
     def create_blank_image(self):
         self.fitsimage.onscreen_message("Creating blank field...",
@@ -417,7 +418,7 @@ class FindImage(GingaPlugin.LocalPlugin):
             ra_list = [ra_str[:2], ra_str[2:4], ra_str[4:]]
             dec_list = [dec_str[:2], dec_str[2:4], dec_str[4:]]
 
-        return (ra_list, dec_list)    
+        return (ra_list, dec_list)
 
     def getname_cb(self):
         name = self.w.name.get_text().strip()
