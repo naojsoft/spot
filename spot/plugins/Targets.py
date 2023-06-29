@@ -59,6 +59,9 @@ try:
 except ImportError:
     have_oscript = False
 
+# local
+from spot.util.polar import subaru_normalize_az
+
 
 class Targets(GingaPlugin.LocalPlugin):
 
@@ -68,7 +71,8 @@ class Targets(GingaPlugin.LocalPlugin):
         # get preferences
         prefs = self.fv.get_preferences()
         self.settings = prefs.create_category('plugin_Targets')
-        self.settings.add_defaults(targets_update_interval=60.0)
+        self.settings.add_defaults(targets_update_interval=60.0,
+                                   plot_ss_objects=True)
         self.settings.load(onError='silent')
 
         self.site = Observer('Subaru',
@@ -83,7 +87,11 @@ class Targets(GingaPlugin.LocalPlugin):
         self.base_circ = None
         self.target_list = []
         self.plot_which = 'all'
+        self.plot_ss_objects = self.settings.get('plot_ss_objects', True)
         self.selected = set([])
+        self.tgt_info_lst = []
+        self.ss_info_lst = []
+        self.time_mode = 'now'
         self.cur_tz = tz.gettz('US/Hawaii')
         self.dt_utc = datetime.utcnow().replace(tzinfo=tz.UTC)
 
@@ -198,7 +206,14 @@ class Targets(GingaPlugin.LocalPlugin):
         btn.add_callback('activated', self.unselect_all_cb)
         hbox.add_widget(btn, stretch=0)
         self.w.btn_unselect_all = btn
+
         hbox.add_widget(Widgets.Label(''), stretch=1)
+
+        self.w.plot_ss = Widgets.CheckBox("Plot SS")
+        self.w.plot_ss.set_state(self.plot_ss_objects)
+        self.w.plot_ss.add_callback('activated', self.plot_ss_cb)
+        hbox.add_widget(self.w.plot_ss, stretch=0)
+
         hbox.add_widget(Widgets.Label('Plot:'), stretch=0)
         plot = Widgets.ComboBox()
         hbox.add_widget(plot, stretch=0)
@@ -288,7 +303,8 @@ class Targets(GingaPlugin.LocalPlugin):
         self.canvas.delete_object_by_tag(tag)
 
         # filter the subset desired to be seen
-        tgt_info_lst = self.filter_targets(tgt_info_lst)
+        if tag != 'ss':
+            tgt_info_lst = self.filter_targets(tgt_info_lst)
 
         objs = []
         for res in tgt_info_lst:
@@ -327,8 +343,9 @@ class Targets(GingaPlugin.LocalPlugin):
         if start_time is None:
             start_time = self.get_datetime()
 
-        # filter the subset desired to be seen
-        tgt_info_lst = self.filter_targets(tgt_info_lst)
+        if tag != 'ss':
+            # filter the subset desired to be seen
+            tgt_info_lst = self.filter_targets(tgt_info_lst)
 
         obj = self.canvas.get_object_by_tag(tag)
         objs = obj.objects
@@ -355,7 +372,7 @@ class Targets(GingaPlugin.LocalPlugin):
     def update_all(self, start_time=None):
         if start_time is None:
             start_time = self.get_datetime()
-        print("update time", start_time.strftime("%Y-%m-%d %H:%M:%S"))
+        self.logger.debug("update time: {}".format(start_time.strftime("%Y-%m-%d %H:%M:%S")))
         # get full information about all targets
         self.tgt_info_lst = [self.get_tgt_info(tgt, self.site, start_time,
                                                # color=self.colors[i % len(self.colors)])
@@ -368,17 +385,26 @@ class Targets(GingaPlugin.LocalPlugin):
 
         self.update_targets(self.tgt_info_lst, 'targets', start_time=start_time)
 
-        ss_info_lst = [self.get_tgt_info(tgt, self.site, start_time)
-                       for tgt in self.ss]
-        self.update_targets(ss_info_lst, 'ss', start_time=start_time)
+        if self.plot_ss_objects:
+            self.ss_info_lst = [self.get_tgt_info(tgt, self.site, start_time)
+                                for tgt in self.ss]
+        else:
+            self.ss_info_lst = []
+        self.update_targets(self.ss_info_lst, 'ss', start_time=start_time)
 
     def update_plots(self):
         self.update_targets(self.tgt_info_lst, 'targets')
+        self.update_targets(self.ss_info_lst, 'ss')
 
     def update_tgt_timer_cb(self, timer):
         timer.start()
 
-        self.update_all()
+        if self.time_mode == 'now':
+            self.dt_utc = datetime.utcnow().replace(tzinfo=tz.UTC)
+            dt = self.dt_utc.astimezone(self.cur_tz)
+            self.w.datetime.set_text(dt.strftime("%Y-%m-%d %H:%M:%S"))
+
+            self.update_all()
 
     def ope_set_cb(self, w):
         file_path = w.get_text().strip()
@@ -394,8 +420,8 @@ class Targets(GingaPlugin.LocalPlugin):
         self.set_datetime_cb()
 
     def set_datetime_cb(self, *args):
-        mode = self.w.mode.get_text().lower()
-        if mode == 'now':
+        self.time_mode = self.w.mode.get_text().lower()
+        if self.time_mode == 'now':
             self.dt_utc = datetime.utcnow().replace(tzinfo=tz.UTC)
             dt = self.dt_utc.astimezone(self.cur_tz)
             self.w.datetime.set_text(dt.strftime("%Y-%m-%d %H:%M:%S"))
@@ -519,6 +545,11 @@ class Targets(GingaPlugin.LocalPlugin):
         #                                   len(self.tgt_info_lst))
         # self.w.btn_unselect_all.set_enabled(len(self.selected) > 0)
 
+    def plot_ss_cb(self, w, tf):
+        self.plot_ss_objects = tf
+        self.clear_plot()
+        self.update_all()
+
     def configure_plot_cb(self, w, idx):
         option = w.get_text()
         self.plot_which = option.lower()
@@ -566,14 +597,3 @@ def get_info_tgt_list(tgt_list, site, start_time, color='violet'):
             # NOTE: AZ values are normalized to standard use, NOT Subaru
             results.append((info.az_deg, info.alt_deg, tgt.name, clr))
     return results
-
-
-def subaru_normalize_az(az_deg):
-    az_deg = az_deg + 180.0
-    # az_deg = az_deg % 360.0
-    if math.fabs(az_deg) >= 360.0:
-        az_deg = math.fmod(az_deg, 360.0)
-    if az_deg < 0.0:
-        az_deg += 360.0
-
-    return az_deg
