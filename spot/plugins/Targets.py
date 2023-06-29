@@ -1,24 +1,35 @@
 """
-Targets.py -- Overlay objects on all sky camera
+``Targets`` -- manage a list of astronomical targets
 
+Plugin Type: Local
+==================
+
+``Targets`` is a local plugin, which means it is associated with a channel.
+An instance can be opened for each channel.
+
+Usage
+=====
+``Targets`` is normally used in conjunction with the plugins ``PolarSky``,
+``SkyCam`` and ``Visibility``.  Typically, ``PolarSky`` is started first
+on a channel and then ``SkyCam``, ``Targets`` and ``Visibility`` are also
+started, although ``SkyCam`` and ``Visibility`` are not required to be
+active to use it.
+
+Authors
+=======
 E. Jeschke
 
 Requirements
 ============
-python packages
----------------
 
 naojsoft packages
 -----------------
-- g2cam
 - ginga
 - qplan
 - oscript
 """
 # stdlib
-import sys
 import os
-import time
 from datetime import datetime
 from dateutil import tz, parser
 import math
@@ -29,7 +40,7 @@ import csv
 import numpy as np
 
 # ginga
-from ginga.gw import Widgets, GwHelp
+from ginga.gw import Widgets
 from ginga import GingaPlugin
 from ginga.util.paths import ginga_home
 from ginga.util.wcs import (ra_deg_to_str, dec_deg_to_str)
@@ -40,9 +51,13 @@ from qplan import common
 from qplan.util.calcpos import Observer
 from qplan.entity import StaticTarget
 
-# oscript
-from oscript.parse import ope
-from oscript.util.ope import funkyHMStoDeg, funkyDMStoDeg
+# oscript (optional, for loading OPE files)
+try:
+    from oscript.parse import ope
+    from oscript.util.ope import funkyHMStoDeg, funkyDMStoDeg
+    have_oscript = True
+except ImportError:
+    have_oscript = False
 
 
 class Targets(GingaPlugin.LocalPlugin):
@@ -68,17 +83,18 @@ class Targets(GingaPlugin.LocalPlugin):
         self.base_circ = None
         self.target_list = []
         self.plot_which = 'all'
-        self.selected = []
+        self.selected = set([])
         self.cur_tz = tz.gettz('US/Hawaii')
         self.dt_utc = datetime.utcnow().replace(tzinfo=tz.UTC)
 
-        self.columns = [('Name', 'name'),
+        self.columns = [('Sel', 'selected'),
+                        ('Name', 'name'),
                         ('AM', 'airmass'),
                         ('Az', 'az_deg'),
                         ('Alt', 'alt_deg'),
                         ('HA', 'ha'),
-                        #('Slew', 'slew'),
-                        #('AD', 'ad'),
+                        # ('Slew', 'slew'),
+                        # ('AD', 'ad'),
                         ('Pang', 'parang_deg'),
                         ('Moon Sep', 'moon_sep'),
                         ('RA', 'ra'),
@@ -120,12 +136,12 @@ class Targets(GingaPlugin.LocalPlugin):
         w, b = Widgets.build_info(captions)
         self.w = b
         # TEMP
-        b.ope_path.set_text("/home/eric/Procedure/stafftime_20220914.ope")
+        proc_dir = os.path.join(os.environ['HOME'], 'Procedure')
+        b.ope_path.set_text(proc_dir)
 
         top.add_widget(w, stretch=0)
         b.ope_path.add_callback('activated', self.ope_set_cb)
 
-        #top.add_widget(Widgets.Label(''), stretch=1)
         self.w.tgt_tbl = Widgets.TreeView(auto_expand=True,
                                           selection='multiple',
                                           sortable=True,
@@ -134,12 +150,10 @@ class Targets(GingaPlugin.LocalPlugin):
         top.add_widget(self.w.tgt_tbl, stretch=1)
 
         self.w.tgt_tbl.add_callback('selected', self.target_selection_cb)
-        #self.w.tgt_tbl.add_callback('activated', self.target_activated_cb)
 
         captions = (("Time mode:", 'llabel', "mode", 'combobox',
                      "Time zone:", 'llabel', 'timezone', 'entryset',
                      "Date time:", 'llabel', 'datetime', 'entryset'),
-                    ("Plot:", 'label', 'plot', 'combobox'),
                     )
 
         w, b = Widgets.build_info(captions)
@@ -158,12 +172,40 @@ class Targets(GingaPlugin.LocalPlugin):
         b.datetime.set_enabled(False)
         self.set_datetime_cb()
 
-        for option in ['All', 'Selected']:
-            b.plot.append_text(option)
-        b.plot.add_callback('activated', self.configure_plot_cb)
-        b.plot.set_tooltip("Choose what is plotted")
-
         top.add_widget(w, stretch=0)
+
+        hbox = Widgets.HBox()
+        btn = Widgets.Button("Select")
+        btn.set_tooltip("Add highlighted items to selected targets")
+        btn.add_callback('activated', self.select_cb)
+        hbox.add_widget(btn, stretch=0)
+        self.w.btn_select = btn
+        btn = Widgets.Button("Unselect")
+        btn.set_tooltip("Remove highlighted items from selected targets")
+        btn.add_callback('activated', self.unselect_cb)
+        hbox.add_widget(btn, stretch=0)
+        self.w.btn_unselect = btn
+        btn = Widgets.Button("Select All")
+        btn.set_tooltip("Add all targets to selected targets")
+        btn.add_callback('activated', self.select_all_cb)
+        hbox.add_widget(btn, stretch=0)
+        self.w.btn_select_all = btn
+        btn = Widgets.Button("Unselect All")
+        btn.set_tooltip("Clear all targets from selected targets")
+        btn.add_callback('activated', self.unselect_all_cb)
+        hbox.add_widget(btn, stretch=0)
+        self.w.btn_unselect_all = btn
+        hbox.add_widget(Widgets.Label(''), stretch=1)
+        hbox.add_widget(Widgets.Label('Plot:'), stretch=0)
+        plot = Widgets.ComboBox()
+        hbox.add_widget(plot, stretch=0)
+        for option in ['All', 'Selected']:
+            plot.append_text(option)
+        plot.add_callback('activated', self.configure_plot_cb)
+        plot.set_tooltip("Choose what is plotted")
+
+        self._update_selection_buttons()
+        top.add_widget(hbox, stretch=0)
 
         btns = Widgets.HBox()
         btns.set_border_width(4)
@@ -173,7 +215,7 @@ class Targets(GingaPlugin.LocalPlugin):
         btn.add_callback('activated', lambda w: self.close())
         btns.add_widget(btn, stretch=0)
         btn = Widgets.Button("Help")
-        #btn.add_callback('activated', lambda w: self.help())
+        # btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
@@ -270,7 +312,6 @@ class Targets(GingaPlugin.LocalPlugin):
         obj.plot_targets(start_time, self.site, targets,
                          timezone=self.cur_tz)
 
-
     def update_targets(self, tgt_info_lst, tag, start_time=None):
         """Update targets already plotted with new positions.
         """
@@ -291,7 +332,6 @@ class Targets(GingaPlugin.LocalPlugin):
             alpha = 1.0 if res.info.alt_deg > 0 else 0.0
             t, r = self.map_azalt(res.info.az_deg, res.info.alt_deg)
             x, y = self.p2r(r, t)
-            #print(res.tgt.name, res.info.az_deg, res.info.alt_deg, r, t, x, y)
             point, text = objs[i], objs[i + i]
             point.x, point.y, point.alpha, point.fillalpha = x, y, alpha, alpha
             text.x, text.y, text.alpha = x, y, alpha
@@ -313,8 +353,8 @@ class Targets(GingaPlugin.LocalPlugin):
         print("update time", start_time.strftime("%Y-%m-%d %H:%M:%S"))
         # get full information about all targets
         self.tgt_info_lst = [self.get_tgt_info(tgt, self.site, start_time,
-                                               #color=self.colors[i % len(self.colors)])
-                                               color='darkgreen')
+                                               # color=self.colors[i % len(self.colors)])
+                                               color='green2')
                              for i, tgt in enumerate(self.target_list)]
 
         # update the target table
@@ -367,6 +407,9 @@ class Targets(GingaPlugin.LocalPlugin):
         self.update_all()
 
     def process_ope_file_for_targets(self, ope_path):
+        if not have_oscript:
+            self.fv.show_error("Please install the 'oscript' module to use this feature")
+
         proc_home = os.path.join(os.environ['HOME'], 'Procedure')
         prm_dirs = [proc_home, os.path.join(proc_home, 'COMMON'),
                     os.path.join(ginga_home, 'prm')]
@@ -405,34 +448,74 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def get_tgt_info(self, tgt, site, start_time, color='violet'):
         info = tgt.calc(site, start_time)
-        clr = getattr(tgt, 'color', color)
+        color = getattr(tgt, 'color', color)
         res = Bunch.Bunch(tgt=tgt, info=info, color=color)
         return res
 
     def targets_to_table(self, target_info):
         tree_dict = OrderedDict()
         for res in target_info:
+            selected = res.tgt.name in self.selected
             # NOTE: AZ values are normalized to standard use, NOT Subaru
             # so need to adjust putting into table
-            az_deg = res.info.az_deg - 180.0
-            tree_dict[res.tgt.name] = Bunch.Bunch(name=res.tgt.name,
-                                                  ra=res.tgt.ra,
-                                                  dec=res.tgt.dec,
-                                                  equinox=("%.1f" % res.tgt.equinox),
-                                                  az_deg=("%d" % int(round(az_deg))),
-                                                  alt_deg=("%d" % int(round(res.info.alt_deg))),
-                                                  parang_deg=("%.2f" % np.degrees(res.info.pang)),
-                                                  ha=("%.2f" % res.info.ha),
-                                                  airmass=("%.2f" % res.info.airmass),
-                                                  moon_sep=("%.2f" % res.info.moon_sep),
-                                                  comment=res.tgt.comment)
+            # az_deg = res.info.az_deg - 180.0
+            az_deg = subaru_normalize_az(res.info.az_deg)
+            tree_dict[res.tgt.name] = Bunch.Bunch(
+                selected='*' if selected else '',
+                name=res.tgt.name,
+                ra=res.tgt.ra,
+                dec=res.tgt.dec,
+                equinox=("%.1f" % res.tgt.equinox),
+                az_deg=("%d" % int(round(az_deg))),
+                alt_deg=("%d" % int(round(res.info.alt_deg))),
+                parang_deg=("%.2f" % np.degrees(res.info.pang)),
+                ha=("%.2f" % res.info.ha),
+                airmass=("%.2f" % res.info.airmass),
+                moon_sep=("%.2f" % res.info.moon_sep),
+                comment=res.tgt.comment)
         self.w.tgt_tbl.set_tree(tree_dict)
         self.w.tgt_tbl.set_optimal_column_widths()
 
-    def target_selection_cb(self, tbl_w, sel_dct):
-        self.selected = list(sel_dct.keys())
+    def target_selection_update(self):
+        self.targets_to_table(self.tgt_info_lst)
         self.clear_plot()
         self.update_plots()
+
+    def target_selection_cb(self, w, sel_dct):
+        self._update_selection_buttons()
+
+    def select_cb(self, w):
+        sel_dct = self.w.tgt_tbl.get_selected()
+        self.selected = self.selected.union(set(sel_dct.keys()))
+        self.target_selection_update()
+        self._update_selection_buttons()
+
+    def unselect_cb(self, w):
+        sel_dct = self.w.tgt_tbl.get_selected()
+        self.selected = self.selected.difference(set(sel_dct.keys()))
+        self.target_selection_update()
+        self._update_selection_buttons()
+
+    def select_all_cb(self, w):
+        self.selected = set([res.tgt.name for res in self.tgt_info_lst])
+        self.target_selection_update()
+        self._update_selection_buttons()
+
+    def unselect_all_cb(self, w):
+        self.selected = set([])
+        self.target_selection_update()
+        self._update_selection_buttons()
+
+    def _update_selection_buttons(self):
+        # enable or disable the selection buttons as needed
+        sel_dct = self.w.tgt_tbl.get_selected()
+        keys = set(sel_dct.keys())
+        self.w.btn_select.set_enabled(len(keys - self.selected) > 0)
+        self.w.btn_unselect.set_enabled(len(keys & self.selected) > 0)
+        # all_keys = set([res.tgt.name for res in self.tgt_info_lst])
+        # self.w.btn_select_all.set_enabled(len(self.selected) <
+        #                                   len(self.tgt_info_lst))
+        # self.w.btn_unselect_all.set_enabled(len(self.selected) > 0)
 
     def configure_plot_cb(self, w, idx):
         option = w.get_text()
@@ -441,15 +524,15 @@ class Targets(GingaPlugin.LocalPlugin):
         self.update_plots()
 
     def get_datetime(self):
-        #obj = self.channel.opmon.get_plugin('Settings')
-        #return obj.get_datetime()
+        # obj = self.channel.opmon.get_plugin('Settings')
+        # return obj.get_datetime()
         return self.dt_utc.astimezone(self.site.timezone)
 
     def p2r(self, r, t):
         # TODO: take into account fisheye distortion
         t_rad = np.radians(t)
 
-        #cx, cy = self.settings['image_center']
+        # cx, cy = self.settings['image_center']
         cx, cy = 0.0, 0.0
         scale = self.get_scale()
 
@@ -460,7 +543,7 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def r2xyr(self, r):
         # TODO: take into account fisheye distortion
-        #cx, cy = self.settings['image_center']
+        # cx, cy = self.settings['image_center']
         cx, cy = 0.0, 0.0
         r = r * self.get_scale()
         return (cx, cy, r)
@@ -471,7 +554,7 @@ class Targets(GingaPlugin.LocalPlugin):
         return scale
 
     def map_azalt(self, az, alt):
-        #az = subaru_normalize_az(az)
+        # az = subaru_normalize_az(az)
         return az + 90.0, 90.0 - alt
 
     def __str__(self):
@@ -499,9 +582,10 @@ def get_info_tgt_list(tgt_list, site, start_time, color='violet'):
             results.append((info.az_deg, info.alt_deg, tgt.name, clr))
     return results
 
+
 def subaru_normalize_az(az_deg):
     az_deg = az_deg + 180.0
-    #az_deg = az_deg % 360.0
+    # az_deg = az_deg % 360.0
     if math.fabs(az_deg) >= 360.0:
         az_deg = math.fmod(az_deg, 360.0)
     if az_deg < 0.0:

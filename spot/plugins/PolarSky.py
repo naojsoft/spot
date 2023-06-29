@@ -69,16 +69,23 @@ class PolarSky(GingaPlugin.LocalPlugin):
         color = 'sienna'
         scale = self.get_scale()
         r = self.settings.get('tel_fov_deg') * 0.5 * scale
-        objs.append(self.dc.Point(0.0, 0.0, radius=r, style='plus',
-                                  linewidth=2, color=color))
         objs.append(self.dc.Circle(0.0, 0.0, r, linewidth=1, color=color))
-        objs.append(self.dc.Text(0.0, 0.0, text='Telescope', color=color,
-                                 fontscale=True, fontsize_min=12))
-        objs.append(self.dc.Line(0.0, 0.0, 0.0, 0.0, color='white',
+        off = 4 * scale
+        objs.append(self.dc.Line(r, r, r+off, r+off, linewidth=1,
+                                 arrow='start', color=color))
+        objs.append(self.dc.Text(r+off, r+off, text='Telescope', color=color,
+                                 fontscale=True, fontsize_min=12,
+                                 rot_deg=-45.0))
+        objs.append(self.dc.Line(0.0, 0.0, 0.0, 0.0, color='slateblue',
                                  linewidth=2, linestyle='dash', arrow='end',
                                  alpha=0.0))
-        objs.append(self.dc.Circle(0.0, 0.0, r, linewidth=1, color='white',
+        objs.append(self.dc.Circle(0.0, 0.0, r, linewidth=1, color='red',
                                    linestyle='dash', alpha=0.0))
+        objs.append(self.dc.Line(0.0, 0.0, 0.0, 0.0, linewidth=1,
+                                 arrow='start', color='red'))
+        objs.append(self.dc.Text(0.0, 0.0, text='Target', color='red',
+                                 fontscale=True, fontsize_min=12,
+                                 rot_deg=-45.0))
         self.tel_obj = self.dc.CompoundObject(*objs)
 
         self.orig_bg = self.viewer.get_bg()
@@ -274,8 +281,12 @@ class PolarSky(GingaPlugin.LocalPlugin):
 
         az, alt = self.telescope_pos
         az_cmd, alt_cmd = self.telescope_cmd
+        scale = self.get_scale()
+        rd = self.settings.get('tel_fov_deg') * 0.5 * scale
+        off = 4 * scale
 
-        tel_pt, tel_circ, tel_text, line, cmd_circ = self.tel_obj.objects[:5]
+        (tel_circ, tel_line, tel_text, line, cmd_circ,
+         cmd_line, cmd_text) = self.tel_obj.objects
 
         self.logger.debug(f'updating tel posn to alt={alt},az={az}')
         az = subaru_normalize_az(az)
@@ -283,25 +294,31 @@ class PolarSky(GingaPlugin.LocalPlugin):
         t, r = self.map_azalt(az, alt)
         x, y = self.p2r(r, t)
         self.logger.debug(f'updating tel posn to x={x},y={y}')
-        tel_pt.x, tel_pt.y = x, y
         tel_circ.x, tel_circ.y = x, y
-        tel_text.x, tel_text.y = x, y
+        tel_line.x1, tel_line.y1 = x + rd, y + rd
+        tel_line.x2, tel_line.y2 = x + rd + off, y + rd + off
+        tel_text.x, tel_text.y = x + rd + off, y + rd + off
 
         # calculate distance to commanded position
         az_dif, alt_dif = self.telescope_diff[:2]
-        delta_deg = az_dif + alt_dif
+        delta_deg = math.fabs(az_dif) + math.fabs(alt_dif)
 
         threshold = self.settings.get('slew_distance_threshold')
         if delta_deg < threshold:
-            line.alpha, cmd_circ.alpha = 0.0, 0.0
+            #line.alpha, cmd_circ.alpha = 0.0, 0.0
+            line.alpha = 0.0
         else:
-            line.alpha, cmd_circ.alpha = 1.0, 1.0
+            #line.alpha, cmd_circ.alpha = 1.0, 1.0
+            line.alpha = 1.0
             line.x1, line.y1 = x, y
 
         t, r = self.map_azalt(az_cmd, alt_cmd)
         x, y = self.p2r(r, t)
         cmd_circ.x, cmd_circ.y = x, y
         line.x2, line.y2 = x, y
+        cmd_line.x1, cmd_line.y1 = x - rd, y - rd
+        cmd_line.x2, cmd_line.y2 = x - rd - off, y - rd - off
+        cmd_text.x, cmd_text.y = x - rd - off, y - rd - off
 
         with self.fitsimage.suppress_redraw:
             if self.w.rotate_view_to_azimuth.get_state():
