@@ -1,0 +1,124 @@
+#! /usr/bin/env python
+#
+# spotview -- Customized Ginga viewer for Gen2
+#
+import sys
+import os
+from argparse import ArgumentParser
+
+# NOTE: need to set here so that ginga.util.paths picks it up first
+os.environ['GINGA_HOME'] = os.path.join(os.environ['HOME'], '.spot')
+
+from ginga.rv import main as g_main
+from ginga.misc.Bunch import Bunch
+
+import spot.plugins
+
+
+default_layout = ['seq', {},
+                   ['vbox', dict(name='top', width=1400, height=700),  # noqa
+                    dict(row=['hbox', dict(name='menu')],
+                         stretch=0),
+                    dict(row=['hpanel', dict(name='hpnl'),
+                     ['ws', dict(name='left', wstype='tabs',  # noqa
+                                 width=300, height=-1, group=2),
+                      # (tabname, layout), ...
+                      [("Info", ['vpanel', {},
+                                 ['ws', dict(name='uleft', wstype='stack',
+                                             height=250, group=3)],
+                                 ['ws', dict(name='lleft', wstype='tabs',
+                                             height=330, group=3)],
+                                 ]
+                        )]],
+                     ['vbox', dict(name='main', width=600),
+                      dict(row=['ws', dict(name='channels', wstype='tabs',
+                                           group=1, use_toolbar=True,
+                                           default=True)],
+                           stretch=1),
+                      dict(row=['ws', dict(name='cbar', wstype='stack',
+                                           group=99)], stretch=0),
+                      dict(row=['ws', dict(name='readout', wstype='stack',
+                                           group=99)], stretch=0),
+                      dict(row=['ws', dict(name='operations', wstype='stack',
+                                           group=99)], stretch=0),
+                      ],
+                     ['ws', dict(name='right', wstype='tabs',
+                                 width=400, height=-1, group=2),
+                      # (tabname, layout), ...
+                      [("Dialogs", ['ws', dict(name='dialogs', wstype='tabs',
+                                               group=2)
+                                    ]
+                        )]
+                      ],
+                     ], stretch=1),  # noqa
+                    dict(row=['ws', dict(name='toolbar', wstype='stack',
+                                         height=40, group=2)],
+                         stretch=0),
+                    dict(row=['hbox', dict(name='status')], stretch=0),
+                    ]]
+
+def get_plugin_spec(name):
+    l_name = name.lower()
+    for spec in g_main.plugins:
+        if spec.module.lower() == l_name:
+            return spec
+    return KeyError(name)
+
+def add_plugin_spec(spec):
+    g_main.plugins.append(spec)
+
+
+if __name__ == "__main__":
+
+    # Tweak the sys.path here if you are loading plugins from some
+    # area outside your PYTHONPATH
+    pluginHome = os.path.split(sys.modules['spot.plugins'].__file__)[0]
+    sys.path.insert(0, pluginHome)
+
+    # Add Subaru-specific plugins
+    for spec in [
+        Bunch(module='FindImage', ptype='local', ws='dialogs',
+              category="Planning", menu="FindImage", tab='FindImage'),
+        Bunch(module='InsFov', ptype='local', ws='dialogs',
+              category="Planning", menu="InsFov", tab='InsFov'),
+        Bunch(module='PolarSky', ptype='local', ws='dialogs',
+              category="Planning", menu="PolarSky", tab='PolarSky'),
+        Bunch(module='SkyCam', ptype='local', ws='dialogs',
+              category="Planning", menu="SkyCam", tab='SkyCam'),
+        Bunch(module='TelescopePosition', ptype='local', ws='dialogs',
+              category="Planning", menu="TelescopePosition", tab='TelPos'),
+        Bunch(module='Targets', ptype='local', ws='in:toplevel',
+              category="Planning", menu="Targets", tab='Targets'),
+        Bunch(module='Visibility', ptype='local', ws='in:toplevel',
+              category="Planning", menu="Visibility", tab='Visibility'),
+        Bunch(module='HSCPlanner', ptype='local', ws='dialogs',
+              category="Planning", menu="HSCPlanner", tab='HSCPlanner'),
+        # Bunch(module='Settings', ptype='local', ws='dialogs'),
+        ]:
+        add_plugin_spec(spec)
+
+    # construct viewer builder
+    viewer = g_main.ReferenceViewer(layout=default_layout)
+    viewer.add_default_plugins(except_global=['WCSMatch', 'RC', 'SAMP',
+                                              'Thumbs', 'WCSMatch',
+                                              'ChangeHistory', 'Blink',
+                                              'SaveImage', 'FBrowser'],
+                               except_local=['TVMark', 'TVMask',
+                                             'ChangeHistory', 'Mosaic',
+                                             'LineProfile', 'PixTable',
+                                             'Pick', 'Overlays', 'Cuts',
+                                             'Blink', 'MultiDim',
+                                             'PlotTable', 'AutoLoad',
+                                             'Catalogs', 'Collage',
+                                             'Drawing', 'Ruler', 'WCSAxes'])
+    #viewer.add_separately_distributed_plugins()
+
+    argprs = ArgumentParser()
+    viewer.add_default_options(argprs)
+
+    (options, args) = argprs.parse_known_args(sys.argv[1:])
+
+    if options.display:
+        os.environ['DISPLAY'] = options.display
+
+    viewer.main(options, args)
