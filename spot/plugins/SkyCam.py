@@ -120,8 +120,6 @@ class SkyCam(GingaPlugin.LocalPlugin):
             # if cameras.yml does not load
             self.config = {
                 'url': "https://allsky.subaru.nao.ac.jp/allsky/api/v0/images/download_most_recent.png",
-                'file': "allsky.png",
-                'lfile': "allsky-%ld.png",
                 'title': "Subaru Telescope (Visible)",
                 'ctr_x': 2660,
                 'ctr_y': 1850,
@@ -159,12 +157,12 @@ class SkyCam(GingaPlugin.LocalPlugin):
                           image_center=(self.config.get('ctr_x'),
                                         self.config.get('ctr_y')),
                           image_radius=self.config.get('radius'),
-                          image_rotation=self.config.get('rot_deg'),
-                          image_transform=(self.config.get('flip_x'),
-                                           self.config.get('flip_y'),
+                          image_rotation=self.config.get('rot_deg', 0.0),
+                          image_transform=(self.config.get('flip_x', False),
+                                           self.config.get('flip_y', False),
                                            False),
                           image_update_interval=self.config.get(
-                                                'update_interval'))
+                                                'update_interval', 120.0))
 
         xc, yc = self.settings['image_center']
         r = self.settings['image_radius']
@@ -290,6 +288,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
     def update_image(self, imgpath):
         # TODO: just keep updating a single image?
 
+        self.logger.info(f"image to be loaded is: {imgpath}")
         flip_x, flip_y, swap_xy = self.settings['image_transform']
         rot_deg = self.settings['image_rotation']
 
@@ -298,7 +297,6 @@ class SkyCam(GingaPlugin.LocalPlugin):
         else:
             img = RGBImage(logger=self.logger)
         img.load_file(imgpath)
-        self.logger.info(imgpath)
 
         # cut out the center part and mask everything outside the circle
         xc, yc = self.settings['image_center']
@@ -454,8 +452,6 @@ class SkyCam(GingaPlugin.LocalPlugin):
         config = self.configs[which]
         self.config = {
             'url': config['url'],
-            'file': config['file'],
-            'lfile': config['lfile'],
             'title': config['title'],
             'ctr_x': config['ctr_x'],
             'ctr_y': config['ctr_y'],
