@@ -25,6 +25,13 @@ def setup_PolarSky():
                  category="Planning", menu="PolarSky", tab='PolarSky')
     return spec
 
+def setup_TelescopePosition():
+    spec = Bunch(path=os.path.join(p_path, 'TelescopePosition.py'),
+                 module='TelescopePosition', klass='TelescopePosition',
+                 ptype='local', workspace='dialogs', start=False,
+                 category="Planning", menu="TelescopePosition", tab='TelPos')
+    return spec
+
 def setup_SkyCam():
     spec = Bunch(path=os.path.join(p_path, 'SkyCam.py'),
                  module='SkyCam', klass='SkyCam',

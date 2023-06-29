@@ -40,7 +40,7 @@ import csv
 import numpy as np
 
 # ginga
-from ginga.gw import Widgets
+from ginga.gw import Widgets, GwHelp
 from ginga import GingaPlugin
 from ginga.util.paths import ginga_home
 from ginga.util.wcs import (ra_deg_to_str, dec_deg_to_str)
@@ -122,6 +122,9 @@ class Targets(GingaPlugin.LocalPlugin):
         canvas = self.dc.DrawingCanvas()
         canvas.set_surface(self.fitsimage)
         self.canvas = canvas
+
+        self.tmr = GwHelp.Timer(duration=self.settings['targets_update_interval'])
+        self.tmr.add_callback('expired', self.update_tgt_timer_cb)
 
         self.gui_up = False
 
@@ -238,6 +241,8 @@ class Targets(GingaPlugin.LocalPlugin):
         self.canvas.delete_all_objects()
 
         self.initialize_plot()
+
+        self.update_tgt_timer_cb(self.tmr)
 
         self.resume()
 
@@ -370,13 +375,10 @@ class Targets(GingaPlugin.LocalPlugin):
     def update_plots(self):
         self.update_targets(self.tgt_info_lst, 'targets')
 
-    # def update_tgt_timer_cb(self, timer, *args):
-    #     timer.start()
+    def update_tgt_timer_cb(self, timer):
+        timer.start()
 
-    #     self.update_all()
-    #     # restore selection in table, if any
-    #     for name in self.selected:
-    #         self.table.select_path([name])
+        self.update_all()
 
     def ope_set_cb(self, w):
         file_path = w.get_text().strip()
@@ -529,33 +531,16 @@ class Targets(GingaPlugin.LocalPlugin):
         return self.dt_utc.astimezone(self.site.timezone)
 
     def p2r(self, r, t):
-        # TODO: take into account fisheye distortion
-        t_rad = np.radians(t)
-
-        # cx, cy = self.settings['image_center']
-        cx, cy = 0.0, 0.0
-        scale = self.get_scale()
-
-        x = cx + r * np.cos(t_rad) * scale
-        y = cy + r * np.sin(t_rad) * scale
-
-        return (x, y)
-
-    def r2xyr(self, r):
-        # TODO: take into account fisheye distortion
-        # cx, cy = self.settings['image_center']
-        cx, cy = 0.0, 0.0
-        r = r * self.get_scale()
-        return (cx, cy, r)
+        obj = self.channel.opmon.get_plugin('PolarSky')
+        return obj.p2r(r, t)
 
     def get_scale(self):
         obj = self.channel.opmon.get_plugin('PolarSky')
-        scale = obj.get_scale()
-        return scale
+        return obj.get_scale()
 
     def map_azalt(self, az, alt):
-        # az = subaru_normalize_az(az)
-        return az + 90.0, 90.0 - alt
+        obj = self.channel.opmon.get_plugin('PolarSky')
+        return obj.map_azalt(az, alt)
 
     def __str__(self):
         return 'targets'
