@@ -330,7 +330,6 @@ class SkyCam(GingaPlugin.LocalPlugin):
 
         ht, wd = data_np.shape[:2]
         data_np = data_np.reshape((ht, wd))
-        img = AstroImage(data_np=data_np, logger=self.logger)
 
         self.old_data = self.cur_data
         self.cur_data = data_np
@@ -350,7 +349,6 @@ class SkyCam(GingaPlugin.LocalPlugin):
                 data_np = data_np - self.old_data
 
         img = AstroImage(data_np=data_np, logger=self.logger)
-        # ht, wd = data_np.shape[:2]
         ctr_x, ctr_y = wd // 2, ht // 2
         self.crop_circ.x = ctr_x
         self.crop_circ.y = ctr_y
@@ -373,15 +371,12 @@ class SkyCam(GingaPlugin.LocalPlugin):
 
     def __update_display(self, img):
         with self.viewer.suppress_redraw:
-            self.viewer.set_image(img)
             cvs_img = self.viewer.get_canvas_image()
-            # cx, cy = self.settings['image_center']
             wd, ht = img.get_size()
             rx, ry = wd * 0.5, ht * 0.5
             cvs_img.x = -rx
             cvs_img.y = -ry
-            # r = self.settings['image_radius'] * 1.25
-            # self.viewer.set_limits(((-r, -r), (r, r)))
+            self.viewer.set_image(img)
             self.viewer.set_limits(((-rx * 1.25, -ry * 1.25),
                                     (rx * 1.25, ry * 1.25)))
             self.viewer.redraw(whence=0)

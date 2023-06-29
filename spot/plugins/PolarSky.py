@@ -78,6 +78,13 @@ class PolarSky(GingaPlugin.LocalPlugin):
         self.viewer.set_bg(0.95, 0.95, 0.95)
         self.viewer.set_fg(0.25, 0.25, 0.75)
 
+        # surreptitiously share setting of image_radius with SkyCam plugin
+        # so that when they update setting we redraw our plot
+        skycam = self.channel.opmon.get_plugin('SkyCam')
+        skycam.settings.share_settings(self.settings,
+                                       keylist=['image_radius'])
+        self.settings.get_setting('image_radius').add_callback('set', self.change_radius_cb)
+
         # insert canvas, if not already
         p_canvas = self.fitsimage.get_canvas()
         if self.canvas not in p_canvas:
@@ -113,6 +120,9 @@ class PolarSky(GingaPlugin.LocalPlugin):
 
     def replot_all(self):
         self.initialize_plot()
+
+    def change_radius_cb(self, setting, radius):
+        self.replot_all()
 
     def initialize_plot(self):
         self.canvas.delete_object_by_tag('elev')
