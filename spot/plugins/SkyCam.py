@@ -36,8 +36,8 @@ Within said tab are the controls used to manipulate the SkyCam plugin.
 
 The first section, titled "All Sky Camera," has two different controls:
 
-    * select "Use Sky Image Background" to portray image from selected source
-    * select "Preset Camera Server" dropdown to display available image sources
+    * select "Show Sky Image" to portray image from selected source
+    * select "Camera Server" dropdown to display available image sources
 
 Selecting a different image source inputs different images, which are often
 different sizes. To set an image to the size of the current screen locate
@@ -53,7 +53,7 @@ and previous images retrieved from said image source. It subtracts the current
 image from the previous, resulting in the changes between images left behind.
 These changes are what is portrayed.
 
-If the source was recently selected from the "Preset Camera Server" and a
+If the source was recently selected from the "Camera Server" and a
 second image from the source has not been displayed yet, a message on screen
 will appear telling the user that it is waiting to recieve a second image to
 put into the differential image equation.
@@ -175,9 +175,9 @@ class SkyCam(GingaPlugin.LocalPlugin):
         top.set_border_width(4)
         fr = Widgets.Frame("All Sky Camera")
 
-        captions = (('Use Sky Image Background', 'checkbutton'),
-                    ('Preset Camera Server:', 'llabel',
-                     'Select Image Source', 'combobox'),
+        captions = (('Show Sky Image', 'checkbutton'),
+                    ('Camera Server:', 'label',
+                     'Image Source', 'combobox'),
                     )
 
         w, b = Widgets.build_info(captions)
@@ -185,15 +185,15 @@ class SkyCam(GingaPlugin.LocalPlugin):
         fr.set_widget(w)
         top.add_widget(fr, stretch=0)
 
-        b.use_sky_image_background.add_callback(
-            'activated', self.sky_image_toggle_cb)
-        b.use_sky_image_background.set_tooltip(
+        b.show_sky_image.add_callback('activated',
+                                      self.sky_image_toggle_cb)
+        b.show_sky_image.set_tooltip(
             "Place the all sky image on the background")
 
         for name in self.configs.keys():
-            b.select_image_source.append_text(name)
-        b.select_image_source.add_callback('activated',
-                                           self.select_image_source_cb)
+            b.image_source.append_text(name)
+        b.image_source.add_callback('activated',
+                                           self.image_source_cb)
 
         fr = Widgets.Frame("Differential Image")
         captions = (('Show Differential Image', 'checkbutton'),
@@ -441,7 +441,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
             self.fitsimage.onscreen_message(message)
         self.refresh_image()
 
-    def select_image_source_cb(self, w, idx):
+    def image_source_cb(self, w, idx):
         which = w.get_text()
         self.img_src_name = which
         config = self.configs[which]

@@ -30,6 +30,7 @@ naojsoft packages
 """
 # stdlib
 import os
+import time
 from datetime import datetime
 from dateutil import tz, parser
 import math
@@ -48,7 +49,6 @@ from ginga.misc import Bunch
 
 # qplan
 from qplan import common
-from qplan.util.calcpos import Observer
 from qplan.entity import StaticTarget
 
 # oscript (optional, for loading OPE files)
@@ -58,9 +58,6 @@ try:
     have_oscript = True
 except ImportError:
     have_oscript = False
-
-# local
-from spot.util.polar import subaru_normalize_az
 
 
 class Targets(GingaPlugin.LocalPlugin):
@@ -75,13 +72,10 @@ class Targets(GingaPlugin.LocalPlugin):
                                    plot_ss_objects=True)
         self.settings.load(onError='silent')
 
-        self.site = Observer('Subaru',
-                             longitude='-155:28:48.900',
-                             latitude='+19:49:42.600',
-                             elevation=4163,
-                             pressure=615,
-                             temperature=0,
-                             timezone=tz.gettz('US/Hawaii'))
+        # these are set via callbacks from the SiteSelector plugin
+        self.site = None
+        self.dt_utc = None
+        self.cur_tz = None
 
         self.colors = ['red', 'blue', 'green', 'cyan', 'magenta', 'yellow']
         self.base_circ = None
@@ -91,9 +85,6 @@ class Targets(GingaPlugin.LocalPlugin):
         self.selected = set([])
         self.tgt_info_lst = []
         self.ss_info_lst = []
-        self.time_mode = 'now'
-        self.cur_tz = tz.gettz('US/Hawaii')
-        self.dt_utc = datetime.utcnow().replace(tzinfo=tz.UTC)
 
         self.columns = [('Sel', 'selected'),
                         ('Name', 'name'),
@@ -131,12 +122,16 @@ class Targets(GingaPlugin.LocalPlugin):
         canvas.set_surface(self.fitsimage)
         self.canvas = canvas
 
-        self.tmr = GwHelp.Timer(duration=self.settings['targets_update_interval'])
-        self.tmr.add_callback('expired', self.update_tgt_timer_cb)
-
         self.gui_up = False
 
     def build_gui(self, container):
+
+        # initialize site and date/time/tz
+        obj = self.channel.opmon.get_plugin('SiteSelector')
+        self.site = obj.get_site()
+        obj.cb.add_callback('site-changed', self.site_changed_cb)
+        self.dt_utc, self.cur_tz = obj.get_datetime()
+        obj.cb.add_callback('time-changed', self.time_changed_cb)
 
         top = Widgets.VBox()
         top.set_border_width(4)
@@ -161,29 +156,6 @@ class Targets(GingaPlugin.LocalPlugin):
         top.add_widget(self.w.tgt_tbl, stretch=1)
 
         self.w.tgt_tbl.add_callback('selected', self.target_selection_cb)
-
-        captions = (("Time mode:", 'llabel', "mode", 'combobox',
-                     "Time zone:", 'llabel', 'timezone', 'entryset',
-                     "Date time:", 'llabel', 'datetime', 'entryset'),
-                    )
-
-        w, b = Widgets.build_info(captions)
-        self.w.update(b)
-
-        for name in 'Now', 'Fixed':
-            b.mode.append_text(name)
-        b.mode.set_index(0)
-        b.mode.set_tooltip("Now or fixed time for visibility calculations")
-        b.mode.add_callback('activated', self.set_datetime_cb)
-        b.timezone.set_text('HST')
-        b.timezone.set_tooltip("Time zone to be used for visibility plot")
-        b.timezone.add_callback('activated', self.set_timezone_cb)
-        b.datetime.set_tooltip("Set date time for visibility calculations")
-        b.datetime.add_callback('activated', self.set_datetime_cb)
-        b.datetime.set_enabled(False)
-        self.set_datetime_cb()
-
-        top.add_widget(w, stretch=0)
 
         hbox = Widgets.HBox()
         btn = Widgets.Button("Select")
@@ -256,8 +228,6 @@ class Targets(GingaPlugin.LocalPlugin):
         self.canvas.delete_all_objects()
 
         self.initialize_plot()
-
-        self.update_tgt_timer_cb(self.tmr)
 
         self.resume()
 
@@ -372,7 +342,7 @@ class Targets(GingaPlugin.LocalPlugin):
     def update_all(self, start_time=None):
         if start_time is None:
             start_time = self.get_datetime()
-        self.logger.debug("update time: {}".format(start_time.strftime("%Y-%m-%d %H:%M:%S")))
+        self.logger.info("update time: {}".format(start_time.strftime("%Y-%m-%d %H:%M:%S [%z]")))
         # get full information about all targets
         self.tgt_info_lst = [self.get_tgt_info(tgt, self.site, start_time,
                                                # color=self.colors[i % len(self.colors)])
@@ -396,15 +366,11 @@ class Targets(GingaPlugin.LocalPlugin):
         self.update_targets(self.tgt_info_lst, 'targets')
         self.update_targets(self.ss_info_lst, 'ss')
 
-    def update_tgt_timer_cb(self, timer):
-        timer.start()
+    def time_changed_cb(self, cb, time_utc, cur_tz):
+        self.dt_utc = time_utc
+        self.cur_tz = cur_tz
 
-        if self.time_mode == 'now':
-            self.dt_utc = datetime.utcnow().replace(tzinfo=tz.UTC)
-            dt = self.dt_utc.astimezone(self.cur_tz)
-            self.w.datetime.set_text(dt.strftime("%Y-%m-%d %H:%M:%S"))
-
-            self.update_all()
+        self.update_all()
 
     def ope_set_cb(self, w):
         file_path = w.get_text().strip()
@@ -412,27 +378,6 @@ class Targets(GingaPlugin.LocalPlugin):
             self.process_ope_file_for_targets(file_path)
         else:
             self.process_csv_file_for_targets(file_path)
-
-    def set_timezone_cb(self, *args):
-        zone_str = self.w.timezone.get_text().strip()
-        self.cur_tz = tz.gettz(zone_str)
-
-        self.set_datetime_cb()
-
-    def set_datetime_cb(self, *args):
-        self.time_mode = self.w.mode.get_text().lower()
-        if self.time_mode == 'now':
-            self.dt_utc = datetime.utcnow().replace(tzinfo=tz.UTC)
-            dt = self.dt_utc.astimezone(self.cur_tz)
-            self.w.datetime.set_text(dt.strftime("%Y-%m-%d %H:%M:%S"))
-            self.w.datetime.set_enabled(False)
-        else:
-            self.w.datetime.set_enabled(True)
-            dt_str = self.w.datetime.get_text().strip()
-            dt = parser.parse(dt_str).replace(tzinfo=self.cur_tz)
-            self.dt_utc = dt.astimezone(tz.UTC)
-
-        self.update_all()
 
     def process_ope_file_for_targets(self, ope_path):
         if not have_oscript:
@@ -475,7 +420,8 @@ class Targets(GingaPlugin.LocalPlugin):
         self.update_all()
 
     def get_tgt_info(self, tgt, site, start_time, color='violet'):
-        info = tgt.calc(site, start_time)
+        # TODO: work with self.site directly, not observer
+        info = tgt.calc(site.observer, start_time)
         color = getattr(tgt, 'color', color)
         res = Bunch.Bunch(tgt=tgt, info=info, color=color)
         return res
@@ -484,10 +430,8 @@ class Targets(GingaPlugin.LocalPlugin):
         tree_dict = OrderedDict()
         for res in target_info:
             selected = res.tgt.name in self.selected
-            # NOTE: AZ values are normalized to standard use, NOT Subaru
-            # so need to adjust putting into table
-            # az_deg = res.info.az_deg - 180.0
-            az_deg = subaru_normalize_az(res.info.az_deg)
+            # NOTE: AZ values are normalized to standard use
+            az_deg = self.site.norm_to_az(res.info.az_deg)
             tree_dict[res.tgt.name] = Bunch.Bunch(
                 selected='*' if selected else '',
                 name=res.tgt.name,
@@ -556,10 +500,17 @@ class Targets(GingaPlugin.LocalPlugin):
         self.clear_plot()
         self.update_plots()
 
+    def site_changed_cb(self, cb, site_obj):
+        self.logger.debug("site has changed")
+        self.site = site_obj
+
+        self.clear_plot()
+        self.update_all()
+
     def get_datetime(self):
-        # obj = self.channel.opmon.get_plugin('Settings')
-        # return obj.get_datetime()
-        return self.dt_utc.astimezone(self.site.timezone)
+        # TODO: work with self.site directly, not observer
+        #return self.dt_utc.astimezone(self.site.observer.tz_local)
+        return self.dt_utc.astimezone(self.cur_tz)
 
     def p2r(self, r, t):
         obj = self.channel.opmon.get_plugin('PolarSky')
@@ -594,6 +545,6 @@ def get_info_tgt_list(tgt_list, site, start_time, color='violet'):
         info = tgt.calc(site, start_time)
         clr = getattr(tgt, 'color', color)
         if info.alt_deg > 0:
-            # NOTE: AZ values are normalized to standard use, NOT Subaru
+            # NOTE: AZ values are normalized to standard use (0 deg = North)
             results.append((info.az_deg, info.alt_deg, tgt.name, clr))
     return results

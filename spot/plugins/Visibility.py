@@ -99,6 +99,8 @@ class Visibility(GingaPlugin.LocalPlugin):
         """
         if not self.gui_up:
             return
+        # TODO: work with site object directly, not observer
+        site = site.observer
 
         # calc noon on the day of observation in desired time zone
         ndate = start_time.strftime("%Y-%m-%d") + " 12:00:00"

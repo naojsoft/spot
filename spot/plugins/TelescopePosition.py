@@ -8,23 +8,16 @@ Requirements
 
 naojsoft packages
 -----------------
-- g2cam
 - ginga
-- qplan
 """
 # stdlib
-import threading
 import math
+from datetime import timedelta
 
 # ginga
-from ginga.gw import Widgets
+from ginga.gw import Widgets, GwHelp
 from ginga import GingaPlugin
-
-# g2cam
-from g2cam.status.client import StatusClient
-
-# local
-from spot.util.polar import subaru_normalize_az
+from ginga.util import wcs
 
 
 class TelescopePosition(GingaPlugin.LocalPlugin):
@@ -38,6 +31,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         self.settings.add_defaults(rotate_view_to_az=False,
                                    tel_fov_deg=1.5,
                                    slew_distance_threshold=0.05,
+                                   telescope_update_interval=3.0,
                                    tel_update_interval=10.0,
                                    status_client_host=None)
         self.settings.load(onError='silent')
@@ -46,14 +40,6 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         self.telescope_pos = [-90.0, 60.0]
         self.telescope_cmd = [-90.0, 60.0]
         self.telescope_diff = [0.0, 0.0]
-        self.ev_quit = threading.Event()
-        self.status_dict = {'STATS.AZ_DEG': None, 'STATS.EL_DEG': None,
-                            'STATS.AZ_ADJ': None,
-                            'STATS.AZ_DIF': None, 'STATS.EL_DIF': None,
-                            'STATS.SLEWING_STATUS': None,
-                            'STATS.SLEWING_TIME': None,
-                            'STATS.AZ_CMD': None, 'STATS.EL_CMD': None,
-                            }
 
         self.viewer = self.fitsimage
         self.dc = fv.get_draw_classes()
@@ -77,7 +63,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
                                  linewidth=2, linestyle='dash', arrow='end',
                                  alpha=0.0))
         objs.append(self.dc.Circle(0.0, 0.0, r, linewidth=1, color='red',
-                                   linestyle='dash', alpha=0.0))
+                                   linestyle='dash', alpha=1.0))
         objs.append(self.dc.Line(0.0, 0.0, 0.0, 0.0, linewidth=1,
                                  arrow='start', color='red'))
         objs.append(self.dc.Text(0.0, 0.0, text='Target', color='red',
@@ -85,19 +71,52 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
                                  rot_deg=-45.0))
         self.tel_obj = self.dc.CompoundObject(*objs)
 
+        self.tmr = GwHelp.Timer(duration=self.settings['telescope_update_interval'])
+        self.tmr.add_callback('expired', self.update_tel_timer_cb)
+
         self.gui_up = False
 
     def build_gui(self, container):
 
+        # initialize site
+        obj = self.channel.opmon.get_plugin('SiteSelector')
+        obj.cb.add_callback('site-changed', self.site_changed_cb)
+
         top = Widgets.VBox()
         top.set_border_width(4)
+
+        fr = Widgets.Frame("Telescope")
+        captions = (("RA:", 'label', 'ra', 'label',
+                     "DEC:", 'label', 'dec', 'label'),
+                    ("Az:", 'label', 'az', 'label',
+                     "El:", 'label', 'el', 'label'),
+                    ("Status:", 'label', 'action', 'label',
+                     "Slew Time:", 'label', 'slew', 'label'),
+                    )
+        w, b = Widgets.build_info(captions)
+        self.w = b
+        fr.set_widget(w)
+        top.add_widget(fr, stretch=0)
+
+        fr = Widgets.Frame("Target")
+        captions = (("RA Cmd:", 'label', 'ra_cmd', 'label',
+                     "DEC Cmd:", 'label', 'dec_cmd', 'label'),
+                    ("Az Cmd:", 'label', 'az_cmd', 'label',
+                     "El Cmd:", 'label', 'el_cmd', 'label'),
+                    )
+        w, b = Widgets.build_info(captions)
+        self.w.update(b)
+        fr.set_widget(w)
+        top.add_widget(fr, stretch=0)
+
+        top.add_widget(Widgets.Label(''), stretch=1)
 
         captions = (('Plot telescope position', 'checkbutton'),
                     ('Rotate view to azimuth', 'checkbutton'),
                     )
 
         w, b = Widgets.build_info(captions)
-        self.w = b
+        self.w.update(b)
 
         top.add_widget(w, stretch=0)
         b.plot_telescope_position.add_callback('activated',
@@ -108,8 +127,6 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         b.rotate_view_to_azimuth.set_tooltip("Rotate the display to show the current azimuth at the top")
         b.rotate_view_to_azimuth.add_callback('activated',
                                               self.tel_posn_toggle_cb)
-
-        top.add_widget(Widgets.Label(''), stretch=1)
 
         btns = Widgets.HBox()
         btns.set_border_width(4)
@@ -140,24 +157,10 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
             p_canvas.add(self.canvas)
 
         self.canvas.delete_all_objects()
-        self.ev_quit.clear()
 
         self.canvas.add(self.tel_obj, tag='telescope', redraw=False)
 
-        # set up the status stream interface
-        status_host = self.settings.get('status_client_host', None)
-        self.st_client = None
-        if status_host is None:
-            self.w.plot_telescope_position.set_enabled(False)
-            self.w.rotate_view_to_azimuth.set_enabled(False)
-        else:
-            self.st_client = StatusClient(host=self.settings['status_client_host'],
-                                          username=self.settings['status_client_user'],
-                                          password=self.settings['status_client_pass'])
-            self.st_client.connect()
-
-            # start the status update loop
-            self.fv.nongui_do(self.status_update_loop, self.ev_quit)
+        self.update_tel_timer_cb(self.tmr)
 
         self.resume()
 
@@ -168,7 +171,6 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         self.canvas.ui_set_active(True, viewer=self.viewer)
 
     def stop(self):
-        self.ev_quit.set()
         self.gui_up = False
         # remove the canvas from the image
         p_canvas = self.fitsimage.get_canvas()
@@ -201,8 +203,8 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
          cmd_line, cmd_text) = self.tel_obj.objects
 
         self.logger.debug(f'updating tel posn to alt={alt},az={az}')
-        az = subaru_normalize_az(az)
-        az_cmd = subaru_normalize_az(az_cmd)
+        az = self.site.az_to_norm(az)
+        az_cmd = self.site.az_to_norm(az_cmd)
         t, r = self.map_azalt(az, alt)
         x, y = self.p2r(r, t)
         self.logger.debug(f'updating tel posn to x={x},y={y}')
@@ -241,36 +243,54 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
             self.fitsimage.rotate(rot_deg)
             self.canvas.update_canvas(whence=3)
 
-    def status_update_loop(self, ev_quit):
-        while not ev_quit.is_set():
-            try:
-                self.st_client.fetch(self.status_dict)
-                self.logger.debug("status is: %s" % str(self.status_dict))
+    def update_info(self, status):
+        try:
+            self.w.ra.set_text(wcs.ra_deg_to_str(status.ra_deg))
+            self.w.dec.set_text(wcs.dec_deg_to_str(status.dec_deg))
+            self.w.az.set_text("%6.2f" % status.az_deg)
+            self.w.el.set_text("%5.2f" % status.alt_deg)
+            self.w.action.set_text(status.tel_status)
+            slew_time = str(timedelta(seconds=status.slew_time_sec)).split('.')[0]
+            self.w.slew.set_text(slew_time)
 
-                if self.status_dict['STATS.AZ_DEG'] is not None:
-                    self.telescope_pos[0] = float(self.status_dict['STATS.AZ_DEG'])
-                if self.status_dict['STATS.EL_DEG'] is not None:
-                    self.telescope_pos[1] = float(self.status_dict['STATS.EL_DEG'])
+            self.w.ra_cmd.set_text(wcs.ra_deg_to_str(status.ra_cmd_deg))
+            self.w.dec_cmd.set_text(wcs.dec_deg_to_str(status.dec_cmd_deg))
+            self.w.az_cmd.set_text("%6.2f" % status.az_cmd_deg)
+            self.w.el_cmd.set_text("%5.2f" % status.alt_cmd_deg)
 
-                if self.status_dict['STATS.AZ_CMD'] is not None:
-                    self.telescope_cmd[0] = float(self.status_dict['STATS.AZ_CMD'])
-                if self.status_dict['STATS.EL_CMD'] is not None:
-                    self.telescope_cmd[1] = float(self.status_dict['STATS.EL_CMD'])
+        except Exception as e:
+            self.logger.error(f"error updating info: {e}", exc_info=True)
 
-                if self.status_dict['STATS.AZ_DIF'] is not None:
-                    self.telescope_diff[0] = float(self.status_dict['STATS.AZ_DIF'])
-                if self.status_dict['STATS.EL_DIF'] is not None:
-                    self.telescope_diff[1] = float(self.status_dict['STATS.EL_DIF'])
+    def update_status(self, status):
+        self.telescope_pos[0] = status.az_deg
+        self.telescope_pos[1] = status.alt_deg
 
-            except Exception as e:
-                self.logger.error("Exception fetching status items: {}".format(e),
-                                  exc_info=True)
+        self.telescope_cmd[0] = status.az_cmd_deg
+        self.telescope_cmd[1] = status.alt_cmd_deg
 
-            if not self.gui_up:
-                return
-            self.fv.gui_do(self.update_telescope_plot)
+        self.telescope_diff[0] = status.az_diff_deg
+        self.telescope_diff[1] = status.alt_diff_deg
 
-            ev_quit.wait(self.settings.get('tel_update_interval', 60.0))
+        if not self.gui_up:
+            return
+
+        self.fv.gui_do(self.update_info, status)
+        self.fv.gui_do(self.update_telescope_plot)
+
+    def update_tel_timer_cb(self, timer):
+        timer.start()
+
+        obj = self.channel.opmon.get_plugin('SiteSelector')
+        status = obj.get_status()
+
+        self.update_status(status)
+
+    def site_changed_cb(self, cb, site_obj):
+        self.logger.debug("site has changed")
+
+        obj = self.channel.opmon.get_plugin('SiteSelector')
+        status = obj.get_status()
+        self.update_status(status)
 
     def tel_posn_toggle_cb(self, w, tf):
         self.fv.gui_do(self.update_telescope_plot)

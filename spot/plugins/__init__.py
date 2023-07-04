@@ -53,6 +53,13 @@ def setup_Visibility():
                  category="Planning", menu="Visibility", tab='Visibility')
     return spec
 
+def setup_SiteSelector():
+    spec = Bunch(path=os.path.join(p_path, 'SiteSelector.py'),
+                 module='SiteSelector', klass='SiteSelector',
+                 ptype='local', workspace='dialogs', start=False,
+                 category="Planning", menu="Site Selector", tab='Site Selector')
+    return spec
+
 def setup_HSCPlanner():
     spec = Bunch(path=os.path.join(p_path, 'HSCPlanner.py'),
                  module='HSCPlanner', klass='HSCPlanner',
