@@ -36,6 +36,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
                                    status_client_host=None)
         self.settings.load(onError='silent')
 
+        self.site = None
         # Az, Alt/El current tel position and commanded position
         self.telescope_pos = [-90.0, 60.0]
         self.telescope_cmd = [-90.0, 60.0]
@@ -80,6 +81,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
 
         # initialize site
         obj = self.channel.opmon.get_plugin('SiteSelector')
+        self.site = obj.get_site()
         obj.cb.add_callback('site-changed', self.site_changed_cb)
 
         top = Widgets.VBox()
@@ -287,6 +289,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
 
     def site_changed_cb(self, cb, site_obj):
         self.logger.debug("site has changed")
+        self.site = site_obj
 
         obj = self.channel.opmon.get_plugin('SiteSelector')
         status = obj.get_status()

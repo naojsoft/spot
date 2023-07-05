@@ -74,8 +74,7 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         fr = Widgets.Frame("Time")
 
         vbox = Widgets.VBox()
-        captions = (("Time mode:", 'llabel', "mode", 'combobox',
-                     "UTC offset (min):", 'llabel', 'timeoff', 'entryset'),
+        captions = (("Time mode:", 'llabel', "mode", 'combobox'),
                     )
 
         w, b = Widgets.build_info(captions)
@@ -86,12 +85,10 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         b.mode.set_index(0)
         b.mode.set_tooltip("Now or fixed time for visibility calculations")
         b.mode.add_callback('activated', self.set_datetime_cb)
-        b.timeoff.set_text(str(self.status.timezone_offset_min))
-        b.timeoff.set_tooltip("UTC offset to be used for visibility plot")
-        b.timeoff.add_callback('activated', self.set_timeoff_cb)
         vbox.add_widget(w, stretch=0)
 
         captions = (("Date time:", 'llabel', 'datetime', 'entryset'),
+                    ("UTC offset (min):", 'llabel', 'timeoff', 'entryset'),
                     )
 
         w, b = Widgets.build_info(captions)
@@ -99,6 +96,10 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         b.datetime.set_tooltip("Set date time for visibility calculations")
         b.datetime.add_callback('activated', self.set_datetime_cb)
         b.datetime.set_enabled(False)
+        b.timeoff.set_text(str(self.status.timezone_offset_min))
+        b.timeoff.set_tooltip("UTC offset for setting fixed time")
+        b.timeoff.set_enabled(False)
+        b.timeoff.add_callback('activated', self.set_timeoff_cb)
         self.set_datetime_cb()
         vbox.add_widget(w, stretch=0)
 
@@ -169,8 +170,8 @@ class SiteSelector(GingaPlugin.LocalPlugin):
 
             self.cb.make_callback('time-changed', self.dt_utc, self.cur_tz)
 
-    def set_timeoff_cb(self, *args):
-        zone_off_min = int(self.w.timeoff.get_text().strip())
+    def set_timeoff_cb(self, w):
+        zone_off_min = int(w.get_text().strip())
         self.cur_tz = tz.tzoffset('Custom', zone_off_min * 60)
 
         self._set_datetime()
@@ -185,12 +186,17 @@ class SiteSelector(GingaPlugin.LocalPlugin):
             dt = self.dt_utc.astimezone(self.cur_tz)
             self.w.datetime.set_text(dt.strftime("%Y-%m-%d %H:%M:%S"))
             self.w.datetime.set_enabled(False)
+            self.w.timeoff.set_enabled(False)
         else:
             self.w.datetime.set_enabled(True)
+            self.w.timeoff.set_enabled(True)
             dt_str = self.w.datetime.get_text().strip()
             dt = parser.parse(dt_str).replace(tzinfo=self.cur_tz)
             self.dt_utc = dt.astimezone(tz.UTC)
 
+        #self.site_obj.observer.set_date(self.dt_utc)
+
+        self.logger.info("date/time set to: {}".format(self.dt_utc.strftime("%Y-%m-%d %H:%M:%S %z")))
         self.cb.make_callback('time-changed', self.dt_utc, self.cur_tz)
 
     def __str__(self):

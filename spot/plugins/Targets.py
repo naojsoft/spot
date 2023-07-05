@@ -300,8 +300,9 @@ class Targets(GingaPlugin.LocalPlugin):
             return
         targets = [res.tgt for res in tgt_info_lst]
         obj = self.channel.opmon.get_plugin('Visibility')
-        obj.plot_targets(start_time, self.site, targets,
-                         timezone=self.cur_tz)
+        #obj.plot_targets(start_time, self.site, targets,
+        #                 timezone=self.cur_tz)
+        obj.plot_targets(start_time, self.site, targets)
 
     def update_targets(self, tgt_info_lst, tag, start_time=None):
         """Update targets already plotted with new positions.
@@ -336,8 +337,9 @@ class Targets(GingaPlugin.LocalPlugin):
             return
         targets = [res.tgt for res in tgt_info_lst]
         obj = self.channel.opmon.get_plugin('Visibility')
-        obj.plot_targets(start_time, self.site, targets,
-                         timezone=self.cur_tz)
+        # obj.plot_targets(start_time, self.site, targets,
+        #                  timezone=self.cur_tz)
+        obj.plot_targets(start_time, self.site, targets)
 
     def update_all(self, start_time=None):
         if start_time is None:
@@ -510,7 +512,8 @@ class Targets(GingaPlugin.LocalPlugin):
     def get_datetime(self):
         # TODO: work with self.site directly, not observer
         #return self.dt_utc.astimezone(self.site.observer.tz_local)
-        return self.dt_utc.astimezone(self.cur_tz)
+        #return self.dt_utc.astimezone(self.cur_tz)
+        return self.dt_utc
 
     def p2r(self, r, t):
         obj = self.channel.opmon.get_plugin('PolarSky')

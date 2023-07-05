@@ -84,6 +84,24 @@ class Site:
         return self.name
 
 
+class GTC(Site):
+    name = 'GTC (La Palma, Canary)'
+
+    def __init__(self):
+        super().__init__()
+
+        self.status_dict.update(
+            dict(longitude_deg=Longitude('-17d53m30.12s').deg,
+                 latitude_deg=Latitude('28d45m23.04s').deg,
+                 elevation_m=2267,
+                 pressure_mbar=1015,
+                 temperature_c=10,
+                 timezone_name='GMT',
+                 timezone_offset_min=0,
+                 fov_deg=1.0))
+        self.initialize()
+
+
 class Subaru(Site):
     name = 'Subaru (Mauna Kea, Hawaii)'
 
@@ -91,8 +109,8 @@ class Subaru(Site):
         super().__init__()
 
         self.status_dict.update(
-            dict(longitude_deg=-155.47611111111,
-                 latitude_deg=19.8285,
+            dict(longitude_deg=Longitude('-155d28m33.70s').deg,
+                 latitude_deg=Latitude('19d49m31.80s').deg,
                  elevation_m=4163,
                  pressure_mbar=615,
                  temperature_c=0,
@@ -102,57 +120,19 @@ class Subaru(Site):
                  fov_deg=1.5))
         self.initialize()
 
-        # maps Subaru Telescope OCS status items to local status
-        self.status_map = dict(
-            az_deg='STATS.AZ_DEG',
-            az_cmd_deg='STATS.AZ_CMD',
-            az_diff_deg='STATS.AZ_DIF',
-            alt_deg='STATS.EL_DEG',
-            alt_cmd_deg='STATS.EL_CMD',
-            alt_diff_deg='STATS.EL_DIF',
-            ra_deg='STATS.RA_DEG',
-            ra_cmd_deg='STATS.RA_CMD_DEG',
-            equinox='STATS.EQUINOX',
-            dec_deg='STATS.DEC_DEG',
-            dec_cmd_deg='STATS.DEC_CMD_DEG',
-            cmd_equinox='STATS.EQUINOX',
-            slew_time_sec='STATS.SLEWING_TIME',
-            tel_status='STATL.TELDRIVE',
-        )
-
-        # self.status_dict['az_norm_deg'] = \
-        #     subaru_normalize_az(self.status_dict['az_deg'])
-        # self.status_dict['az_cmd_norm_deg'] = \
-        #     subaru_normalize_az(self.status_dict['az_cmd_deg'])
-
-
     def az_to_norm(self, az_deg):
         return subaru_normalize_az(az_deg)
 
     def norm_to_az(self, az_deg):
         return subaru_normalize_az(az_deg)
 
-    def put_status(self, actual_status):
-        """Called from a global plugin to update the local status
-        periodically.
-        """
-        for key, alias in self.status_map.items():
-            if alias in actual_status:
-                self.status_dict[key] = actual_status[alias]
-
-        # self.status_dict['az_norm_deg'] = \
-        #     subaru_normalize_az(self.status_dict['az_deg'])
-        # self.status_dict['az_cmd_norm_deg'] = \
-        #     subaru_normalize_az(self.status_dict['az_cmd_deg'])
-
     def fetch_status(self, fv):
         # get any updates to local status
         try:
-            obj = fv.gpmon.get_plugin('SubaruTelescope')
-            status_dict = obj.get_status()
-            self.put_status(status_dict)
+            obj = fv.gpmon.get_plugin('SubaruOCS')
+            self.status_dict.update(obj.get_status())
         except KeyError:
-            # no SubaruTelescope plugin loaded
+            # no SubaruOCS plugin loaded
             pass
         return self.get_status()
 
@@ -164,7 +144,7 @@ class VLT(Site):
         super().__init__()
 
         self.status_dict.update(
-            dict(longitude_deg=Longitude('70d24m15.36s').deg,
+            dict(longitude_deg=Longitude('-70d24m15.36s').deg,
                  latitude_deg=Latitude('-24d37m38.38s').deg,
                  elevation_m=2635,
                  pressure_mbar=1015,
@@ -176,6 +156,7 @@ class VLT(Site):
 
 
 site_list = [
+    GTC,
     Subaru,
     VLT,
 ]

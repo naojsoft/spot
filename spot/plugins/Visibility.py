@@ -147,7 +147,7 @@ class Visibility(GingaPlugin.LocalPlugin):
 
             self.fv.error_wrap(self.plot.plot_altitude, site,
                                target_data, timezone,
-                               plot_moon_distance=False,
+                               plot_moon_distance=True,
                                show_target_legend=False)
         self.fv.error_wrap(self.plot.draw)
 

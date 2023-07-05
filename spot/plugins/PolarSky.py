@@ -166,13 +166,15 @@ class PolarSky(GingaPlugin.LocalPlugin):
             objs.append(self.dc.Line(x1, y1, x2, y2, color=circ_color))
 
         # plot degrees
-        for r, t in [(92, 0), (92, 45), (92, 90), (98, 135),
-                     (100, 180), (100, 225), (95, 270), (92, 315)]:
-            ang = (t + 90) % 360
-            x, y = self.p2r(r, t)
-            objs.append(self.dc.Text(x, y, "{}\u00b0".format(ang),
-                                     fontscale=True, fontsize_min=12,
-                                     color='brown'))
+        # TODO: re-enable after being able to change between different
+        # azimuth-orientations (N = 0 or S = 0)
+        # for r, t in [(92, 0), (92, 45), (92, 90), (98, 135),
+        #              (100, 180), (100, 225), (95, 270), (92, 315)]:
+        #     ang = (t + 90) % 360
+        #     x, y = self.p2r(r, t)
+        #     objs.append(self.dc.Text(x, y, "{}\u00b0".format(ang),
+        #                              fontscale=True, fontsize_min=12,
+        #                              color='brown'))
 
         # plot compass directions
         for r, t, txt in [(110, 0, 'W'), (100, 90, 'N'),
