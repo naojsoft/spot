@@ -103,9 +103,9 @@ class Visibility(GingaPlugin.LocalPlugin):
         site = site.observer
 
         # calc noon on the day of observation in desired time zone
-        ndate = start_time.strftime("%Y-%m-%d") + " 12:00:00"
         if timezone is None:
             timezone = site.timezone
+        ndate = start_time.astimezone(timezone).strftime("%Y-%m-%d") + " 12:00:00"
         noon_time = site.get_date(ndate, timezone=timezone)
 
         # plot period 15 minutes before sunset to 15 minutes after sunrise

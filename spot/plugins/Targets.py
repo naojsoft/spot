@@ -80,7 +80,7 @@ class Targets(GingaPlugin.LocalPlugin):
         self.colors = ['red', 'blue', 'green', 'cyan', 'magenta', 'yellow']
         self.base_circ = None
         self.target_list = []
-        self.plot_which = 'all'
+        self.plot_which = 'selected'
         self.plot_ss_objects = self.settings.get('plot_ss_objects', True)
         self.selected = set([])
         self.tgt_info_lst = []
@@ -191,6 +191,7 @@ class Targets(GingaPlugin.LocalPlugin):
         hbox.add_widget(plot, stretch=0)
         for option in ['All', 'Selected']:
             plot.append_text(option)
+        plot.set_index(1)
         plot.add_callback('activated', self.configure_plot_cb)
         plot.set_tooltip("Choose what is plotted")
 
@@ -369,10 +370,13 @@ class Targets(GingaPlugin.LocalPlugin):
         self.update_targets(self.ss_info_lst, 'ss')
 
     def time_changed_cb(self, cb, time_utc, cur_tz):
+        old_dt_utc = self.dt_utc
         self.dt_utc = time_utc
         self.cur_tz = cur_tz
 
-        self.update_all()
+        if (abs((self.dt_utc - old_dt_utc).total_seconds()) >
+            self.settings.get('targets_update_interval')):
+            self.update_all()
 
     def ope_set_cb(self, w):
         file_path = w.get_text().strip()

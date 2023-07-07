@@ -1,3 +1,9 @@
+"""
+NOTES:
+[1] Southern Hemispheres should have a negative Latitude, Northern positive
+    Western Longitudes should have a negative Longitude, Eastern positive
+
+"""
 # stdlib
 from dateutil import tz
 
@@ -84,6 +90,24 @@ class Site:
         return self.name
 
 
+class AAO(Site):
+    name = 'AAO (Australia)'
+
+    def __init__(self):
+        super().__init__()
+
+        self.status_dict.update(
+            dict(longitude_deg=Longitude('149d4m2.00s').deg,
+                 latitude_deg=Latitude('-31d16m32.01s').deg,
+                 elevation_m=1164,
+                 pressure_mbar=1015,
+                 temperature_c=10,
+                 timezone_name='AEST',
+                 timezone_offset_min=600,
+                 fov_deg=1.0))
+        self.initialize()
+
+
 class GTC(Site):
     name = 'GTC (La Palma, Canary)'
 
@@ -98,6 +122,42 @@ class GTC(Site):
                  temperature_c=10,
                  timezone_name='GMT',
                  timezone_offset_min=0,
+                 fov_deg=1.0))
+        self.initialize()
+
+
+class Okayama(Site):
+    name = 'OAO (Okayama, Japan)'
+
+    def __init__(self):
+        super().__init__()
+
+        self.status_dict.update(
+            dict(longitude_deg=Longitude('133d35m38.40s').deg,
+                 latitude_deg=Latitude('24d24m37.56s').deg,
+                 elevation_m=390,
+                 pressure_mbar=1015,
+                 temperature_c=10,
+                 timezone_name='JST',
+                 timezone_offset_min=540,
+                 fov_deg=1.0))
+        self.initialize()
+
+
+class SALT(Site):
+    name = 'SALT (SAAO, South Africa)'
+
+    def __init__(self):
+        super().__init__()
+
+        self.status_dict.update(
+            dict(longitude_deg=Longitude('20d48m38.52s').deg,
+                 latitude_deg=Latitude('-32d22m33.60s').deg,
+                 elevation_m=1798,
+                 pressure_mbar=1015,
+                 temperature_c=10,
+                 timezone_name='EET',
+                 timezone_offset_min=-240,
                  fov_deg=1.0))
         self.initialize()
 
@@ -156,7 +216,10 @@ class VLT(Site):
 
 
 site_list = [
+    AAO,
     GTC,
+    Okayama,
+    SALT,
     Subaru,
     VLT,
 ]
