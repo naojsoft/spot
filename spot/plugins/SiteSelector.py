@@ -33,7 +33,7 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         prefs = self.fv.get_preferences()
         self.settings = prefs.create_category('plugin_SiteSelector')
         self.settings.add_defaults(default_site=sites.Subaru.name,
-                                   timer_update_interval=5.0)
+                                   timer_update_interval=1.0)
         self.settings.load(onError='silent')
 
         self.cb = Callbacks()
@@ -148,14 +148,13 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         self.site_obj = sites.get_site(w.get_text())
         self.status = self.site_obj.get_status()
 
-        self.cb.make_callback('site-changed', self.site_obj)
-
         # change time zone to be that of the site
         zone_off_min = self.status.timezone_offset_min
         self.w.timeoff.set_text(str(zone_off_min))
         self.cur_tz = tz.tzoffset(self.status.timezone_name,
                                   zone_off_min * 60)
         self._set_datetime()
+        self.cb.make_callback('site-changed', self.site_obj)
 
     def update_timer_cb(self, timer):
         timer.start()

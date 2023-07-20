@@ -217,6 +217,10 @@ class Targets(GingaPlugin.LocalPlugin):
         return True
 
     def start(self):
+        skycam = self.channel.opmon.get_plugin('SkyCam')
+        skycam.settings.get_setting('image_radius').add_callback(
+            'set', self.change_radius_cb)
+
         # insert canvas, if not already
         p_canvas = self.fitsimage.get_canvas()
         if self.canvas not in p_canvas:
@@ -368,6 +372,10 @@ class Targets(GingaPlugin.LocalPlugin):
     def update_plots(self):
         self.update_targets(self.tgt_info_lst, 'targets')
         self.update_targets(self.ss_info_lst, 'ss')
+
+    def change_radius_cb(self, setting, radius):
+        # sky radius has changed in PolarSky
+        self.update_plots()
 
     def time_changed_cb(self, cb, time_utc, cur_tz):
         old_dt_utc = self.dt_utc
