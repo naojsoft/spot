@@ -15,10 +15,6 @@ on a channel and then ``SkyCam``, ``Targets`` and ``Visibility`` are also
 started, although ``SkyCam`` and ``Visibility`` are not required to be
 active to use it.
 
-Authors
-=======
-E. Jeschke
-
 Requirements
 ============
 
@@ -156,6 +152,7 @@ class Targets(GingaPlugin.LocalPlugin):
         top.add_widget(self.w.tgt_tbl, stretch=1)
 
         self.w.tgt_tbl.add_callback('selected', self.target_selection_cb)
+        self.w.tgt_tbl.add_callback('activated', self.target_single_cb)
 
         hbox = Widgets.HBox()
         btn = Widgets.Button("Select")
@@ -229,6 +226,7 @@ class Targets(GingaPlugin.LocalPlugin):
         self.canvas.delete_all_objects()
 
         self.initialize_plot()
+        self.update_all()
 
         self.resume()
 
@@ -242,7 +240,8 @@ class Targets(GingaPlugin.LocalPlugin):
         self.gui_up = False
         # remove the canvas from the image
         p_canvas = self.fitsimage.get_canvas()
-        p_canvas.delete_object(self.canvas)
+        if self.canvas in p_canvas:
+            p_canvas.delete_object(self.canvas)
 
     def redo(self):
         pass
@@ -329,6 +328,7 @@ class Targets(GingaPlugin.LocalPlugin):
             point, text = objs[i], objs[i + i]
             point.x, point.y, point.alpha, point.fillalpha = x, y, alpha, alpha
             text.x, text.y, text.alpha = x, y, alpha
+            point.color = text.color = res.color
             i += 2
 
         self.canvas.update_canvas(whence=3)
@@ -349,7 +349,7 @@ class Targets(GingaPlugin.LocalPlugin):
         # get full information about all targets
         self.tgt_info_lst = [self.get_tgt_info(tgt, self.site, start_time,
                                                # color=self.colors[i % len(self.colors)])
-                                               color='green2')
+                                               color='green2' if tgt.name not in self.selected else 'pink')
                              for i, tgt in enumerate(self.target_list)]
 
         # update the target table
@@ -455,12 +455,15 @@ class Targets(GingaPlugin.LocalPlugin):
         self.w.tgt_tbl.set_optimal_column_widths()
 
     def target_selection_update(self):
-        self.targets_to_table(self.tgt_info_lst)
         self.clear_plot()
-        self.update_plots()
+        self.update_all()
 
     def target_selection_cb(self, w, sel_dct):
         self._update_selection_buttons()
+
+    def target_single_cb(self, w, sel_dct):
+        self.selected = set(sel_dct.keys())
+        self.target_selection_update()
 
     def select_cb(self, w):
         sel_dct = self.w.tgt_tbl.get_selected()

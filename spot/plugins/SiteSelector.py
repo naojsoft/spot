@@ -166,7 +166,8 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         if self.time_mode == 'now':
             self.dt_utc = datetime.utcnow().replace(tzinfo=tz.UTC)
             dt = self.dt_utc.astimezone(self.cur_tz)
-            self.w.datetime.set_text(dt.strftime("%Y-%m-%d %H:%M:%S"))
+            if self.gui_up:
+                self.w.datetime.set_text(dt.strftime("%Y-%m-%d %H:%M:%S"))
 
             self.cb.make_callback('time-changed', self.dt_utc, self.cur_tz)
 

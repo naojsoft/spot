@@ -142,11 +142,11 @@ class SkyCam(GingaPlugin.LocalPlugin):
 
         self.ev_quit = threading.Event()
         self.sky_image_path = None
-        self.flag_use_sky_image = False
+        self.flag_use_sky_image = True
         self.flag_use_diff_image = False
 
         canvas = self.dc.DrawingCanvas()
-        canvas.set_surface(self.fitsimage)
+        canvas.set_surface(self.viewer)
         self.canvas = canvas
 
         self.gui_up = False
@@ -185,6 +185,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
         fr.set_widget(w)
         top.add_widget(fr, stretch=0)
 
+        b.show_sky_image.set_state(self.flag_use_sky_image)
         b.show_sky_image.add_callback('activated',
                                       self.sky_image_toggle_cb)
         b.show_sky_image.set_tooltip(
@@ -204,6 +205,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
         fr.set_widget(w)
         top.add_widget(fr, stretch=0)
 
+        b.show_differential_image.set_state(self.flag_use_diff_image)
         b.show_differential_image.add_callback('activated',
                                                self.diff_image_toggle_cb)
         b.show_differential_image.set_tooltip("Use a differential image")
@@ -233,21 +235,16 @@ class SkyCam(GingaPlugin.LocalPlugin):
 
     def start(self):
         # set up some settings in our channel
-        self.fitsimage.settings.set(autozoom='off', autocenter='off',
+        self.viewer.settings.set(autozoom='off', autocenter='off',
                                     auto_orient=False)
-        self.fitsimage.transform(False, False, False)
+        self.viewer.transform(False, False, False)
 
         # insert canvas, if not already
-        p_canvas = self.fitsimage.get_canvas()
-        if self.canvas not in p_canvas:
-            # Add our canvas layer
-            p_canvas.add(self.canvas)
+        self.initialize_plot()
+        self._sky_image_canvas_setup()
 
         self.canvas.delete_all_objects()
         self.ev_quit.clear()
-
-        # self.canvas.add(self.cvs_img, tag='skyimage', redraw=False)
-        self.initialize_plot()
 
         # start the image update loop
         self.fv.nongui_do(self.image_update_loop, self.ev_quit)
@@ -263,13 +260,10 @@ class SkyCam(GingaPlugin.LocalPlugin):
     def stop(self):
         self.ev_quit.set()
         self.gui_up = False
-        # restore normal
-        cvs_img = self.fitsimage.get_canvas_image()
-        cvs_img.x = 0
-        cvs_img.y = 0
         # remove the canvas from the image
-        p_canvas = self.fitsimage.get_canvas()
-        p_canvas.delete_object(self.canvas)
+        p_canvas = self.viewer.get_canvas()
+        if self.canvas in p_canvas:
+            p_canvas.delete_object(self.canvas)
 
     def redo(self):
         """This is called when a new image arrives or the data in the
@@ -342,7 +336,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
         ht, wd = data_np.shape[:2]
 
         if not self.flag_use_diff_image or self.old_data is not None:
-            self.fitsimage.onscreen_message_off()
+            self.viewer.onscreen_message_off()
 
         if self.flag_use_diff_image:
             if self.old_data is not None:
@@ -371,14 +365,15 @@ class SkyCam(GingaPlugin.LocalPlugin):
 
     def __update_display(self, img):
         with self.viewer.suppress_redraw:
-            cvs_img = self.viewer.get_canvas_image()
             wd, ht = img.get_size()
             rx, ry = wd * 0.5, ht * 0.5
-            cvs_img.x = -rx
-            cvs_img.y = -ry
-            self.viewer.set_image(img)
+            cvs_img = self.dc.NormImage(-rx, -ry, img)
+            cvs_img.is_data = True
+            self.canvas.delete_all_objects()
+            self.canvas.add(cvs_img)
             self.viewer.set_limits(((-rx * 1.25, -ry * 1.25),
                                     (rx * 1.25, ry * 1.25)))
+            self.viewer.auto_levels()
             self.viewer.redraw(whence=0)
 
     def download_sky_image(self):
@@ -402,13 +397,15 @@ class SkyCam(GingaPlugin.LocalPlugin):
         except Exception as e:
             self.logger.error("failed to download/update sky image: {}"
                               .format(e), exc_info=True)
+        finally:
+            self.viewer.onscreen_message(None)
 
     def update_sky_image(self):
-        if self.flag_use_sky_image:
+        with self.viewer.suppress_redraw:
             if self.sky_image_path is not None:
                 self.update_image(self.sky_image_path)
-        else:
-            self.fitsimage.clear()
+
+            self.viewer.redraw(whence=0)
 
     def image_update_loop(self, ev_quit):
         interval = self.settings['image_update_interval']
@@ -425,9 +422,24 @@ class SkyCam(GingaPlugin.LocalPlugin):
         obj = self.channel.opmon.get_plugin('SkyCam')
         return obj.get_scale()
 
+    def _sky_image_canvas_setup(self):
+        p_canvas = self.viewer.get_canvas()
+        if self.flag_use_sky_image:
+            if self.canvas not in p_canvas:
+                # Add our canvas layer
+                p_canvas.add(self.canvas)
+                p_canvas.lower_object(self.canvas)
+
+        else:
+            if self.canvas in p_canvas:
+                p_canvas.delete_object(self.canvas)
+
+        self.viewer.redraw(whence=0)
+
     def sky_image_toggle_cb(self, w, tf):
         self.flag_use_sky_image = tf
-        self.update_sky_image()
+        self._sky_image_canvas_setup()
+        #self.update_sky_image()
         if self.flag_use_sky_image and self.sky_image_path is None:
             # if user now wants a background image and we don't have one
             # initiate a download; otherwise timed loop will pull one in
@@ -438,7 +450,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
         self.flag_use_diff_image = tf
         message = "Waiting for the next image to create a differential sky..."
         if self.flag_use_diff_image and self.old_data is None:
-            self.fitsimage.onscreen_message(message)
+            self.viewer.onscreen_message(message)
         self.refresh_image()
 
     def image_source_cb(self, w, idx):
@@ -460,9 +472,14 @@ class SkyCam(GingaPlugin.LocalPlugin):
         self.cur_data = None
         self.old_data = None
         try:
+            self.canvas.delete_all_objects()
+            self._sky_image_canvas_setup()
+            self.viewer.onscreen_message("Downloading sky image...")
             self.download_sky_image()
 
         except Exception as e:
+            self.viewer.onscreen_message("error downloading; check log",
+                                         delay=2.0)
             self.logger.error(f"Error loading image: {e}", exc_info=True)
 
     def __str__(self):

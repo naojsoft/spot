@@ -32,7 +32,7 @@ class PolarSky(GingaPlugin.LocalPlugin):
         # superclass defines some variables for us, like logger
         super().__init__(fv, fitsimage)
 
-        # get SkyCam preferences
+        # get PloarSky preferences
         prefs = self.fv.get_preferences()
         self.settings = prefs.create_category('plugin_PolarSky')
         self.settings.add_defaults(image_radius=1850,
@@ -187,8 +187,8 @@ class PolarSky(GingaPlugin.LocalPlugin):
     def start(self):
         self.update_table_timer_cb(self.tmr_table)
         self.update_sunmoon_timer_cb(self.tmr_sunmoon)
-        self.viewer.set_bg(0.95, 0.95, 0.95)
-        self.viewer.set_fg(0.25, 0.25, 0.75)
+        # self.viewer.set_bg(0.95, 0.95, 0.95)
+        # self.viewer.set_fg(0.25, 0.25, 0.75)
 
         # surreptitiously share setting of image_radius with SkyCam plugin
         # so that when they update setting we redraw our plot

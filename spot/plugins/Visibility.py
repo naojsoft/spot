@@ -1,7 +1,18 @@
 """
 Visibility.py -- Overlay objects on all sky camera
 
-E. Jeschke
+Plugin Type: Local
+==================
+
+``Visibility`` is a local plugin, which means it is associated with a channel.
+An instance can be opened for each channel.
+
+Usage
+=====
+``Visibility`` is normally used in conjunction with the plugins ``Sites``,
+``PolarSky`` and ``Targets``.  Typically, ``Sites`` is started first
+on a channel and then ``PolarSky``, ``Targets`` and ``Visibility`` are also
+started.
 
 Requirements
 ============
@@ -36,6 +47,12 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.settings.add_defaults(targets_update_interval=60.0)
         self.settings.load(onError='silent')
 
+        self._start_time = None
+        self._site = None
+        self._targets = None
+        self._timezone = None
+        self.plot_moon_sep = False
+        self.plot_legend = False
         self.gui_up = False
 
     def build_gui(self, container):
@@ -50,6 +67,20 @@ class Visibility(GingaPlugin.LocalPlugin):
         plot_w = Plot.PlotWidget(self.plot, width=700, height=500)
 
         top.add_widget(plot_w, stretch=1)
+
+        captions = (('Plot moon sep', 'checkbox'), #, 'Show Legend', 'checkbox'),
+                    )
+
+        w, b = Widgets.build_info(captions)
+        self.w = b
+        b.plot_moon_sep.set_state(self.plot_moon_sep)
+        b.plot_moon_sep.add_callback('activated', self.toggle_mon_sep_cb)
+        b.plot_moon_sep.set_tooltip("Show moon separation on plot lines")
+
+        # b.show_legend.set_state(self.plot_legend)
+        # b.show_legend.add_callback('activated', self.toggle_show_legend_cb)
+        # b.show_legend.set_tooltip("Show legend on plot")
+        top.add_widget(w)
 
         #top.add_widget(Widgets.Label(''), stretch=1)
 
@@ -99,6 +130,13 @@ class Visibility(GingaPlugin.LocalPlugin):
         """
         if not self.gui_up:
             return
+
+        # save parameters in case we need to replot
+        self._start_time = start_time
+        self._site = site
+        self._targets = targets
+        self._timezone = timezone
+
         # TODO: work with site object directly, not observer
         site = site.observer
 
@@ -109,7 +147,7 @@ class Visibility(GingaPlugin.LocalPlugin):
         noon_time = site.get_date(ndate, timezone=timezone)
 
         # plot period 15 minutes before sunset to 15 minutes after sunrise
-        delta = 60*15
+        delta = 60 * 15
         start_time = site.sunset(noon_time) - timedelta(0, delta)
         stop_time = site.sunrise(start_time) + timedelta(0, delta)
 
@@ -147,9 +185,23 @@ class Visibility(GingaPlugin.LocalPlugin):
 
             self.fv.error_wrap(self.plot.plot_altitude, site,
                                target_data, timezone,
-                               plot_moon_distance=True,
-                               show_target_legend=False)
+                               plot_moon_distance=self.plot_moon_sep,
+                               show_target_legend=self.plot_legend)
         self.fv.error_wrap(self.plot.draw)
+
+    def replot(self):
+        self.plot_targets(self._start_time, self._site, self._targets,
+                          timezone=self._timezone)
+
+    def toggle_mon_sep_cb(self, w, tf):
+        self.plot_moon_sep = tf
+        if self._start_time is not None:
+            self.replot()
+
+    def toggle_show_legend_cb(self, w, tf):
+        self.plot_legend = tf
+        if self._start_time is not None:
+            self.replot()
 
     def __str__(self):
         return 'visibility'

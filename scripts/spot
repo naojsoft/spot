@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 #
-# spotview -- Customized Ginga viewer for Gen2
+# spot -- Subaru Planning and Observation Tools
 #
 import sys
 import os
@@ -20,23 +20,24 @@ default_layout = ['seq', {},
                     dict(row=['hbox', dict(name='menu')],
                          stretch=0),
                     dict(row=['hpanel', dict(name='hpnl'),
-                     ['ws', dict(name='left', wstype='tabs',  # noqa
-                                 width=300, height=-1, group=2),
-                      # (tabname, layout), ...
-                      [("Info", ['vpanel', {},
-                                 ['ws', dict(name='uleft', wstype='stack',
-                                             height=250, group=3)],
-                                 ['ws', dict(name='lleft', wstype='tabs',
-                                             height=330, group=3)],
-                                 ]
-                        )]],
+                     # ['ws', dict(name='left', wstype='tabs',  # noqa
+                     #             width=300, height=-1, group=2),
+                     #  # (tabname, layout), ...
+                     #  [("Info", ['vpanel', {},
+                     #             ['ws', dict(name='uleft', wstype='stack',
+                     #                         height=250, group=3)],
+                     #             ['ws', dict(name='lleft', wstype='tabs',
+                     #                         height=330, group=3)],
+                     #             ]
+                     #    )]],
                      ['vbox', dict(name='main', width=600),
-                      dict(row=['ws', dict(name='channels', wstype='tabs',
-                                           group=1, use_toolbar=True,
-                                           default=True)],
+                      dict(row=['ws', dict(name='works', wstype='tabs',
+                                           group=1, use_toolbar=False,
+                                           default=True),
+                                 ],
                            stretch=1),
-                      dict(row=['ws', dict(name='cbar', wstype='stack',
-                                           group=99)], stretch=0),
+                      # dict(row=['ws', dict(name='cbar', wstype='stack',
+                      #                      group=99)], stretch=0),
                       dict(row=['ws', dict(name='readout', wstype='stack',
                                            group=99)], stretch=0),
                       dict(row=['ws', dict(name='operations', wstype='stack',
@@ -75,27 +76,29 @@ if __name__ == "__main__":
     pluginHome = os.path.split(sys.modules['spot.plugins'].__file__)[0]
     sys.path.insert(0, pluginHome)
 
-    # Add Subaru-specific plugins
+    # add Spot plugins
     for spec in [
-        Bunch(module='FindImage', ptype='local', ws='dialogs',
+        Bunch(module='CPanel', ptype='global', workspace='right',
+              category="Planning", menu="Spot Control Panel", tab='CPanel',
+              start=True),
+        Bunch(module='FindImage', ptype='local', workspace='dialogs',
               category="Planning", menu="FindImage", tab='FindImage'),
-        Bunch(module='InsFov', ptype='local', ws='dialogs',
+        Bunch(module='InsFov', ptype='local', workspace='dialogs',
               category="Planning", menu="InsFov", tab='InsFov'),
-        Bunch(module='PolarSky', ptype='local', ws='dialogs',
+        Bunch(module='PolarSky', ptype='local', workspace='dialogs',
               category="Planning", menu="PolarSky", tab='PolarSky'),
-        Bunch(module='SkyCam', ptype='local', ws='dialogs',
+        Bunch(module='SkyCam', ptype='local', workspace='dialogs',
               category="Planning", menu="SkyCam", tab='SkyCam'),
-        Bunch(module='TelescopePosition', ptype='local', ws='dialogs',
+        Bunch(module='TelescopePosition', ptype='local', workspace='channels',
               category="Planning", menu="Telescope Position", tab='TelPos'),
-        Bunch(module='Targets', ptype='local', ws='in:toplevel',
+        Bunch(module='Targets', ptype='local', workspace='channels',
               category="Planning", menu="Targets", tab='Targets'),
-        Bunch(module='Visibility', ptype='local', ws='in:toplevel',
+        Bunch(module='Visibility', ptype='local', workspace='channels',
               category="Planning", menu="Visibility", tab='Visibility'),
-        Bunch(module='SiteSelector', ptype='local', ws='dialogs',
+        Bunch(module='SiteSelector', ptype='local', workspace='dialogs',
               category="Planning", menu="Site Selector", tab='Site'),
-        Bunch(module='HSCPlanner', ptype='local', ws='dialogs',
+        Bunch(module='HSCPlanner', ptype='local', workspace='dialogs',
               category="Planning", menu="HSCPlanner", tab='HSCPlanner'),
-        # Bunch(module='Settings', ptype='local', ws='dialogs'),
         ]:
         add_plugin_spec(spec)
 
@@ -104,7 +107,10 @@ if __name__ == "__main__":
     viewer.add_default_plugins(except_global=['WCSMatch', 'RC', 'SAMP',
                                               'Thumbs', 'WCSMatch',
                                               'ChangeHistory', 'Blink',
-                                              'SaveImage', 'FBrowser'],
+                                              'SaveImage', 'FBrowser',
+                                              'Colorbar', 'Pan',
+                                              'Header', 'Zoom',
+                                              'Contents', 'Info'],
                                except_local=['TVMark', 'TVMask',
                                              'ChangeHistory', 'Mosaic',
                                              'LineProfile', 'PixTable',
