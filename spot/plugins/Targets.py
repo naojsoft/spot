@@ -45,15 +45,15 @@ from ginga.misc import Bunch
 
 # qplan
 from qplan import common
-from qplan.entity import StaticTarget
 
 # oscript (optional, for loading OPE files)
 try:
     from oscript.parse import ope
-    from oscript.util.ope import funkyHMStoDeg, funkyDMStoDeg
     have_oscript = True
 except ImportError:
     have_oscript = False
+
+from spot.util.target import Target
 
 
 class Targets(GingaPlugin.LocalPlugin):
@@ -420,13 +420,11 @@ class Targets(GingaPlugin.LocalPlugin):
         with open(csv_path, newline='') as csv_f:
             reader = csv.DictReader(csv_f, delimiter=',', quotechar='"')
             for row in reader:
-                tgt_list.append(StaticTarget(name=row.get('Target Name', 'none'),
-                                             # ra=hmsStrToDeg(row['RA']),
-                                             # dec=dmsStrToDeg(row['DEC']),
-                                             ra=row['RA'],
-                                             dec=row['DEC'],
-                                             equinox=float(row['Equinox']),
-                                             comment=row.get('comment', '')))
+                tgt_list.append(Target(name=row.get('Name', 'none'),
+                                       ra=row['RA'],
+                                       dec=row['DEC'],
+                                       equinox=row['Equinox'],
+                                       comment=row.get('comment', '')))
 
         self.target_list = tgt_list
 
@@ -547,13 +545,9 @@ class Targets(GingaPlugin.LocalPlugin):
 
 
 def process_tgt_list(tgt_list):
-    return [StaticTarget(name=objname,
-                         ra=ra_deg_to_str(funkyHMStoDeg(ra_str),
-                                          format='%02d:%02d:%02d.%03d'),
-                         dec=dec_deg_to_str(funkyDMStoDeg(dec_str),
-                                            format='%s%02d:%02d:%02d.%02d'),
-                         equinox=float(eq_str),
-                         comment=tgtname)
+    return [Target(name=objname,
+                   ra=ra_str, dec=dec_str, equinox=eq_str,
+                   comment=tgtname)
             for (tgtname, objname, ra_str, dec_str, eq_str) in tgt_list]
 
 
