@@ -132,17 +132,21 @@ class Targets(GingaPlugin.LocalPlugin):
         top = Widgets.VBox()
         top.set_border_width(4)
 
-        captions = (('OPE Path', 'entryset'),
+        captions = (('OPE Button', 'button', 'OPE Path', 'entryset'),
                     )
 
         w, b = Widgets.build_info(captions)
         self.w = b
-        # TEMP
-        proc_dir = os.path.join(os.environ['HOME'], 'Procedure')
-        b.ope_path.set_text(proc_dir)
+
+        self.fileselect = GwHelp.FileSelection(container.get_widget(),
+                                               all_at_once=True)
+        self.proc_dir_path = os.path.join(os.environ['HOME'], 'Procedure')
+        b.ope_path.set_text(self.proc_dir_path)
 
         top.add_widget(w, stretch=0)
-        b.ope_path.add_callback('activated', self.ope_set_cb)
+        b.ope_button.add_callback('activated', self.ope_setbutton_cb)
+        b.ope_button.set_tooltip("Select target file")
+        b.ope_path.add_callback('activated', self.ope_setpath_cb)
 
         self.w.tgt_tbl = Widgets.TreeView(auto_expand=True,
                                           selection='multiple',
@@ -304,7 +308,7 @@ class Targets(GingaPlugin.LocalPlugin):
             return
         targets = [res.tgt for res in tgt_info_lst]
         obj = self.channel.opmon.get_plugin('Visibility')
-        #obj.plot_targets(start_time, self.site, targets,
+        # obj.plot_targets(start_time, self.site, targets,
         #                 timezone=self.cur_tz)
         obj.plot_targets(start_time, self.site, targets)
 
@@ -349,18 +353,23 @@ class Targets(GingaPlugin.LocalPlugin):
     def update_all(self, start_time=None):
         if start_time is None:
             start_time = self.get_datetime()
-        self.logger.info("update time: {}".format(start_time.strftime("%Y-%m-%d %H:%M:%S [%z]")))
+        self.logger.info("update time: {}".format(start_time.strftime(
+                         "%Y-%m-%d %H:%M:%S [%z]")))
         # get full information about all targets
-        self.tgt_info_lst = [self.get_tgt_info(tgt, self.site, start_time,
-                                               # color=self.colors[i % len(self.colors)])
-                                               color='green2' if tgt.name not in self.selected else 'pink')
+        self.tgt_info_lst = [self.get_tgt_info(
+                             tgt, self.site, start_time,
+                             # color=self.colors[i % len(self.colors)])
+                             color='green2' if tgt.name not in
+                             self.selected else 'pink')
                              for i, tgt in enumerate(self.target_list)]
 
         # update the target table
         if self.gui_up:
             self.targets_to_table(self.tgt_info_lst)
 
-        self.update_targets(self.tgt_info_lst, 'targets', start_time=start_time)
+        self.update_targets(self.tgt_info_lst,
+                            'targets',
+                            start_time=start_time)
 
         if self.plot_ss_objects:
             self.ss_info_lst = [self.get_tgt_info(tgt, self.site, start_time)
@@ -383,17 +392,35 @@ class Targets(GingaPlugin.LocalPlugin):
         self.cur_tz = cur_tz
 
         if (abs((self.dt_utc - old_dt_utc).total_seconds()) >
-            self.settings.get('targets_update_interval')):
+                self.settings.get('targets_update_interval')):
             self.update_all()
 
-    def ope_set_cb(self, w):
+    def ope_setbutton_cb(self, w):
+        # Needs to be updated for multiple selections
+        proc_dir = os.path.join(os.environ['HOME'], 'Procedure')
+        self.fileselect.popup("Load File", self.file_load_cb, proc_dir)
+
+    def ope_setpath_cb(self, w):
         file_path = w.get_text().strip()
         if file_path.lower().endswith(".ope"):
             self.process_ope_file_for_targets(file_path)
         else:
             self.process_csv_file_for_targets(file_path)
 
-    def process_ope_file_for_targets(self, ope_path):
+    def file_load_cb(self, paths):
+        if len(paths) == 0:
+            return
+
+        # Needs to be updated for multiple selections
+        self.w.ope_path.set_text(paths[0])
+        file_path = paths[0].strip()
+        if file_path.lower().endswith(".ope"):
+            self.process_ope_file_for_targets(file_path)
+        else:
+            self.process_csv_file_for_targets(file_path)
+
+    def process_ope_file_for_targets(self, ope_file):
+        tgt_list = []
         if not have_oscript:
             self.fv.show_error("Please install the 'oscript' module to use this feature")
 
@@ -402,7 +429,7 @@ class Targets(GingaPlugin.LocalPlugin):
                     os.path.join(ginga_home, 'prm')]
 
         # read OPE file
-        with open(ope_path, 'r') as in_f:
+        with open(ope_file, 'r') as in_f:
             ope_buf = in_f.read()
 
         # gather target info from OPE
@@ -524,8 +551,8 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def get_datetime(self):
         # TODO: work with self.site directly, not observer
-        #return self.dt_utc.astimezone(self.site.observer.tz_local)
-        #return self.dt_utc.astimezone(self.cur_tz)
+        # return self.dt_utc.astimezone(self.site.observer.tz_local)
+        # return self.dt_utc.astimezone(self.cur_tz)
         return self.dt_utc
 
     def p2r(self, r, t):
