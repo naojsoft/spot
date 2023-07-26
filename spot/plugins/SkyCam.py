@@ -81,6 +81,7 @@ naojsoft packages
 import os
 import time
 import threading
+import datetime
 
 # 3rd party
 import numpy as np
@@ -194,7 +195,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
         for name in self.configs.keys():
             b.image_source.append_text(name)
         b.image_source.add_callback('activated',
-                                           self.image_source_cb)
+                                    self.image_source_cb)
 
         fr = Widgets.Frame("Differential Image")
         captions = (('Show Differential Image', 'checkbutton'),
@@ -209,6 +210,13 @@ class SkyCam(GingaPlugin.LocalPlugin):
         b.show_differential_image.add_callback('activated',
                                                self.diff_image_toggle_cb)
         b.show_differential_image.set_tooltip("Use a differential image")
+
+        fr = Widgets.Frame("Image Download Info")
+        image_info_text = "Please select 'Show Sky Image' to display an image"
+        self.w.select_image_info = Widgets.Label(image_info_text)
+
+        fr.set_widget(self.w.select_image_info)
+        top.add_widget(fr, stretch=0)
 
         top.add_widget(Widgets.Label(''), stretch=1)
 
@@ -236,7 +244,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
     def start(self):
         # set up some settings in our channel
         self.viewer.settings.set(autozoom='off', autocenter='off',
-                                    auto_orient=False)
+                                 auto_orient=False)
         self.viewer.transform(False, False, False)
 
         # insert canvas, if not already
@@ -375,9 +383,17 @@ class SkyCam(GingaPlugin.LocalPlugin):
                                     (rx * 1.25, ry * 1.25)))
             self.viewer.auto_levels()
             self.viewer.redraw(whence=0)
+        image_timestamp = datetime.datetime.now()
+        image_info_text = "Image download complete, displayed at: "+(
+                          image_timestamp.strftime("%D %H:%M:%S"))
+        self.w.select_image_info.set_text(image_info_text)
 
     def download_sky_image(self):
         try:
+            image_timestamp = datetime.datetime.now()
+            image_info_text = "Initiating image download at: "+(
+                              image_timestamp.strftime("%D %H:%M:%S"))
+            self.w.select_image_info.set_text(image_info_text)
             start_time = time.time()
             url = self.settings['image_url']
             _, ext = os.path.splitext(url)
@@ -395,6 +411,10 @@ class SkyCam(GingaPlugin.LocalPlugin):
             self.fv.gui_do(self.update_sky_image)
 
         except Exception as e:
+            image_timestamp = datetime.datetime.now()
+            image_info_text = "Image download failed at: "+(
+                               image_timestamp.strftime("%D %H:%M:%S"))
+            self.w.select_image_info.set_text(image_info_text)
             self.logger.error("failed to download/update sky image: {}"
                               .format(e), exc_info=True)
         finally:
@@ -439,7 +459,6 @@ class SkyCam(GingaPlugin.LocalPlugin):
     def sky_image_toggle_cb(self, w, tf):
         self.flag_use_sky_image = tf
         self._sky_image_canvas_setup()
-        #self.update_sky_image()
         if self.flag_use_sky_image and self.sky_image_path is None:
             # if user now wants a background image and we don't have one
             # initiate a download; otherwise timed loop will pull one in

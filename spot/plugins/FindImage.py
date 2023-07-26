@@ -3,6 +3,7 @@ FindImage.py -- Download images matching a target
 
 E. Jeschke
 T. Inagaki
+J. Merchant
 
 Requirements
 ============
@@ -12,6 +13,7 @@ naojsoft packages
 - ginga
 """
 import numpy as np
+import datetime
 
 import re
 
@@ -144,7 +146,7 @@ class FindImage(GingaPlugin.LocalPlugin):
 
         for name in image_sources.keys():
             b.image_source.append_text(name)
-        #b.image_source.add_callback('activated', self.select_source_cb)
+        # b.image_source.add_callback('activated', self.select_source_cb)
         b.find_image.add_callback('activated', self.find_image_cb)
 
         b.size.set_limits(1, 120, incr_value=1)
@@ -197,6 +199,15 @@ class FindImage(GingaPlugin.LocalPlugin):
 
         top.add_widget(fr, stretch=0)
 
+        fr = Widgets.Frame("Image Download Info")
+        image_info_text = "Please select 'Find image' to find your selected image"
+        self.w.select_image_info = Widgets.Label(image_info_text)
+        # TODO - Need to find place for 'image download failed' message as
+        # error messages aren't thrown from FindImage file
+
+        fr.set_widget(self.w.select_image_info)
+        top.add_widget(fr, stretch=0)
+
         top.add_widget(Widgets.Label(''), stretch=1)
 
         btns = Widgets.HBox()
@@ -207,7 +218,7 @@ class FindImage(GingaPlugin.LocalPlugin):
         btn.add_callback('activated', lambda w: self.close())
         btns.add_widget(btn, stretch=0)
         btn = Widgets.Button("Help")
-        #btn.add_callback('activated', lambda w: self.help())
+        # btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
@@ -253,6 +264,21 @@ class FindImage(GingaPlugin.LocalPlugin):
         self.size = (val, val)
 
     def find_image_cb(self, w):
+        try:
+            image_timestamp = datetime.datetime.now()
+            image_info_text = "Initiating image download at: "+(
+                               image_timestamp.strftime("%D %H:%M:%S"))
+            self.w.select_image_info.set_text(image_info_text)
+            self.download_image()
+        except Exception as e:
+            image_timestamp = datetime.datetime.now()
+            image_info_text = "Image download failed at: "+(
+                               image_timestamp.strftime("%D %H:%M:%S"))
+            self.w.select_image_info.set_text(image_info_text)
+            self.logger.error("failed to find image: {}"
+                              .format(e), exc_info=True)
+
+    def download_image(self):
         ra_deg, dec_deg = self.get_radec()
 
         # initiate the download
@@ -267,7 +293,7 @@ class FindImage(GingaPlugin.LocalPlugin):
         radius = u.Quantity(arcmin, unit=u.arcmin)
         imscale = size = arcmin / 60.0
         service_name = service_name.strip()
-        #service_url = service_urls[service_name]
+        # service_url = service_urls[service_name]
 
         img = AstroImage(logger=self.logger)
 
@@ -285,13 +311,20 @@ class FindImage(GingaPlugin.LocalPlugin):
 
             self.logger.info(f'position={position}, survey={survey}, radius={radius}')
 
-            im = sv.get_images(position=position, survey=[survey], radius=radius)
+            im = sv.get_images(position=position,
+                               survey=[survey],
+                               radius=radius)
             self.logger.info(f'im={im}')
 
             tmp_file = tempfile.mktemp()
             self.logger.info(f'loading SkyView image. file={tmp_file}')
             im[0].writeto(tmp_file, overwrite=True)
             self.fv.load_file(tmp_file, chname=self.channel.name)
+
+            image_timestamp = datetime.datetime.now()
+            image_info_text = "Image download complete, displayed at: "+(
+                               image_timestamp.strftime("%D %H:%M:%S"))
+            self.w.select_image_info.set_text(image_info_text)
 
         elif service == "SDSS":
             ra_deg, dec_deg = self.get_radec()
@@ -300,11 +333,18 @@ class FindImage(GingaPlugin.LocalPlugin):
 
             self.logger.info(f'position={position}, survey={survey}, radius={radius}')
 
-            im = SDSS.get_images(coordinates=position, radius=radius, data_release=int(survey))
+            im = SDSS.get_images(coordinates=position,
+                                 radius=radius,
+                                 data_release=int(survey))
             tmp_file = tempfile.mktemp()
             self.logger.info(f'loading SDSS image. file={tmp_file}')
             im[0].writeto(tmp_file, overwrite=True)
             self.fv.load_file(tmp_file, chname=self.channel.name)
+
+            image_timestamp = datetime.datetime.now()
+            image_info_text = "Image download complete, displayed at: "+(
+                               image_timestamp.strftime("%D %H:%M:%S"))
+            self.w.select_image_info.set_text(image_info_text)
 
             return
 
@@ -336,6 +376,11 @@ class FindImage(GingaPlugin.LocalPlugin):
             self.logger.debug(f'ESO url={service_url}')
             self.fv.open_uris([service_url], chname=self.channel.name)
 
+            image_timestamp = datetime.datetime.now()
+            image_info_text = "Image download complete, displayed at: "+(
+                               image_timestamp.strftime("%D %H:%M:%S"))
+            self.w.select_image_info.set_text(image_info_text)
+
         elif service == "PANSTARRS-1":
             self.logger.debug('Panstarrs 1...')
             ra_list, dec_list = self.get_radec_list()
@@ -345,7 +390,7 @@ class FindImage(GingaPlugin.LocalPlugin):
 
             pos = f'{ra_list[0]}%3A{ra_list[1]}%3A{ra_list[2]}+{dec_list[0]}%3A{dec_list[1]}%3A{dec_list[2]}'
 
-            pixel_arcmin = 240 # 240 pixels/1 arcmin
+            pixel_arcmin = 240  # 240 pixels/1 arcmin
             size = arcmin * pixel_arcmin
             params = {'filter': survey,
                       'pos': pos,
@@ -357,6 +402,11 @@ class FindImage(GingaPlugin.LocalPlugin):
             self.logger.debug(f'Panstarrs1 url={service_url}')
             self.fv.open_uris([service_url], chname=self.channel.name)
 
+            image_timestamp = datetime.datetime.now()
+            image_info_text = "Image download complete, displayed at: "+(
+                               image_timestamp.strftime("%D %H:%M:%S"))
+            self.w.select_image_info.set_text(image_info_text)
+
         elif service == "STSCI":
             self.logger.debug('STScI...')
             ra_deg, dec_deg = self.get_radec()
@@ -365,7 +415,7 @@ class FindImage(GingaPlugin.LocalPlugin):
             params = {'survey': survey,
                       'ra_deg': ra_deg,
                       'dec_deg': dec_deg,
-                      'equinox': equinox, # J2000 or B1950
+                      'equinox': equinox,  # J2000 or B1950
                       'arcmin': arcmin,
                       }
 
@@ -373,6 +423,11 @@ class FindImage(GingaPlugin.LocalPlugin):
             service_url = service_url.format(**params)
             self.logger.debug(f'STScI url={service_url}')
             self.fv.open_uris([service_url], chname=self.channel.name)
+
+            image_timestamp = datetime.datetime.now()
+            image_info_text = "Image download complete, displayed at: "+(
+                               image_timestamp.strftime("%D %H:%M:%S"))
+            self.w.select_image_info.set_text(image_info_text)
 
     def create_blank_image(self):
         self.fitsimage.onscreen_message("Creating blank field...",
