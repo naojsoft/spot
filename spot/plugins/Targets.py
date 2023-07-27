@@ -132,7 +132,7 @@ class Targets(GingaPlugin.LocalPlugin):
         top = Widgets.VBox()
         top.set_border_width(4)
 
-        captions = (('OPE Button', 'button', 'OPE Path', 'entryset'),
+        captions = (('Load File', 'button', 'File Path', 'entryset'),
                     )
 
         w, b = Widgets.build_info(captions)
@@ -141,18 +141,18 @@ class Targets(GingaPlugin.LocalPlugin):
         self.fileselect = GwHelp.FileSelection(container.get_widget(),
                                                all_at_once=True)
         self.proc_dir_path = os.path.join(os.environ['HOME'], 'Procedure')
-        b.ope_path.set_text(self.proc_dir_path)
+        b.file_path.set_text(self.proc_dir_path)
 
         top.add_widget(w, stretch=0)
-        b.ope_button.add_callback('activated', self.ope_setbutton_cb)
-        b.ope_button.set_tooltip("Select target file")
-        b.ope_path.add_callback('activated', self.ope_setpath_cb)
+        b.load_file.add_callback('activated', self.load_file_cb)
+        b.load_file.set_tooltip("Select target file")
+        b.file_path.add_callback('activated', self.file_setpath_cb)
 
         self.w.tgt_tbl = Widgets.TreeView(auto_expand=True,
                                           selection='multiple',
                                           sortable=True,
                                           use_alt_row_color=True)
-        self.w.tgt_tbl.setup_table(self.columns, 1, 'name')
+        self.w.tgt_tbl.setup_table(self.columns, 2, 'name')
         top.add_widget(self.w.tgt_tbl, stretch=1)
 
         self.w.tgt_tbl.add_callback('selected', self.target_selection_cb)
@@ -269,7 +269,7 @@ class Targets(GingaPlugin.LocalPlugin):
             shown_tgt_lst = tgt_info_lst
         elif self.plot_which == 'selected':
             shown_tgt_lst = [res for res in tgt_info_lst
-                             if res.tgt.name in self.selected]
+                             if (res.tgt.category, res.tgt.name) in self.selected]
 
         return shown_tgt_lst
 
@@ -359,7 +359,7 @@ class Targets(GingaPlugin.LocalPlugin):
         self.tgt_info_lst = [self.get_tgt_info(
                              tgt, self.site, start_time,
                              # color=self.colors[i % len(self.colors)])
-                             color='green2' if tgt.name not in
+                             color='green2' if (tgt.category, tgt.name) not in
                              self.selected else 'pink')
                              for i, tgt in enumerate(self.target_list)]
 
@@ -395,24 +395,24 @@ class Targets(GingaPlugin.LocalPlugin):
                 self.settings.get('targets_update_interval')):
             self.update_all()
 
-    def ope_setbutton_cb(self, w):
+    def load_file_cb(self, w):
         # Needs to be updated for multiple selections
         proc_dir = os.path.join(os.environ['HOME'], 'Procedure')
-        self.fileselect.popup("Load File", self.file_load_cb, proc_dir)
+        self.fileselect.popup("Load File", self.file_select_cb, proc_dir)
 
-    def ope_setpath_cb(self, w):
+    def file_setpath_cb(self, w):
         file_path = w.get_text().strip()
         if file_path.lower().endswith(".ope"):
             self.process_ope_file_for_targets(file_path)
         else:
             self.process_csv_file_for_targets(file_path)
 
-    def file_load_cb(self, paths):
+    def file_select_cb(self, paths):
         if len(paths) == 0:
             return
 
         # Needs to be updated for multiple selections
-        self.w.ope_path.set_text(paths[0])
+        self.w.file_path.set_text(paths[0])
         file_path = paths[0].strip()
         if file_path.lower().endswith(".ope"):
             self.process_ope_file_for_targets(file_path)
@@ -436,7 +436,7 @@ class Targets(GingaPlugin.LocalPlugin):
         tgt_list = ope.get_targets(ope_buf, prm_dirs)
 
         # process into QPlan Target object list
-        self.target_list = process_tgt_list(tgt_list)
+        self.target_list.extend(process_tgt_list(ope_file, tgt_list))
 
         # update GUIs
         self.update_all()
@@ -447,13 +447,14 @@ class Targets(GingaPlugin.LocalPlugin):
         with open(csv_path, newline='') as csv_f:
             reader = csv.DictReader(csv_f, delimiter=',', quotechar='"')
             for row in reader:
-                tgt_list.append(Target(name=row.get('Name', 'none'),
+                tgt_list.append(Target(category=csv_path,
+                                       name=row.get('Name', 'none'),
                                        ra=row['RA'],
                                        dec=row['DEC'],
                                        equinox=row['Equinox'],
                                        comment=row.get('comment', '')))
 
-        self.target_list = tgt_list
+        self.target_list.extend(tgt_list)
 
         # update GUIs
         self.update_all()
@@ -468,10 +469,11 @@ class Targets(GingaPlugin.LocalPlugin):
     def targets_to_table(self, target_info):
         tree_dict = OrderedDict()
         for res in target_info:
-            selected = res.tgt.name in self.selected
+            dct = tree_dict.setdefault(res.tgt.category, dict())
+            selected = (res.tgt.category, res.tgt.name) in self.selected
             # NOTE: AZ values are normalized to standard use
             az_deg = self.site.norm_to_az(res.info.az_deg)
-            tree_dict[res.tgt.name] = Bunch.Bunch(
+            dct[res.tgt.name] = Bunch.Bunch(
                 selected='*' if selected else '',
                 name=res.tgt.name,
                 ra=res.tgt.ra,
@@ -495,23 +497,34 @@ class Targets(GingaPlugin.LocalPlugin):
         self._update_selection_buttons()
 
     def target_single_cb(self, w, sel_dct):
-        self.selected = set(sel_dct.keys())
+        selected = set([(category, name)
+                        for category, dct in sel_dct.items()
+                        for name in dct.keys()])
+        self.selected = selected
         self.target_selection_update()
 
     def select_cb(self, w):
         sel_dct = self.w.tgt_tbl.get_selected()
-        self.selected = self.selected.union(set(sel_dct.keys()))
+        print(sel_dct)
+        selected = set([(category, name)
+                        for category, dct in sel_dct.items()
+                        for name in dct.keys()])
+        self.selected = self.selected.union(selected)
         self.target_selection_update()
         self._update_selection_buttons()
 
     def unselect_cb(self, w):
         sel_dct = self.w.tgt_tbl.get_selected()
-        self.selected = self.selected.difference(set(sel_dct.keys()))
+        selected = set([(category, name)
+                        for category, dct in sel_dct.items()
+                        for name in dct.keys()])
+        self.selected = self.selected.difference(selected)
         self.target_selection_update()
         self._update_selection_buttons()
 
     def select_all_cb(self, w):
-        self.selected = set([res.tgt.name for res in self.tgt_info_lst])
+        self.selected = set([(res.tgt.category, res.tgt.name)
+                             for res in self.tgt_info_lst])
         self.target_selection_update()
         self._update_selection_buttons()
 
@@ -523,13 +536,11 @@ class Targets(GingaPlugin.LocalPlugin):
     def _update_selection_buttons(self):
         # enable or disable the selection buttons as needed
         sel_dct = self.w.tgt_tbl.get_selected()
-        keys = set(sel_dct.keys())
-        self.w.btn_select.set_enabled(len(keys - self.selected) > 0)
-        self.w.btn_unselect.set_enabled(len(keys & self.selected) > 0)
-        # all_keys = set([res.tgt.name for res in self.tgt_info_lst])
-        # self.w.btn_select_all.set_enabled(len(self.selected) <
-        #                                   len(self.tgt_info_lst))
-        # self.w.btn_unselect_all.set_enabled(len(self.selected) > 0)
+        selected = set([(category, name)
+                        for category, dct in sel_dct.items()
+                        for name in dct.keys()])
+        self.w.btn_select.set_enabled(len(selected - self.selected) > 0)
+        self.w.btn_unselect.set_enabled(len(selected & self.selected) > 0)
 
     def plot_ss_cb(self, w, tf):
         self.plot_ss_objects = tf
@@ -571,8 +582,8 @@ class Targets(GingaPlugin.LocalPlugin):
         return 'targets'
 
 
-def process_tgt_list(tgt_list):
-    return [Target(name=objname,
+def process_tgt_list(category, tgt_list):
+    return [Target(category=category, name=objname,
                    ra=ra_str, dec=dec_str, equinox=eq_str,
                    comment=tgtname)
             for (tgtname, objname, ra_str, dec_str, eq_str) in tgt_list]

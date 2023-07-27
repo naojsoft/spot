@@ -11,12 +11,14 @@ except ImportError:
 
 class Target(StaticTarget):
 
-    def __init__(self, name=None, ra=None, dec=None, equinox=2000.0,
+    def __init__(self, category=None, name=None,
+                 ra=None, dec=None, equinox=2000.0,
                  comment=''):
         ra, dec, eq = normalize_ra_dec_equinox(ra, dec, equinox)
 
         super().__init__(name=name, ra=ra, dec=dec, equinox=eq,
                          comment=comment)
+        self.category = category
 
     def import_record(self, rec):
         self.name = rec['name']
@@ -41,7 +43,10 @@ def normalize_ra_dec_equinox(ra, dec, eq):
             # read as sexigesimal hours
             ra_deg = hmsStrToDeg(ra)
         else:
-            l, r = ra.split('.')
+            if '.' in ra:
+                l, r = ra.split('.')
+            else:
+                l = ra
             if len(l) > 4:
                 if not have_oscript:
                     raise ValueError("RA appears to be in funky SOSS format; please install 'oscript' to parse these values")
@@ -63,7 +68,10 @@ def normalize_ra_dec_equinox(ra, dec, eq):
             # read as sexigesimal hours
             dec_deg = dmsStrToDeg(dec)
         else:
-            l, r = dec.split('.')
+            if '.' in dec:
+                l, r = dec.split('.')
+            else:
+                l = dec
             if len(l) > 4:
                 if not have_oscript:
                     raise ValueError("DEC appears to be in funky SOSS format; please install 'oscript' to parse these values")
