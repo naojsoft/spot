@@ -420,7 +420,6 @@ class Targets(GingaPlugin.LocalPlugin):
             self.process_csv_file_for_targets(file_path)
 
     def process_ope_file_for_targets(self, ope_file):
-        tgt_list = []
         if not have_oscript:
             self.fv.show_error("Please install the 'oscript' module to use this feature")
 
@@ -436,25 +435,33 @@ class Targets(GingaPlugin.LocalPlugin):
         tgt_list = ope.get_targets(ope_buf, prm_dirs)
 
         # process into QPlan Target object list
-        self.target_list.extend(process_tgt_list(ope_file, tgt_list))
+        new_targets = process_tgt_list(ope_file, tgt_list)
+
+        # remove old targets from this same file
+        target_list = [tgt for tgt in self.target_list
+                       if tgt.category != ope_file]
+        self.target_list = target_list + new_targets
 
         # update GUIs
         self.update_all()
 
     def process_csv_file_for_targets(self, csv_path):
         # read CSV file
-        tgt_list = []
+        new_targets = []
         with open(csv_path, newline='') as csv_f:
             reader = csv.DictReader(csv_f, delimiter=',', quotechar='"')
             for row in reader:
-                tgt_list.append(Target(category=csv_path,
-                                       name=row.get('Name', 'none'),
-                                       ra=row['RA'],
-                                       dec=row['DEC'],
-                                       equinox=row['Equinox'],
-                                       comment=row.get('comment', '')))
+                new_targets.append(Target(category=csv_path,
+                                          name=row.get('Name', 'none'),
+                                          ra=row['RA'],
+                                          dec=row['DEC'],
+                                          equinox=row['Equinox'],
+                                          comment=row.get('comment', '')))
 
-        self.target_list.extend(tgt_list)
+        # remove old targets from this same file
+        target_list = [tgt for tgt in self.target_list
+                       if tgt.category != csv_path]
+        self.target_list = target_list + new_targets
 
         # update GUIs
         self.update_all()
@@ -505,7 +512,6 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def select_cb(self, w):
         sel_dct = self.w.tgt_tbl.get_selected()
-        print(sel_dct)
         selected = set([(category, name)
                         for category, dct in sel_dct.items()
                         for name in dct.keys()])
