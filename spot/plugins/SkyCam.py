@@ -15,8 +15,8 @@ An instance can be opened for each channel.
 **Usage**
 
 The SkyCam plugin uses sky camera images from different observatories based off
-of inputted camera settings. These settings are found in the cameras.yml file
-in the users .ginga directory.
+of inputted camera settings. These settings are found in the skycams.yml file
+in the users $HOME/.spot directory.
 
 A differential image can be substituted for the main graphic, which shows
 differences amongst transmitted images from the telescopes' sources.
@@ -58,7 +58,7 @@ second image from the source has not been displayed yet, a message on screen
 will appear telling the user that it is waiting to recieve a second image to
 put into the differential image equation.
 
-Lastly, the images are updated in a timer specific to the cameras.yml file and
+Lastly, the images are updated in a timer specific to the skycams.yml file and
 not matched to the image sources from the many observatories. This could
 possibly allow for some discrepancies between image refresh timing, resulting
 in the image becoming completely black. The user will have to wait until the
@@ -97,6 +97,10 @@ from ginga.RGBImage import RGBImage
 from ginga import GingaPlugin
 from ginga.util.paths import ginga_home
 
+# where our config files are stored
+from spot import __file__
+cfgdir = os.path.join(os.path.dirname(__file__), 'config')
+
 
 class SkyCam(GingaPlugin.LocalPlugin):
 
@@ -104,46 +108,38 @@ class SkyCam(GingaPlugin.LocalPlugin):
         # superclass defines some variables for us, like logger
         super().__init__(fv, fitsimage)
 
+        # get SkyCam preferences
+        prefs = self.fv.get_preferences()
+        self.settings = prefs.create_category('plugin_SkyCam')
+        self.settings.add_defaults(download_folder=tempfile.gettempdir(),
+                                   default_camera=None,
+                                   image_radius=1000)
+        self.settings.load(onError='silent')
+
         self.viewer = self.fitsimage
         self.dc = fv.get_draw_classes()
         self.std = np.array([0.2126, 0.7152, 0.0722])
         self.old_data = None
         self.cur_data = None
-        self.img_src_name = 'Subaru Telescope (Visible)'
+        self.img_src_name = self.settings.get('default_camera', None)
 
-        loaddir = ginga_home
-        path = os.path.join(loaddir, "cameras.yml")
-        if os.path.exists(path):
-            with open(path, 'r') as cam_f:
-                self.configs = yaml.safe_load(cam_f)
-        else:
-            # Sets Subaru Telescope (Visible) as default
-            # if cameras.yml does not load
-            self.config = {
-                'url': "https://allsky.subaru.nao.ac.jp/allsky/api/v0/images/download_most_recent.png",
-                'title': "Subaru Telescope (Visible)",
-                'ctr_x': 2660,
-                'ctr_y': 1850,
-                'radius': 1850,
-                'rot_deg': 9.5,
-                'flip_y': False,
-                'update_interval': 120.0}
-            self.configs = {self.img_src_name: self.config}
-        # Sets config dictionary equal to Subaru Telescope dictionary from
-        # within configs nested dictionary to start program as default
+        # see if user has a custom list of sky cams
+        path = os.path.join(ginga_home, "skycams.yml")
+        if not os.path.exists(path):
+            # open stock list of skycams
+            path = os.path.join(cfgdir, "skycams.yml")
+
+        with open(path, 'r') as cam_f:
+            self.configs = yaml.safe_load(cam_f)
+
+        if self.img_src_name is None:
+            self.img_src_name = list(self.configs.keys())[0]
         self.config = self.configs[self.img_src_name]
-
-        # get SkyCam preferences
-        prefs = self.fv.get_preferences()
-        self.settings = prefs.create_category('plugin_SkyCam')
-        self.settings.add_defaults(download_folder=tempfile.gettempdir())
         self.update_settings()
-
-        self.settings.load(onError='silent')
 
         self.ev_quit = threading.Event()
         self.sky_image_path = None
-        self.flag_use_sky_image = True
+        self.flag_use_sky_image = False
         self.flag_use_diff_image = False
 
         canvas = self.dc.DrawingCanvas()

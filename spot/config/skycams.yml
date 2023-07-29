@@ -1,0 +1,57 @@
+---
+  Subaru Telescope (Visible):
+    url: "https://allsky.subaru.nao.ac.jp/allsky/api/v0/images/download_most_recent.png"
+    title: "Subaru Telescope (Visible)"
+    ctr_x: 2660
+    ctr_y: 1850
+    radius: 1850
+    rot_deg: 9.5
+    flip_y: False
+    flip_x: False
+    update_interval: 120.0
+  
+  Canada France Hawaii Telescope ASIVA (Visible):
+    url: "https://www.cfht.hawaii.edu/~asiva/images/mask_rot/current_vis.png"
+    title: "Canada France Hawaii Telescope ASIVA (Visible)"
+    ctr_x: 394
+    ctr_y: 282
+    radius: 235
+    rot_deg: 0.5
+    flip_y: False
+    flip_x: False
+    update_interval: 120.0
+  
+  Canada France Hawaii ASIVA (Mid-IR):
+    url: "https://www.cfht.hawaii.edu/~asiva/images/mask_rot/raw_a.jpg"
+    title: "Canada France Hawaii ASIVA (Mid-IR)"
+    ctr_x: 333
+    ctr_y: 253
+    radius: 275
+    rot_deg: -14.0
+    flip_y: False
+    flip_x: False
+    update_interval: 180.0
+    
+  Canary - La Palma/GTC (Visual):
+    url: "http://www.gtc.iac.es/multimedia/netcam/camaraAllSky.jpg"
+    title: "Canary - La Palma/GTC (Visual)"
+    ctr_x: 327
+    ctr_y: 252
+    radius: 300
+    rot_deg: -35.6
+    flip_y: False
+    flip_x: False
+    update_interval: 180.0
+    
+    
+  Australia - Mount Stromlo (Visual):
+    url: "https://www.mso.anu.edu.au/msoallsky/msoskycam.jpg"
+    title: "Australia - Mount Stromlo (Visual)"
+    ctr_x: 382
+    ctr_y: 285
+    radius: 215
+    rot_deg: 0.0
+    flip_y: False
+    flip_x: False
+    update_interval: 120.0
+  

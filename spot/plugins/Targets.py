@@ -54,6 +54,9 @@ except ImportError:
     have_oscript = False
 
 from spot.util.target import Target
+# where our icons are stored
+from spot import __file__
+icondir = os.path.join(os.path.dirname(__file__), 'icons')
 
 
 class Targets(GingaPlugin.LocalPlugin):
@@ -84,10 +87,11 @@ class Targets(GingaPlugin.LocalPlugin):
 
         self.columns = [('Sel', 'selected'),
                         ('Name', 'name'),
-                        ('AM', 'airmass'),
                         ('Az', 'az_deg'),
                         ('Alt', 'alt_deg'),
+                        ('Dir', 'icon'),
                         ('HA', 'ha'),
+                        ('AM', 'airmass'),
                         # ('Slew', 'slew'),
                         # ('AD', 'ad'),
                         ('Pang', 'parang_deg'),
@@ -111,6 +115,20 @@ class Targets(GingaPlugin.LocalPlugin):
             tgt, color = tup
             self.ss.append(tgt)
             tgt.color = color
+
+        self.diricon = dict()
+        for name, filename in [('invisible', 'no_go.png'),
+                               ('up_ng', 'red_arr_up.png'),
+                               ('up_low', 'orange_arr_up.png'),
+                               ('up_ok', 'green_arr_up.png'),
+                               ('up_good', 'blue_arr_up.png'),
+                               ('up_high', 'purple_arr_up.png'),
+                               ('down_high', 'purple_arr_dn.png'),
+                               ('down_good', 'blue_arr_dn.png'),
+                               ('down_ok', 'green_arr_dn.png'),
+                               ('down_low', 'orange_arr_dn.png'),
+                               ('down_ng', 'red_arr_dn.png')]:
+            self.diricon[name] = self.fv.get_icon(icondir, filename)
 
         self.viewer = self.fitsimage
         self.dc = fv.get_draw_classes()
@@ -480,18 +498,23 @@ class Targets(GingaPlugin.LocalPlugin):
             selected = (res.tgt.category, res.tgt.name) in self.selected
             # NOTE: AZ values are normalized to standard use
             az_deg = self.site.norm_to_az(res.info.az_deg)
+            # find shorter of the two azimuth choices
+            az2_deg = (az_deg % 360) - 360
+            if abs(az2_deg) < abs(az_deg):
+                az_deg = az2_deg
             dct[res.tgt.name] = Bunch.Bunch(
                 selected='*' if selected else '',
                 name=res.tgt.name,
                 ra=res.tgt.ra,
                 dec=res.tgt.dec,
-                equinox=("%.1f" % res.tgt.equinox),
-                az_deg=("%d" % int(round(az_deg))),
-                alt_deg=("%d" % int(round(res.info.alt_deg))),
-                parang_deg=("%.2f" % np.degrees(res.info.pang)),
-                ha=("%.2f" % res.info.ha),
-                airmass=("%.2f" % res.info.airmass),
-                moon_sep=("%.2f" % res.info.moon_sep),
+                equinox=("%6.1f" % res.tgt.equinox),
+                az_deg=("% 4d" % int(round(az_deg))),
+                alt_deg=("% 3d" % int(round(res.info.alt_deg))),
+                parang_deg=("% 6.2f" % np.degrees(res.info.pang)),
+                ha=("% 6.2f" % res.info.ha),
+                icon=self._get_dir_icon(res.info.ha, res.info.alt_deg),
+                airmass=("% 5.2f" % res.info.airmass),
+                moon_sep=("% 3d" % int(round(res.info.moon_sep))),
                 comment=res.tgt.comment)
         self.w.tgt_tbl.set_tree(tree_dict)
         self.w.tgt_tbl.set_optimal_column_widths()
@@ -571,6 +594,14 @@ class Targets(GingaPlugin.LocalPlugin):
         # return self.dt_utc.astimezone(self.site.observer.tz_local)
         # return self.dt_utc.astimezone(self.cur_tz)
         return self.dt_utc
+
+    def _get_dir_icon(self, ha, alt_deg):
+        # TODO: replace this with something that picks an icon from
+        # self.diricon based on hour angle and altitude of the target
+        import random
+        icon_names = list(self.diricon.keys())
+        icon = self.diricon[icon_names[random.randint(0, len(icon_names)-1)]]
+        return icon
 
     def p2r(self, r, t):
         obj = self.channel.opmon.get_plugin('PolarSky')

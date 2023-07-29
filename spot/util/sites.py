@@ -20,13 +20,16 @@ from qplan.util.calcpos import Observer
 # local
 from spot.util.polar import subaru_normalize_az
 
+_external_status_dct = {}
+site_dict = {}
+site_names = []
+
 
 class Site:
-    name = 'Generic Site'
-
-    def __init__(self):
+    def __init__(self, name):
         super().__init__()
 
+        self.name = name
         self.observer = None
         self.status_dict = dict(
             longitude_deg=0.0,
@@ -59,10 +62,9 @@ class Site:
     def get_status(self):
         return Bunch(self.status_dict)
 
-    def fetch_status(self, fv):
-        """Site class should override this to update our status_dict
-        with fresh status, if it has any.  Called by SiteSelector plugin.
-        """
+    def fetch_status(self):
+        global _external_status_dct
+        self.status_dict.update(_external_status_dct)
         return self.get_status()
 
     def initialize(self):
@@ -81,155 +83,37 @@ class Site:
                                  timezone=timezone)
 
     def az_to_norm(self, az_deg):
+        if self.status_dict['azimuth_start_direction'] == 'S':
+            return subaru_normalize_az(az_deg)
         return az_deg
 
     def norm_to_az(self, az_deg):
+        if self.status_dict['azimuth_start_direction'] == 'S':
+            return subaru_normalize_az(az_deg)
         return az_deg
 
     def __str__(self):
         return self.name
 
 
-class AAO(Site):
-    name = 'AAO (Australia)'
-
-    def __init__(self):
-        super().__init__()
-
-        self.status_dict.update(
-            dict(longitude_deg=Longitude('149d4m2.00s').deg,
-                 latitude_deg=Latitude('-31d16m32.01s').deg,
-                 elevation_m=1164,
-                 pressure_mbar=1015,
-                 temperature_c=10,
-                 timezone_name='AEST',
-                 timezone_offset_min=600,
-                 fov_deg=1.0))
-        self.initialize()
-
-
-class GTC(Site):
-    name = 'GTC (La Palma, Canary)'
-
-    def __init__(self):
-        super().__init__()
-
-        self.status_dict.update(
-            dict(longitude_deg=Longitude('-17d53m30.12s').deg,
-                 latitude_deg=Latitude('28d45m23.04s').deg,
-                 elevation_m=2267,
-                 pressure_mbar=1015,
-                 temperature_c=10,
-                 timezone_name='GMT',
-                 timezone_offset_min=0,
-                 fov_deg=1.0))
-        self.initialize()
-
-
-class Okayama(Site):
-    name = 'OAO (Okayama, Japan)'
-
-    def __init__(self):
-        super().__init__()
-
-        self.status_dict.update(
-            dict(longitude_deg=Longitude('133d35m38.40s').deg,
-                 latitude_deg=Latitude('24d24m37.56s').deg,
-                 elevation_m=390,
-                 pressure_mbar=1015,
-                 temperature_c=10,
-                 timezone_name='JST',
-                 timezone_offset_min=540,
-                 fov_deg=1.0))
-        self.initialize()
-
-
-class SALT(Site):
-    name = 'SALT (SAAO, South Africa)'
-
-    def __init__(self):
-        super().__init__()
-
-        self.status_dict.update(
-            dict(longitude_deg=Longitude('20d48m38.52s').deg,
-                 latitude_deg=Latitude('-32d22m33.60s').deg,
-                 elevation_m=1798,
-                 pressure_mbar=1015,
-                 temperature_c=10,
-                 timezone_name='EET',
-                 timezone_offset_min=-240,
-                 fov_deg=1.0))
-        self.initialize()
-
-
-class Subaru(Site):
-    name = 'Subaru (Mauna Kea, Hawaii)'
-
-    def __init__(self):
-        super().__init__()
-
-        self.status_dict.update(
-            dict(longitude_deg=Longitude('-155d28m33.70s').deg,
-                 latitude_deg=Latitude('19d49m31.80s').deg,
-                 elevation_m=4163,
-                 pressure_mbar=615,
-                 temperature_c=0,
-                 timezone_name='HST',
-                 timezone_offset_min=-600,
-                 azimuth_start_direction='S',
-                 fov_deg=1.5))
-        self.initialize()
-
-    def az_to_norm(self, az_deg):
-        return subaru_normalize_az(az_deg)
-
-    def norm_to_az(self, az_deg):
-        return subaru_normalize_az(az_deg)
-
-    def fetch_status(self, fv):
-        # get any updates to local status
-        try:
-            obj = fv.gpmon.get_plugin('SubaruOCS')
-            self.status_dict.update(obj.get_status())
-        except KeyError:
-            # no SubaruOCS plugin loaded
-            pass
-        return self.get_status()
-
-
-class VLT(Site):
-    name = 'VLT (Cerro Paranal, Chile)'
-
-    def __init__(self):
-        super().__init__()
-
-        self.status_dict.update(
-            dict(longitude_deg=Longitude('-70d24m15.36s').deg,
-                 latitude_deg=Latitude('-24d37m38.38s').deg,
-                 elevation_m=2635,
-                 pressure_mbar=1015,
-                 temperature_c=10,
-                 timezone_name='PRT',
-                 timezone_offset_min=-240,
-                 fov_deg=1.0))
-        self.initialize()
-
-
-site_list = [
-    AAO,
-    GTC,
-    Okayama,
-    SALT,
-    Subaru,
-    VLT,
-]
-
-site_dict = {klass.name: klass for klass in site_list}
-site_names = list(site_dict.keys())
-site_names.sort()
+def update_status(dct):
+    global _external_status_dct
+    _external_status_dct.update(dct)
 
 def get_site_names():
     return site_names
 
 def get_site(name):
-    return site_dict[name]()
+    return site_dict[name]
+
+def configure_sites(yml_dct):
+    global site_dict, site_names
+
+    site_dict = dict()
+    for name, dct in yml_dct.items():
+        site = Site(name)
+        site.status_dict.update(dct)
+        site_dict[name] = site
+
+    site_names = list(site_dict.keys())
+    site_names.sort()

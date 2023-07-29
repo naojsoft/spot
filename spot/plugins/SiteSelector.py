@@ -12,6 +12,7 @@ naojsoft packages
 - qplan
 """
 # stdlib
+import os.path
 from datetime import datetime
 from dateutil import tz, parser
 
@@ -19,9 +20,17 @@ from dateutil import tz, parser
 from ginga.gw import Widgets, GwHelp
 from ginga import GingaPlugin
 from ginga.misc.Callback import Callbacks
+from ginga.util.paths import ginga_home
+
+# 3rd party
+import yaml
 
 # local
 from spot.util import sites
+
+# where our config files are stored
+from spot import __file__
+cfgdir = os.path.join(os.path.dirname(__file__), 'config')
 
 
 class SiteSelector(GingaPlugin.LocalPlugin):
@@ -32,7 +41,7 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         # get SiteSelector preferences
         prefs = self.fv.get_preferences()
         self.settings = prefs.create_category('plugin_SiteSelector')
-        self.settings.add_defaults(default_site=sites.Subaru.name,
+        self.settings.add_defaults(default_site=None,
                                    timer_update_interval=1.0)
         self.settings.load(onError='silent')
 
@@ -40,7 +49,21 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         for name in ['site-changed', 'time-changed']:
             self.cb.enable_callback(name)
 
-        self.site_obj = sites.get_site(self.settings['default_site'])
+        # see if user has a custom list of sites
+        path = os.path.join(ginga_home, "sites.yml")
+        if not os.path.exists(path):
+            # open stock list of sites
+            path = os.path.join(cfgdir, "sites.yml")
+
+        # configure sites
+        with open(path, 'r') as site_f:
+            sites.configure_sites(yaml.safe_load(site_f))
+
+        default_site = self.settings.get('default_site', None)
+        if default_site is None:
+            default_site = sites.get_site_names()[0]
+        self.site_obj = sites.get_site(default_site)
+        self.site_obj.initialize()
         self.status = self.site_obj.get_status()
 
         self.time_mode = 'now'
@@ -146,6 +169,7 @@ class SiteSelector(GingaPlugin.LocalPlugin):
 
     def site_changed_cb(self, w, idx):
         self.site_obj = sites.get_site(w.get_text())
+        self.site_obj.initialize()
         self.status = self.site_obj.get_status()
 
         # change time zone to be that of the site
@@ -160,7 +184,7 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         timer.start()
 
         # get any updated status from the site
-        self.status.update(self.site_obj.fetch_status(self.fv))
+        self.status.update(self.site_obj.fetch_status())
 
         if self.time_mode == 'now':
             self.dt_utc = datetime.utcnow().replace(tzinfo=tz.UTC)

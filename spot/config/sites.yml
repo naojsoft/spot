@@ -1,0 +1,69 @@
+# NOTES:
+# [1] Southern Hemispheres should have a negative Latitude, Northern positive
+#     Western Longitudes should have a negative Longitude, Eastern positive
+#
+AAO (Australia):
+  azimuth_start_direction: N
+  elevation_m: 1164
+  fov_deg: 1.0
+  latitude_deg: -31.275558333333333
+  longitude_deg: 149.06722222222223
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: AEST
+  timezone_offset_min: 600
+
+GTC (La Palma, Canary):
+  azimuth_start_direction: N
+  elevation_m: 2267
+  fov_deg: 1.0
+  latitude_deg: 28.7564
+  longitude_deg: 342.1083
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: GMT
+  timezone_offset_min: 0
+
+OAO (Okayama, Japan):
+  azimuth_start_direction: N
+  elevation_m: 390
+  fov_deg: 1.0
+  latitude_deg: 24.410433333333334
+  longitude_deg: 133.59400000000002
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: JST
+  timezone_offset_min: 540
+
+SALT (SAAO, South Africa):
+  azimuth_start_direction: N
+  elevation_m: 1798
+  fov_deg: 1.0
+  latitude_deg: -32.376
+  longitude_deg: 20.8107
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: EET
+  timezone_offset_min: -240
+
+Subaru (Maunakea, Hawaii):
+  azimuth_start_direction: S
+  elevation_m: 4163
+  fov_deg: 1.5
+  latitude_deg: 19.825499999999998
+  longitude_deg: 204.52397222222223
+  pressure_mbar: 615
+  temperature_c: 0
+  timezone_name: HST
+  timezone_offset_min: -600
+
+VLT (Cerro Paranal, Chile):
+  azimuth_start_direction: N
+  elevation_m: 2635
+  fov_deg: 1.0
+  latitude_deg: -24.62732777777778
+  longitude_deg: 289.5957333333333
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: PRT
+  timezone_offset_min: -240
