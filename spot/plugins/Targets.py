@@ -75,6 +75,7 @@ class Targets(GingaPlugin.LocalPlugin):
         self.site = None
         self.dt_utc = None
         self.cur_tz = None
+        self._last_tgt_update_dt = None
 
         self.colors = ['red', 'blue', 'green', 'cyan', 'magenta', 'yellow']
         self.base_circ = None
@@ -174,6 +175,7 @@ class Targets(GingaPlugin.LocalPlugin):
         self.w.tgt_tbl.setup_table(self.columns, 2, 'name')
         top.add_widget(self.w.tgt_tbl, stretch=1)
 
+        self.w.tgt_tbl.set_optimal_column_widths()
         self.w.tgt_tbl.add_callback('selected', self.target_selection_cb)
         self.w.tgt_tbl.add_callback('activated', self.target_single_cb)
 
@@ -309,6 +311,7 @@ class Targets(GingaPlugin.LocalPlugin):
         if tag != 'ss':
             tgt_info_lst = self.filter_targets(tgt_info_lst)
 
+        self.logger.info("plotting {} targets".format(len(tgt_info_lst)))
         objs = []
         for res in tgt_info_lst:
             alpha = 1.0 if res.info.alt_deg > 0 else 0.0
@@ -344,36 +347,37 @@ class Targets(GingaPlugin.LocalPlugin):
         if not self.canvas.has_tag(tag):
             self.plot_targets(tgt_info_lst, tag, start_time=start_time)
             return
-        if start_time is None:
-            start_time = self.get_datetime()
+        # if start_time is None:
+        #     start_time = self.get_datetime()
 
-        if tag != 'ss':
-            # filter the subset desired to be seen
-            tgt_info_lst = self.filter_targets(tgt_info_lst)
+        # if tag != 'ss':
+        #     # filter the subset desired to be seen
+        #     tgt_info_lst = self.filter_targets(tgt_info_lst)
 
-        obj = self.canvas.get_object_by_tag(tag)
-        objs = obj.objects
-        i = 0
-        for res in tgt_info_lst:
-            alpha = 1.0 if res.info.alt_deg > 0 else 0.0
-            t, r = self.map_azalt(res.info.az_deg, res.info.alt_deg)
-            x, y = self.p2r(r, t)
-            point, text = objs[i], objs[i + i]
-            point.x, point.y, point.alpha, point.fillalpha = x, y, alpha, alpha
-            text.x, text.y, text.alpha = x, y, alpha
-            point.color = text.color = res.color
-            i += 2
+        # self.logger.info("updating {} targets".format(len(tgt_info_lst)))
+        # obj = self.canvas.get_object_by_tag(tag)
+        # objs = obj.objects
+        # i = 0
+        # for res in tgt_info_lst:
+        #     alpha = 1.0 if res.info.alt_deg > 0 else 0.0
+        #     t, r = self.map_azalt(res.info.az_deg, res.info.alt_deg)
+        #     x, y = self.p2r(r, t)
+        #     point, text = objs[i], objs[i + i]
+        #     point.x, point.y, point.alpha, point.fillalpha = x, y, alpha, alpha
+        #     text.x, text.y, text.alpha = x, y, alpha
+        #     point.color = text.color = res.color
+        #     i += 2
 
-        self.canvas.update_canvas(whence=3)
+        # self.canvas.update_canvas(whence=3)
 
-        if tag == 'ss':
-            # don't plot visibility of solar system objects in Visibility
-            return
-        targets = [res.tgt for res in tgt_info_lst]
-        obj = self.channel.opmon.get_plugin('Visibility')
-        # obj.plot_targets(start_time, self.site, targets,
-        #                  timezone=self.cur_tz)
-        obj.plot_targets(start_time, self.site, targets)
+        # if tag == 'ss':
+        #     # don't plot visibility of solar system objects in Visibility
+        #     return
+        # targets = [res.tgt for res in tgt_info_lst]
+        # obj = self.channel.opmon.get_plugin('Visibility')
+        # # obj.plot_targets(start_time, self.site, targets,
+        # #                  timezone=self.cur_tz)
+        # obj.plot_targets(start_time, self.site, targets)
 
     def update_all(self, start_time=None):
         if start_time is None:
@@ -416,8 +420,11 @@ class Targets(GingaPlugin.LocalPlugin):
         self.dt_utc = time_utc
         self.cur_tz = cur_tz
 
-        if (abs((self.dt_utc - old_dt_utc).total_seconds()) >
-                self.settings.get('targets_update_interval')):
+        if (self._last_tgt_update_dt is None or
+            abs((self.dt_utc - self._last_tgt_update_dt).total_seconds()) >
+            self.settings.get('targets_update_interval')):
+            self._last_tgt_update_dt = self.dt_utc
+            self.logger.info("updating targets")
             self.update_all()
 
     def load_file_cb(self, w):
@@ -527,7 +534,6 @@ class Targets(GingaPlugin.LocalPlugin):
                 comment=res.tgt.comment,
                 ad=("% .1f" % (np.degrees(calc_ad)*3600)))
         self.w.tgt_tbl.set_tree(tree_dict)
-        self.w.tgt_tbl.set_optimal_column_widths()
 
     def target_selection_update(self):
         self.clear_plot()

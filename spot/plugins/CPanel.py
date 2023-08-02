@@ -44,6 +44,9 @@ class CPanel(GingaPlugin.GlobalPlugin):
         #self.settings.add_defaults(targets_update_interval=60.0)
         self.settings.load(onError='silent')
 
+        t_ = prefs.create_category('general')
+        t_.set(scrollbars='auto')
+
         self.ws_dct = dict()
         self.count = 1
         self.gui_up = False

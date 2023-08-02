@@ -16,6 +16,7 @@ import numpy as np
 # ginga
 from ginga.gw import Widgets
 from ginga import GingaPlugin
+#from ginga.AstroImage import AstroImage
 from ginga.misc import Bunch
 
 # qplan
@@ -363,6 +364,13 @@ class PolarSky(GingaPlugin.LocalPlugin):
 
         # cx, cy = self.settings['image_center']
         r = self.settings['image_radius'] * 1.25
+
+        # data_np = np.zeros((int(r)*2, int(r)*2), dtype=float)
+        # img = AstroImage(data_np=data_np, logger=self.logger)
+        # img.info_xy = self._info_xy
+        # cvs_img = self.dc.NormImage(-r, -r, img)
+        # objs.append(cvs_img)
+
         with self.viewer.suppress_redraw:
             self.viewer.set_limits(((-r, -r), (r, r)))
             self.viewer.zoom_fit()
@@ -398,6 +406,23 @@ class PolarSky(GingaPlugin.LocalPlugin):
 
     def map_azalt(self, az, alt):
         return az + 90.0, 90.0 - alt
+
+    def r2p(self, x, y):
+        r = np.sqrt(x ** 2 + y ** 2)
+        t = np.arctan(y / x)
+        return (r, t)
+
+    # def _info_xy(self, data_x, data_y, settings):
+    #     info = super().info_xy(data_x, data_y, settings)
+
+    #     r, t = self.r2p(data_x, data_y)
+    #     az = t - 90.0
+    #     alt = 90.0 - r
+    #     ra_lbl, dec_lbl = "Az", "El"
+    #     ra_txt, dec_txt = "%+.3f" % (az), "%+.3f" % (alt)
+    #     info.update(dict(itype='astro', ra_txt=ra_txt, dec_txt=dec_txt,
+    #                      ra_lbl=ra_lbl, dec_lbl=dec_lbl))
+    #     return info
 
     def tel_posn_toggle_cb(self, w, tf):
         self.fv.gui_do(self.update_telescope_plot)

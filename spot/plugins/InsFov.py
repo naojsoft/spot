@@ -166,15 +166,12 @@ class InsFov(GingaPlugin.LocalPlugin):
             return
         header = image.get_header()
         rot, scale = wcs.get_xy_rotation_and_scale(header)
-        #print(f"rotation is {rot}")
         scale_x, scale_y = scale
-        print('scale', np.sign(scale_x), np.sign(scale_y))
 
         # rot_x, rot_y = rot
         # # the image rotation necessary to show 0 deg position angle
         # self.rot_deg = np.mean((rot_x, rot_y))
         xflip, rot_deg = self.calc_ang(image, righthand=self.flip)
-        print(f"calculated ang of N is {rot_deg}")
         self.xflip = xflip
         self.rot_deg = rot_deg
 
@@ -185,7 +182,6 @@ class InsFov(GingaPlugin.LocalPlugin):
         # adjust image flip and rotation for desired position angle
         self.viewer.transform(xflip, False, False)
         self.viewer.rotate(img_rot_deg)
-        print(f"calculated rotation is {img_rot_deg}")
 
         if self.cur_fov is not None:
             self.cur_fov.set_scale(scale_x, scale_y)
