@@ -57,6 +57,8 @@ class Site:
             cmd_equinox=2000.0,       # ref equinox for target coords
             slew_time_sec=0.0,        # slew time in sec to target
             tel_status='Pointing',    # current telescope status string
+            humidity=0.0,
+            wavelength={'': 0.0, '': 0.0}
         )
 
     def get_status(self):
@@ -80,6 +82,8 @@ class Site:
                                  elevation=status.elevation_m,
                                  pressure=status.pressure_mbar,
                                  temperature=status.temperature_c,
+                                 humidity=status.humidity,
+                                 wavelength=status.wavelength,
                                  timezone=timezone)
 
     def az_to_norm(self, az_deg):

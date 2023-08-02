@@ -27,7 +27,7 @@ naojsoft packages
 # stdlib
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil import tz, parser
 import math
 from collections import OrderedDict
@@ -93,7 +93,7 @@ class Targets(GingaPlugin.LocalPlugin):
                         ('HA', 'ha'),
                         ('AM', 'airmass'),
                         # ('Slew', 'slew'),
-                        # ('AD', 'ad'),
+                        ('AD', 'ad'),
                         ('Pang', 'parang_deg'),
                         ('Moon Sep', 'moon_sep'),
                         ('RA', 'ra'),
@@ -156,6 +156,7 @@ class Targets(GingaPlugin.LocalPlugin):
         w, b = Widgets.build_info(captions)
         self.w = b
 
+        b.load_file.set_text("File")
         self.fileselect = GwHelp.FileSelection(container.get_widget(),
                                                all_at_once=True)
         self.proc_dir_path = os.path.join(os.environ['HOME'], 'Procedure')
@@ -197,6 +198,11 @@ class Targets(GingaPlugin.LocalPlugin):
         btn.add_callback('activated', self.unselect_all_cb)
         hbox.add_widget(btn, stretch=0)
         self.w.btn_unselect_all = btn
+        btn = Widgets.Button("Delete")
+        btn.set_tooltip("Delete selected target from targets")
+        btn.add_callback('activated', self.delete_cb)
+        hbox.add_widget(btn, stretch=0)
+        self.w.btn_delete = btn
 
         hbox.add_widget(Widgets.Label(''), stretch=1)
 
@@ -287,7 +293,8 @@ class Targets(GingaPlugin.LocalPlugin):
             shown_tgt_lst = tgt_info_lst
         elif self.plot_which == 'selected':
             shown_tgt_lst = [res for res in tgt_info_lst
-                             if (res.tgt.category, res.tgt.name) in self.selected]
+                             if (res.tgt.category,
+                                 res.tgt.name) in self.selected]
 
         return shown_tgt_lst
 
@@ -500,6 +507,8 @@ class Targets(GingaPlugin.LocalPlugin):
             az_deg = self.site.norm_to_az(res.info.az_deg)
             # find shorter of the two azimuth choices
             az2_deg = (az_deg % 360) - 360
+            calc_ad = (max(res.info.atmos_disp.values())) - (
+                       min(res.info.atmos_disp.values()))
             if abs(az2_deg) < abs(az_deg):
                 az_deg = az2_deg
             dct[res.tgt.name] = Bunch.Bunch(
@@ -510,12 +519,13 @@ class Targets(GingaPlugin.LocalPlugin):
                 equinox=("%6.1f" % res.tgt.equinox),
                 az_deg=("% 4d" % int(round(az_deg))),
                 alt_deg=("% 3d" % int(round(res.info.alt_deg))),
-                parang_deg=("% 6.2f" % np.degrees(res.info.pang)),
-                ha=("% 6.2f" % res.info.ha),
-                icon=self._get_dir_icon(res.info.ha, res.info.alt_deg),
+                parang_deg=("% 3d" % int(np.degrees(res.info.pang))),
+                ha=("% 6.2f" % (np.degrees(res.info.ha)/15)),
+                icon=self._get_dir_icon(res.info),
                 airmass=("% 5.2f" % res.info.airmass),
                 moon_sep=("% 3d" % int(round(res.info.moon_sep))),
-                comment=res.tgt.comment)
+                comment=res.tgt.comment,
+                ad=("% .1f" % (np.degrees(calc_ad)*3600)))
         self.w.tgt_tbl.set_tree(tree_dict)
         self.w.tgt_tbl.set_optimal_column_widths()
 
@@ -548,6 +558,19 @@ class Targets(GingaPlugin.LocalPlugin):
                         for category, dct in sel_dct.items()
                         for name in dct.keys()])
         self.selected = self.selected.difference(selected)
+        self.target_selection_update()
+        self._update_selection_buttons()
+
+    def delete_cb(self, w):
+        sel_dct = self.w.tgt_tbl.get_selected()
+        selected = ([(name)
+                     for category, dct in sel_dct.items()
+                     for name in dct.keys()])
+        # TODO - Should be changed - get rid of nested loop?
+        for x in selected:
+            for item in self.target_list:
+                if item.name == x:
+                    self.target_list.remove(item)
         self.target_selection_update()
         self._update_selection_buttons()
 
@@ -595,12 +618,35 @@ class Targets(GingaPlugin.LocalPlugin):
         # return self.dt_utc.astimezone(self.cur_tz)
         return self.dt_utc
 
-    def _get_dir_icon(self, ha, alt_deg):
-        # TODO: replace this with something that picks an icon from
-        # self.diricon based on hour angle and altitude of the target
-        import random
-        icon_names = list(self.diricon.keys())
-        icon = self.diricon[icon_names[random.randint(0, len(icon_names)-1)]]
+    def _get_dir_icon(self, info):
+        if info.will_be_visible:
+            if int(round(info.alt_deg)) <= 15:
+                if info.ha < 0:
+                    icon = self.diricon['up_ng']
+                elif 0 < info.ha:
+                    icon = self.diricon['down_ng']
+            elif 15 < int(round(info.alt_deg)) <= 30:
+                if info.ha < 0:
+                    icon = self.diricon['up_low']
+                elif 0 < info.ha:
+                    icon = self.diricon['down_low']
+            elif 30 < int(round(info.alt_deg)) <= 60:
+                if info.ha < 0:
+                    icon = self.diricon['up_ok']
+                elif 0 < info.ha:
+                    icon = self.diricon['down_ok']
+            elif 60 < int(round(info.alt_deg)) <= 85:
+                if info.ha < 0:
+                    icon = self.diricon['up_good']
+                elif 0 < info.ha:
+                    icon = self.diricon['down_good']
+            elif 85 < int(round(info.alt_deg)) <= 90:
+                if info.ha < 0:
+                    icon = self.diricon['up_high']
+                elif 0 < info.ha:
+                    icon = self.diricon['down_high']
+        elif not info.will_be_visible:
+            icon = self.diricon['invisible']
         return icon
 
     def p2r(self, r, t):
