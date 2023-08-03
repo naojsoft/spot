@@ -328,7 +328,7 @@ class Targets(GingaPlugin.LocalPlugin):
             objs.append(self.dc.Text(x, y, res.tgt.name,
                                      color=res.color, alpha=alpha,
                                      fontscale=True,
-                                     fontsize=None, fontsize_min=12))
+                                     fontsize=None, fontsize_min=8))
 
         o = self.dc.CompoundObject(*objs)
         self.canvas.add(o, tag=tag, redraw=False)
@@ -386,6 +386,7 @@ class Targets(GingaPlugin.LocalPlugin):
     def update_all(self, start_time=None):
         if start_time is None:
             start_time = self.get_datetime()
+        self._last_tgt_update_dt = start_time
         self.logger.info("update time: {}".format(start_time.strftime(
                          "%Y-%m-%d %H:%M:%S [%z]")))
         # get full information about all targets
@@ -399,6 +400,11 @@ class Targets(GingaPlugin.LocalPlugin):
         # update the target table
         if self.gui_up:
             self.targets_to_table(self.tgt_info_lst)
+
+            local_time = (self._last_tgt_update_dt.astimezone(self.cur_tz))
+            tzname = self.cur_tz.tzname(local_time)
+            self.w.update_time.set_text("Last updated at: " + local_time.strftime(
+                "%H:%M:%S") + f" [{tzname}]")
 
         self.update_targets(self.tgt_info_lst,
                             'targets',
@@ -427,26 +433,13 @@ class Targets(GingaPlugin.LocalPlugin):
         if (self._last_tgt_update_dt is None or
             abs((self.dt_utc - self._last_tgt_update_dt).total_seconds()) >
             self.settings.get('targets_update_interval')):
-            self._last_tgt_update_dt = self.dt_utc
             self.logger.info("updating targets")
             self.update_all()
-
-            local_time = (self._last_tgt_update_dt.astimezone(
-                          self.cur_tz))
-            tzname = self.cur_tz.tzname(local_time)
-            self.w.update_time.set_text("List last updated at: " + local_time.strftime(
-                                        "%H:%M:%S") + f" [{tzname}]")
 
     def load_file_cb(self, w):
         # Needs to be updated for multiple selections
         proc_dir = os.path.join(os.environ['HOME'], 'Procedure')
         self.fileselect.popup("Load File", self.file_select_cb, proc_dir)
-
-        local_time = (self.dt_utc.astimezone(
-                      self.cur_tz))
-        tzname = self.cur_tz.tzname(local_time)
-        self.w.update_time.set_text("File uploaded at: " + local_time.strftime(
-                                    "%H:%M:%S") + f" [{tzname}]")
 
     def file_setpath_cb(self, w):
         file_path = w.get_text().strip()
@@ -466,6 +459,8 @@ class Targets(GingaPlugin.LocalPlugin):
             self.process_ope_file_for_targets(file_path)
         else:
             self.process_csv_file_for_targets(file_path)
+
+        self.w.tgt_tbl.set_optimal_column_widths()
 
     def process_ope_file_for_targets(self, ope_file):
         if not have_oscript:
@@ -630,12 +625,6 @@ class Targets(GingaPlugin.LocalPlugin):
     def site_changed_cb(self, cb, site_obj):
         self.logger.debug("site has changed")
         self.site = site_obj
-
-        local_time = (self.dt_utc.astimezone(
-                      self.cur_tz))
-        tzname = self.cur_tz.tzname(local_time)
-        self.w.update_time.set_text("Site changed at: " + local_time.strftime(
-                                    "%H:%M:%S") + f" [{tzname}]")
 
         self.clear_plot()
         self.update_all()
