@@ -62,7 +62,8 @@ class PolarSky(GingaPlugin.LocalPlugin):
         tzname = self.cur_tz.tzname(dt)
         info.update(dict(date_current = dt.strftime("%Y-%m-%d"),
                          local_current = dt.strftime("%H:%M:%S") + f" [{tzname}]",
-                         utc = self.dt_utc.strftime("%H:%M:%S")))
+                         utc = self.dt_utc.strftime("%H:%M:%S"),
+                         lst = self.site_obj.observer.get_last().strftime("%H:%M")))
         return info
 
     def get_sunmoon_info(self):
@@ -108,16 +109,19 @@ class PolarSky(GingaPlugin.LocalPlugin):
         # Date info - TODO: add LST
         info = self.get_time_info()
         fr = Widgets.Frame('Site Date/Time')
-        self.w.dt_table = Widgets.GridBox(rows=3, columns=2)
+        self.w.dt_table = Widgets.GridBox(rows=4, columns=2)
         self.w.dt_table.add_widget(Widgets.Label('Date:'), 0, 0)
         self.w.dt_table.add_widget(Widgets.Label('Time:'), 1, 0)
         self.w.dt_table.add_widget(Widgets.Label('UTC:'), 2, 0)
+        self.w.dt_table.add_widget(Widgets.Label('LST:'), 3, 0)
         self.w.date_current = Widgets.Label(info.date_current)
         self.w.dt_table.add_widget(self.w.date_current, 0, 1)
         self.w.local_current = Widgets.Label(info.local_current)
         self.w.dt_table.add_widget(self.w.local_current, 1, 1)
         self.w.utc = Widgets.Label(info.utc)
         self.w.dt_table.add_widget(self.w.utc, 2, 1)
+        self.w.lst = Widgets.Label(info.lst)
+        self.w.dt_table.add_widget(self.w.lst, 3, 1)
 
         dt_hbox = Widgets.HBox()
         dt_hbox.add_widget(self.w.dt_table, stretch=0)
@@ -280,6 +284,7 @@ class PolarSky(GingaPlugin.LocalPlugin):
             self.w.date_current.set_text(info.date_current)
             self.w.local_current.set_text(info.local_current)
             self.w.utc.set_text(info.utc)
+            self.w.lst.set_text(info.lst)
 
     def update_sunmoon(self):
         info = self.get_sunmoon_info()
