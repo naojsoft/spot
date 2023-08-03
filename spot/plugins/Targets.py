@@ -168,6 +168,10 @@ class Targets(GingaPlugin.LocalPlugin):
         b.load_file.set_tooltip("Select target file")
         b.file_path.add_callback('activated', self.file_setpath_cb)
 
+        plot_update_text = "Please select file for list display"
+        self.w.update_time = Widgets.Label(plot_update_text)
+        top.add_widget(self.w.update_time, stretch=0)
+
         self.w.tgt_tbl = Widgets.TreeView(auto_expand=True,
                                           selection='multiple',
                                           sortable=True,
@@ -427,10 +431,22 @@ class Targets(GingaPlugin.LocalPlugin):
             self.logger.info("updating targets")
             self.update_all()
 
+            local_time = (self._last_tgt_update_dt.astimezone(
+                          self.cur_tz))
+            tzname = self.cur_tz.tzname(local_time)
+            self.w.update_time.set_text("List last updated at: " + local_time.strftime(
+                                        "%H:%M:%S") + f" [{tzname}]")
+
     def load_file_cb(self, w):
         # Needs to be updated for multiple selections
         proc_dir = os.path.join(os.environ['HOME'], 'Procedure')
         self.fileselect.popup("Load File", self.file_select_cb, proc_dir)
+
+        local_time = (self.dt_utc.astimezone(
+                      self.cur_tz))
+        tzname = self.cur_tz.tzname(local_time)
+        self.w.update_time.set_text("File uploaded at: " + local_time.strftime(
+                                    "%H:%M:%S") + f" [{tzname}]")
 
     def file_setpath_cb(self, w):
         file_path = w.get_text().strip()
@@ -614,6 +630,12 @@ class Targets(GingaPlugin.LocalPlugin):
     def site_changed_cb(self, cb, site_obj):
         self.logger.debug("site has changed")
         self.site = site_obj
+
+        local_time = (self.dt_utc.astimezone(
+                      self.cur_tz))
+        tzname = self.cur_tz.tzname(local_time)
+        self.w.update_time.set_text("Site changed at: " + local_time.strftime(
+                                    "%H:%M:%S") + f" [{tzname}]")
 
         self.clear_plot()
         self.update_all()
