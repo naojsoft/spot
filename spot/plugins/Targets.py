@@ -580,14 +580,15 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def delete_cb(self, w):
         sel_dct = self.w.tgt_tbl.get_selected()
-        selected = ([(name)
-                     for category, dct in sel_dct.items()
-                     for name in dct.keys()])
-        # TODO - Should be changed - get rid of nested loop?
-        for x in selected:
-            for item in self.target_list:
-                if item.name == x:
-                    self.target_list.remove(item)
+        selected = set([(category, name)
+                        for category, dct in sel_dct.items()
+                        for name in dct.keys()])
+        # TODO: have confirmation dialog
+        # remove any items from selection that were deleted
+        self.selected = self.selected.difference(selected)
+        # remove any items from target list that were deleted
+        self.target_list = [tgt for tgt in self.target_list
+                            if (tgt.category, tgt.name) not in selected]
         self.target_selection_update()
         self._update_selection_buttons()
 
@@ -610,6 +611,7 @@ class Targets(GingaPlugin.LocalPlugin):
                         for name in dct.keys()])
         self.w.btn_select.set_enabled(len(selected - self.selected) > 0)
         self.w.btn_unselect.set_enabled(len(selected & self.selected) > 0)
+        self.w.btn_delete.set_enabled(len(selected) > 0)
 
     def plot_ss_cb(self, w, tf):
         self.plot_ss_objects = tf
