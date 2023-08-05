@@ -128,6 +128,11 @@ class FindImage(GingaPlugin.LocalPlugin):
 
     def build_gui(self, container):
 
+        wsname, _ = self.channel.name.split('_')
+        channel = self.fv.get_channel(wsname + '_TGTS')
+        targets = channel.opmon.get_plugin('Targets')
+        targets.cb.add_callback('selection-changed', self.target_selection_cb)
+
         top = Widgets.VBox()
         top.set_border_width(4)
 
@@ -495,6 +500,15 @@ class FindImage(GingaPlugin.LocalPlugin):
             self.logger.error(errmsg, exc_info=True)
             # pop up the error in the GUI under "Errors" tab
             self.fv.gui_do(self.fv.show_error, errmsg)
+
+    def target_selection_cb(self, cb, targets):
+        if len(targets) == 0:
+            return
+        tgt = next(iter(targets))
+        if self.gui_up:
+            self.w.ra.set_text(tgt.ra)
+            self.w.dec.set_text(tgt.dec)
+            self.w.equinox.set_text(str(tgt.equinox))
 
     def __str__(self):
         return 'findimage'

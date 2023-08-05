@@ -41,7 +41,7 @@ from ginga.gw import Widgets, GwHelp
 from ginga import GingaPlugin
 from ginga.util.paths import ginga_home
 from ginga.util.wcs import (ra_deg_to_str, dec_deg_to_str)
-from ginga.misc import Bunch
+from ginga.misc import Bunch, Callback
 
 # qplan
 from qplan import common
@@ -77,9 +77,13 @@ class Targets(GingaPlugin.LocalPlugin):
         self.cur_tz = None
         self._last_tgt_update_dt = None
 
+        self.cb = Callback.Callbacks()
+        for name in ['selection-changed']:
+            self.cb.enable_callback(name)
+
         self.colors = ['red', 'blue', 'green', 'cyan', 'magenta', 'yellow']
         self.base_circ = None
-        self.target_list = []
+        self.target_dict = {}
         self.plot_which = 'selected'
         self.plot_ss_objects = self.settings.get('plot_ss_objects', True)
         self.selected = set([])
@@ -299,8 +303,7 @@ class Targets(GingaPlugin.LocalPlugin):
             shown_tgt_lst = tgt_info_lst
         elif self.plot_which == 'selected':
             shown_tgt_lst = [res for res in tgt_info_lst
-                             if (res.tgt.category,
-                                 res.tgt.name) in self.selected]
+                             if res.tgt in self.selected]
 
         return shown_tgt_lst
 
@@ -393,9 +396,9 @@ class Targets(GingaPlugin.LocalPlugin):
         self.tgt_info_lst = [self.get_tgt_info(
                              tgt, self.site, start_time,
                              # color=self.colors[i % len(self.colors)])
-                             color='green2' if (tgt.category, tgt.name) not in
+                             color='green2' if tgt not in
                              self.selected else 'pink')
-                             for i, tgt in enumerate(self.target_list)]
+                             for i, tgt in enumerate(self.target_dict.values())]
 
         # update the target table
         if self.gui_up:
@@ -481,9 +484,13 @@ class Targets(GingaPlugin.LocalPlugin):
         new_targets = process_tgt_list(ope_file, tgt_list)
 
         # remove old targets from this same file
-        target_list = [tgt for tgt in self.target_list
-                       if tgt.category != ope_file]
-        self.target_list = target_list + new_targets
+        target_dict = {(tgt.category, tgt.name): tgt
+                       for tgt in self.target_dict.values()
+                       if tgt.category != ope_file}
+        self.target_dict = target_dict
+        # add new targets
+        self.target_dict.update({(tgt.category, tgt.name): tgt
+                                 for tgt in new_targets})
 
         # update GUIs
         self.update_all()
@@ -502,9 +509,13 @@ class Targets(GingaPlugin.LocalPlugin):
                                           comment=row.get('comment', '')))
 
         # remove old targets from this same file
-        target_list = [tgt for tgt in self.target_list
-                       if tgt.category != csv_path]
-        self.target_list = target_list + new_targets
+        target_dict = {(tgt.category, tgt.name): tgt
+                       for tgt in self.target_dict.values()
+                       if tgt.category != csv_path}
+        self.target_dict = target_dict
+        # add new targets
+        self.target_dict.update({(tgt.category, tgt.name): tgt
+                                 for tgt in new_targets})
 
         # update GUIs
         self.update_all()
@@ -520,7 +531,7 @@ class Targets(GingaPlugin.LocalPlugin):
         tree_dict = OrderedDict()
         for res in target_info:
             dct = tree_dict.setdefault(res.tgt.category, dict())
-            selected = (res.tgt.category, res.tgt.name) in self.selected
+            selected = res.tgt in self.selected
             # NOTE: AZ values are normalized to standard use
             az_deg = self.site.norm_to_az(res.info.az_deg)
             # find shorter of the two azimuth choices
@@ -550,11 +561,13 @@ class Targets(GingaPlugin.LocalPlugin):
         self.clear_plot()
         self.update_all()
 
+        self.cb.make_callback('selection-changed', self.selected)
+
     def target_selection_cb(self, w, sel_dct):
         self._update_selection_buttons()
 
     def target_single_cb(self, w, sel_dct):
-        selected = set([(category, name)
+        selected = set([self.target_dict[(category, name)]
                         for category, dct in sel_dct.items()
                         for name in dct.keys()])
         self.selected = selected
@@ -562,7 +575,7 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def select_cb(self, w):
         sel_dct = self.w.tgt_tbl.get_selected()
-        selected = set([(category, name)
+        selected = set([self.target_dict[(category, name)]
                         for category, dct in sel_dct.items()
                         for name in dct.keys()])
         self.selected = self.selected.union(selected)
@@ -571,7 +584,7 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def unselect_cb(self, w):
         sel_dct = self.w.tgt_tbl.get_selected()
-        selected = set([(category, name)
+        selected = set([self.target_dict[(category, name)]
                         for category, dct in sel_dct.items()
                         for name in dct.keys()])
         self.selected = self.selected.difference(selected)
@@ -580,21 +593,22 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def delete_cb(self, w):
         sel_dct = self.w.tgt_tbl.get_selected()
-        selected = set([(category, name)
+        selected = set([self.target_dict[(category, name)]
                         for category, dct in sel_dct.items()
                         for name in dct.keys()])
         # TODO: have confirmation dialog
         # remove any items from selection that were deleted
         self.selected = self.selected.difference(selected)
         # remove any items from target list that were deleted
-        self.target_list = [tgt for tgt in self.target_list
-                            if (tgt.category, tgt.name) not in selected]
+        target_dict = {(tgt.category, tgt.name): tgt
+                       for tgt in self.target_dict.values()
+                       if tgt not in selected}
+        self.target_dict = target_dict
         self.target_selection_update()
         self._update_selection_buttons()
 
     def select_all_cb(self, w):
-        self.selected = set([(res.tgt.category, res.tgt.name)
-                             for res in self.tgt_info_lst])
+        self.selected = set(self.target_dict.values())
         self.target_selection_update()
         self._update_selection_buttons()
 
@@ -606,7 +620,7 @@ class Targets(GingaPlugin.LocalPlugin):
     def _update_selection_buttons(self):
         # enable or disable the selection buttons as needed
         sel_dct = self.w.tgt_tbl.get_selected()
-        selected = set([(category, name)
+        selected = set([self.target_dict[(category, name)]
                         for category, dct in sel_dct.items()
                         for name in dct.keys()])
         self.w.btn_select.set_enabled(len(selected - self.selected) > 0)
