@@ -178,7 +178,7 @@ class InsFov(GingaPlugin.LocalPlugin):
         self.rot_deg = rot_deg
 
         if self.flip:
-            img_rot_deg = self.rot_deg + self.mount_offset_rot_deg + self.pa_deg
+            img_rot_deg = self.rot_deg - self.mount_offset_rot_deg + self.pa_deg
         else:
             img_rot_deg = self.rot_deg + self.mount_offset_rot_deg - self.pa_deg
         # adjust image flip and rotation for desired position angle
@@ -243,9 +243,10 @@ class InsFov(GingaPlugin.LocalPlugin):
         if not self.flip:
             pa_deg = self.rot_deg + self.mount_offset_rot_deg - img_rot_deg
         else:
-            pa_deg = self.rot_deg + self.mount_offset_rot_deg + img_rot_deg
+            pa_deg = -self.rot_deg + self.mount_offset_rot_deg + img_rot_deg
         self.logger.info(f"PA is now {pa_deg} deg")
         self.w.pa.set_text("%.2f" % (pa_deg))
+        self.pa_deg = pa_deg
 
     def calc_ang(self, image, righthand=False):
         data_x, data_y = self.viewer.get_pan(coord='data')[:2]

@@ -169,7 +169,8 @@ class FindImage(GingaPlugin.LocalPlugin):
 
         captions = (('RA:', 'label', 'ra', 'entry', 'DEC:', 'label',
                      'dec', 'entry'),
-                    ('Equinox:', 'label', 'equinox', 'entry'),
+                    ('Equinox:', 'label', 'equinox', 'entry',
+                     'Name:', 'label', 'name', 'entry'),
                     )
 
         w, b = Widgets.build_info(captions)
@@ -282,7 +283,7 @@ class FindImage(GingaPlugin.LocalPlugin):
         self.size = (val, val)
 
     def change_skyradius_cb(self, setting, radius_arcmin):
-        radius = int(np.ceil(radius_arcmin)) + 1
+        radius = int(np.ceil(radius_arcmin) * 1.5)
         self.size = (radius, radius)
         if self.gui_up:
             self.w.size.set_value(radius)
@@ -513,6 +514,8 @@ class FindImage(GingaPlugin.LocalPlugin):
             # populate the image server UI coordinate
             self.w.ra.set_text(ra_str)
             self.w.dec.set_text(dec_str)
+            self.w.equinox.set_text('2000.0') # ??!!
+            self.w.name.set_text(name)
 
         except Exception as e:
             errmsg = "Name service query exception: %s" % (str(e))
@@ -528,6 +531,7 @@ class FindImage(GingaPlugin.LocalPlugin):
             self.w.ra.set_text(tgt.ra)
             self.w.dec.set_text(tgt.dec)
             self.w.equinox.set_text(str(tgt.equinox))
+            self.w.name.set_text(tgt.name)
 
     def __str__(self):
         return 'findimage'
