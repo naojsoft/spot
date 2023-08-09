@@ -134,7 +134,8 @@ class CPanel(GingaPlugin.GlobalPlugin):
                 ("Sky Cams", 'SkyCam', chname_tgts),
                 ("Telescope Position", 'TelescopePosition', chname_tgts),
                 ("Finding Chart", 'FindImage', chname_find),
-                ("Instrument FOV", "InsFov", chname_find)]:
+                ("Instrument FOV", "InsFov", chname_find),
+                ("HSC Planner", "HSCPlanner", chname_find)]:
             cb = Widgets.CheckBox(name)
             cb_dct[plname] = cb
             vbox.add_widget(cb, stretch=0)

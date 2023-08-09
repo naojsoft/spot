@@ -24,6 +24,7 @@ from g2cam.INS import INSdata
 # don't show these instruments because we have no detailed info on them yet
 remove_inst = ['CSW', 'FLDMON', 'LGS', 'SUKA', 'VGW', 'WAVEPLAT',
                'SCEXAO', 'CHARIS', 'VAMPIRES', 'MEC', 'MIMIZUKU',
+               'TELSIM', 'PFS', 'HSC',
                ]
 class InsFov(GingaPlugin.LocalPlugin):
 
@@ -34,7 +35,7 @@ class InsFov(GingaPlugin.LocalPlugin):
         # get FOV preferences
         prefs = self.fv.get_preferences()
         self.settings = prefs.create_category('plugin_InsFov')
-        #self.settings.add_defaults()
+        self.settings.add_defaults(sky_radius_arcmin=3)
         self.settings.load(onError='silent')
 
         # for instrument information
@@ -63,6 +64,7 @@ class InsFov(GingaPlugin.LocalPlugin):
         self.cur_fov = None
         self.xflip = False
         self.rot_deg = 0.0
+        self.mount_offset_rot_deg = 0.0
         # user's chosen flip and PA
         self.flip = False
         self.pa_deg = 0.0
@@ -176,9 +178,9 @@ class InsFov(GingaPlugin.LocalPlugin):
         self.rot_deg = rot_deg
 
         if self.flip:
-            img_rot_deg = self.rot_deg + self.pa_deg
+            img_rot_deg = self.rot_deg + self.mount_offset_rot_deg + self.pa_deg
         else:
-            img_rot_deg = self.rot_deg - self.pa_deg
+            img_rot_deg = self.rot_deg + self.mount_offset_rot_deg - self.pa_deg
         # adjust image flip and rotation for desired position angle
         self.viewer.transform(xflip, False, False)
         self.viewer.rotate(img_rot_deg)
@@ -199,10 +201,14 @@ class InsFov(GingaPlugin.LocalPlugin):
                 klass = inst_fov[insname]
                 pt = self.viewer.get_pan(coord='data')
                 self.cur_fov = klass(self.canvas, pt[:2])
+                self.mount_offset_rot_deg = self.cur_fov.mount_offset_rot_deg
 
+                # this should change the size setting in FindImage
+                self.settings.set(sky_radius_arcmin=self.cur_fov.sky_radius_arcmin)
             else:
                 # 'None' selected
                 self.cur_fov = None
+                self.mount_offset_rot_deg = 0.0
 
             self.redo()
 
@@ -235,9 +241,9 @@ class InsFov(GingaPlugin.LocalPlugin):
 
         img_rot_deg = viewer.get_rotation()
         if not self.flip:
-            pa_deg = self.rot_deg - img_rot_deg
+            pa_deg = self.rot_deg + self.mount_offset_rot_deg - img_rot_deg
         else:
-            pa_deg = self.rot_deg + img_rot_deg
+            pa_deg = self.rot_deg + self.mount_offset_rot_deg + img_rot_deg
         self.logger.info(f"PA is now {pa_deg} deg")
         self.w.pa.set_text("%.2f" % (pa_deg))
 
@@ -274,11 +280,14 @@ class FOV:
         self.canvas = canvas
         self.dc = canvas.get_draw_classes()
 
+        self.mount_offset_rot_deg = 0.0
+
     def set_pos(self, pt):
         pass
 
     def remove(self):
         pass
+
 
 class AO188_FOV(FOV):
     def __init__(self, canvas, pt):
@@ -289,6 +298,7 @@ class AO188_FOV(FOV):
         self.scale = 1.0
         self.ao_radius = 60 * 0.5
         self.rot_deg = 0.0
+        self.sky_radius_arcmin = self.ao_fov * 60
 
         self.ao_color = 'red'
 
@@ -336,6 +346,7 @@ class IRCS_FOV(AO188_FOV):
         self.ircs_fov = 0.015   # 54 arcsec
         self.ircs_radius = 54 * 0.5
         self.ircs_color = 'red'
+        self.mount_offset_rot_deg = 90.0
 
         x, y = pt
         r = self.ircs_radius
@@ -438,6 +449,7 @@ class CS_FOV(FOV):
         self.scale = 1.0
         self.cs_radius = 6 * 0.5
         self.rot_deg = 0.0
+        self.sky_radius_arcmin = self.cs_fov * 60
 
         self.cs_color = 'red'
 
@@ -522,9 +534,6 @@ class COMICS_FOV(CS_FOV):
 
         self.canvas.update_canvas()
 
-    def rotate(self, rot_deg):
-        super().rotate(rot_deg)
-
     def remove(self):
         super().remove()
 
@@ -579,9 +588,6 @@ class MOIRCS_FOV(CS_FOV):
         self.moircs_box.objects[2].y2 = y
 
         self.canvas.update_canvas()
-
-    def rotate(self, rot_deg):
-        super().rotate(rot_deg)
 
     def remove(self):
         super().remove()
@@ -691,6 +697,7 @@ class HDS_FOV(FOV):
         self.scale = 1.0
         self.hds_radius = 1 * 0.5
         self.rot_deg = 0.0
+        self.sky_radius_arcmin = self.hds_fov * 60
 
         self.hds_color = 'red'
 

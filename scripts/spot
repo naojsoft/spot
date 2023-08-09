@@ -97,8 +97,8 @@ if __name__ == "__main__":
               category="Planning", menu="Visibility", tab='Visibility'),
         Bunch(module='SiteSelector', ptype='local', workspace='dialogs',
               category="Planning", menu="Site Selector", tab='Site'),
-        Bunch(module='HSCPlanner', ptype='local', workspace='dialogs',
-              category="Planning", menu="HSCPlanner", tab='HSCPlanner'),
+        Bunch(module='HSCPlanner', ptype='local', workspace='channels',
+              category="Planning", menu="HSC Planner", tab='HSC Planner'),
         ]:
         add_plugin_spec(spec)
 

@@ -96,7 +96,9 @@ class FindImage(GingaPlugin.LocalPlugin):
         # get FOV preferences
         prefs = self.fv.get_preferences()
         self.settings = prefs.create_category('plugin_FindImage')
-        self.settings.add_defaults(name_sources=catalog.default_name_sources)
+        self.settings.add_defaults(name_sources=catalog.default_name_sources,
+                                   sky_radius_arcmin=3,
+                                   color_map='ds9_cool')
         self.settings.load(onError='silent')
 
         self.viewer = self.fitsimage
@@ -124,6 +126,7 @@ class FindImage(GingaPlugin.LocalPlugin):
             if obj is not None:
                 bank.add_name_server(obj)
 
+        self.size = (3, 3)
         self.gui_up = False
 
     def build_gui(self, container):
@@ -155,7 +158,7 @@ class FindImage(GingaPlugin.LocalPlugin):
         b.find_image.add_callback('activated', self.find_image_cb)
 
         b.size.set_limits(1, 120, incr_value=1)
-        b.size.set_value(3)
+        b.size.set_value(self.size[0])
         b.size.add_callback('value-changed', self.set_size_cb)
 
         b.create_blank.set_tooltip("Create a blank image")
@@ -237,6 +240,16 @@ class FindImage(GingaPlugin.LocalPlugin):
         return True
 
     def start(self):
+        # surreptitiously share setting of sky_radius with InsFov plugin
+        # so that when they update setting we redraw our plot
+        skycam = self.channel.opmon.get_plugin('InsFov')
+        skycam.settings.share_settings(self.settings,
+                                       keylist=['sky_radius_arcmin'])
+        self.settings.get_setting('sky_radius_arcmin').add_callback(
+            'set', self.change_skyradius_cb)
+
+        self.viewer.set_color_map(self.settings.get('color_map', 'ds9_cool'))
+
         # insert canvas, if not already
         p_canvas = self.viewer.get_canvas()
         if self.canvas not in p_canvas:
@@ -267,6 +280,12 @@ class FindImage(GingaPlugin.LocalPlugin):
 
     def set_size_cb(self, w, val):
         self.size = (val, val)
+
+    def change_skyradius_cb(self, setting, radius_arcmin):
+        radius = int(np.ceil(radius_arcmin)) + 1
+        self.size = (radius, radius)
+        if self.gui_up:
+            self.w.size.set_value(radius)
 
     def find_image_cb(self, w):
         try:
