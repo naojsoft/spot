@@ -203,6 +203,7 @@ def get_window_status(time_sse, windows):
         if time_sse >= windows[-1][1]:
             # past last closure
             status, reason = False, "past last window"
+            time_remaining = -1
         else:
             # in last window
             assert time_sse < windows[-1][1]
