@@ -106,7 +106,7 @@ def load_pam_file(pam_path, tgt_dict=None, pad_sec=0):
                 el_deg = float(s.split(':')[1].strip().split()[0])
 
                 a = dict(coord=AzAlt_Target(az_deg, el_deg),
-                         windows=np.array(windows_list))
+                         windows=np.array(windows_list, dtype=int))
 
             # if right ascension / declination target
             elif cs.find('Method: Right Ascension And Declination') != -1:
@@ -128,7 +128,7 @@ def load_pam_file(pam_path, tgt_dict=None, pad_sec=0):
                 dec_deg = float(s.split(':')[1].strip().split()[0])
 
                 a = dict(coord=RaDec_Target(ra_deg, dec_deg, epoch),
-                         windows=np.array(windows_list))
+                         windows=np.array(windows_list, dtype=int))
 
             # append to the final list
             if a is not None:
