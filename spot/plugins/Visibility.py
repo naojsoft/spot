@@ -55,6 +55,14 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.plot_legend = False
         self.gui_up = False
 
+        self.time_axis_options = ('Midnight', 'Current')
+        self.time_axis_default_mode = 'Midnight'
+        self.time_axis_default_index = self.time_axis_options.index(self.time_axis_default_mode)
+
+        # When time_axis_mode is "Current", x-axis range will be
+        # time_range_current_mode hours.
+        self.time_range_current_mode = 10 # hours
+
     def build_gui(self, container):
 
         top = Widgets.VBox()
@@ -68,7 +76,7 @@ class Visibility(GingaPlugin.LocalPlugin):
 
         top.add_widget(plot_w, stretch=1)
 
-        captions = (('Plot moon sep', 'checkbox'), #, 'Show Legend', 'checkbox'),
+        captions = (('Plot moon sep', 'checkbox', 'Centered on:', 'label', 'mode', 'combobox'), #'Show Legend', 'checkbox'),
                     )
 
         w, b = Widgets.build_info(captions)
@@ -80,6 +88,13 @@ class Visibility(GingaPlugin.LocalPlugin):
         # b.show_legend.set_state(self.plot_legend)
         # b.show_legend.add_callback('activated', self.toggle_show_legend_cb)
         # b.show_legend.set_tooltip("Show legend on plot")
+
+        for name in self.time_axis_options:
+            b.mode.append_text(name)
+        b.mode.set_index(self.time_axis_default_index)
+        self.time_axis_mode = self.time_axis_default_mode.lower()
+        b.mode.set_tooltip("Set time axis for visibility plot")
+        b.mode.add_callback('activated', self.set_time_axis_mode_cb)
         top.add_widget(w)
 
         #top.add_widget(Widgets.Label(''), stretch=1)
@@ -146,12 +161,21 @@ class Visibility(GingaPlugin.LocalPlugin):
         ndate = start_time.astimezone(timezone).strftime("%Y-%m-%d") + " 12:00:00"
         noon_time = site.get_date(ndate, timezone=timezone)
 
-        # plot period 15 minutes before sunset to 15 minutes after sunrise
-        delta = 60 * 15
-        start_time = site.sunset(noon_time) - timedelta(0, delta)
-        stop_time = site.sunrise(start_time) + timedelta(0, delta)
+        if self.time_axis_mode == 'midnight':
+            # plot period 15 minutes before sunset to 15 minutes after sunrise
+            delta = 60 * 15
+            start_time = site.sunset(noon_time) - timedelta(0, delta)
+            stop_time = site.sunrise(start_time) + timedelta(0, delta)
+        elif self.time_axis_mode == 'current':
+            # Plot a time period and put the current time at 1/4 from
+            # the left edge of the period.
+            time_period_sec = 60 * 60 * self.time_range_current_mode
+            start_offset_from_current_sec = time_period_sec / 4
+            start_time = start_time - timedelta(0, start_offset_from_current_sec)
+            stop_time = start_time + timedelta(0, time_period_sec)
 
         site.set_date(start_time)
+
 
         # make airmass plot
         num_tgts = len(targets)
@@ -159,7 +183,7 @@ class Visibility(GingaPlugin.LocalPlugin):
         lengths = []
         if num_tgts > 0:
             for tgt in targets:
-                info_list = site.get_target_info(tgt)
+                info_list = site.get_target_info(tgt, time_start=start_time, time_stop=stop_time)
                 target_data.append(Bunch.Bunch(history=info_list,
                                                target=tgt))
                 lengths.append(len(info_list))
@@ -184,7 +208,7 @@ class Visibility(GingaPlugin.LocalPlugin):
             #target_data = target_data[idx:idx+num_tgts]
 
             self.fv.error_wrap(self.plot.plot_altitude, site,
-                               target_data, timezone,
+                               target_data, timezone, current_time=self._start_time,
                                plot_moon_distance=self.plot_moon_sep,
                                show_target_legend=self.plot_legend)
         self.fv.error_wrap(self.plot.draw)
@@ -200,6 +224,12 @@ class Visibility(GingaPlugin.LocalPlugin):
 
     def toggle_show_legend_cb(self, w, tf):
         self.plot_legend = tf
+        if self._start_time is not None:
+            self.replot()
+
+    def set_time_axis_mode_cb(self, w, index):
+        self.time_axis_mode =  w.get_text().lower()
+        self.logger.info(f'self.time_axis_mode set to {self.time_axis_mode}')
         if self._start_time is not None:
             self.replot()
 

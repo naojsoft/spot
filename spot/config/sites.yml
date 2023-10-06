@@ -50,7 +50,7 @@ SALT (SAAO, South Africa):
   pressure_mbar: 1015
   temperature_c: 10
   timezone_name: EET
-  timezone_offset_min: -240
+  timezone_offset_min: 120
   humidity: 10
   wavelength: {'observing': 3500., 'guiding': 6500.}
 
