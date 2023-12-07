@@ -69,7 +69,7 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         self.time_mode = 'now'
         self.cur_tz = tz.tzoffset(self.status.timezone_name,
                                   self.status.timezone_offset_min * 60)
-        self.dt_utc = datetime.utcnow().replace(tzinfo=tz.UTC)
+        self.dt_utc = datetime.now(tz=tz.UTC)
 
         self.tmr = GwHelp.Timer(duration=self.settings['timer_update_interval'])
         self.tmr.add_callback('expired', self.update_timer_cb)
@@ -187,7 +187,7 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         self.status.update(self.site_obj.fetch_status())
 
         if self.time_mode == 'now':
-            self.dt_utc = datetime.utcnow().replace(tzinfo=tz.UTC)
+            self.dt_utc = datetime.now(tz=tz.UTC)
             dt = self.dt_utc.astimezone(self.cur_tz)
             if self.gui_up:
                 self.w.datetime.set_text(dt.strftime("%Y-%m-%d %H:%M:%S"))
@@ -206,7 +206,7 @@ class SiteSelector(GingaPlugin.LocalPlugin):
 
     def _set_datetime(self):
         if self.time_mode == 'now':
-            self.dt_utc = datetime.utcnow().replace(tzinfo=tz.UTC)
+            self.dt_utc = datetime.now(tz=tz.UTC)
             dt = self.dt_utc.astimezone(self.cur_tz)
             self.w.datetime.set_text(dt.strftime("%Y-%m-%d %H:%M:%S"))
             self.w.datetime.set_enabled(False)
