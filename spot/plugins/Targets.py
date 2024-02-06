@@ -122,17 +122,17 @@ class Targets(GingaPlugin.LocalPlugin):
             tgt.color = color
 
         self.diricon = dict()
-        for name, filename in [('invisible', 'no_go.png'),
-                               ('up_ng', 'red_arr_up.png'),
-                               ('up_low', 'orange_arr_up.png'),
-                               ('up_ok', 'green_arr_up.png'),
-                               ('up_good', 'blue_arr_up.png'),
-                               ('up_high', 'purple_arr_up.png'),
-                               ('down_high', 'purple_arr_dn.png'),
-                               ('down_good', 'blue_arr_dn.png'),
-                               ('down_ok', 'green_arr_dn.png'),
-                               ('down_low', 'orange_arr_dn.png'),
-                               ('down_ng', 'red_arr_dn.png')]:
+        for name, filename in [('invisible', 'no_go.svg'),
+                               ('up_ng', 'red_arr_up.svg'),
+                               ('up_low', 'orange_arr_up.svg'),
+                               ('up_ok', 'green_arr_up.svg'),
+                               ('up_good', 'blue_arr_up.svg'),
+                               ('up_high', 'purple_arr_up.svg'),
+                               ('down_high', 'purple_arr_dn.svg'),
+                               ('down_good', 'blue_arr_dn.svg'),
+                               ('down_ok', 'green_arr_dn.svg'),
+                               ('down_low', 'orange_arr_dn.svg'),
+                               ('down_ng', 'red_arr_dn.svg')]:
             self.diricon[name] = self.fv.get_icon(icondir, filename)
 
         self.viewer = self.fitsimage

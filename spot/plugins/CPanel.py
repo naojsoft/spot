@@ -4,15 +4,11 @@ CPanel.py -- Control Panel for SPOT tools
 Plugin Type: Global
 ===================
 
-``Visibility`` is a local plugin, which means it is associated with a channel.
-An instance can be opened for each channel.
+``CPanel`` is a global plugin. Only one instance can be opened.
 
 Usage
 =====
-``Visibility`` is normally used in conjunction with the plugins ``Sites``,
-``PolarSky`` and ``Targets``.  Typically, ``Sites`` is started first
-on a channel and then ``PolarSky``, ``Targets`` and ``Visibility`` are also
-started.
+``CPanel`` is the control panel for activating other SPOT plugins.
 
 Requirements
 ============

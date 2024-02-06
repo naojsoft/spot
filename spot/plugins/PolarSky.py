@@ -16,7 +16,6 @@ import numpy as np
 # ginga
 from ginga.gw import Widgets
 from ginga import GingaPlugin
-#from ginga.AstroImage import AstroImage
 from ginga.misc import Bunch
 
 # qplan
@@ -334,7 +333,8 @@ class PolarSky(GingaPlugin.LocalPlugin):
             r = (90 - el)
             r2 = r + 1
             x, y, _r = self.r2xyr(r)
-            objs.append(self.dc.Circle(x, y, _r, color=circ_color))
+            objs.append(self.dc.Circle(x, y, _r, color=circ_color,
+                                       linestyle='solid'))
             x, y = self.p2r(r, t)
             objs.append(self.dc.Text(x, y, "{}".format(el), color='brown',
                                      fontscale=True, fontsize_min=12))
@@ -344,7 +344,8 @@ class PolarSky(GingaPlugin.LocalPlugin):
                                (90, 0, 90, -180), (90, -45, 90, 135)]:
             x1, y1 = self.p2r(r1, t1)
             x2, y2 = self.p2r(r2, t2)
-            objs.append(self.dc.Line(x1, y1, x2, y2, color=circ_color))
+            objs.append(self.dc.Line(x1, y1, x2, y2, color=circ_color,
+                                     linestyle='dash'))
 
         # plot degrees
         # TODO: re-enable after being able to change between different
@@ -357,6 +358,8 @@ class PolarSky(GingaPlugin.LocalPlugin):
         #                              fontscale=True, fontsize_min=12,
         #                              color='brown'))
 
+        rd = self.settings['image_radius'] * 1.25
+
         # plot compass directions
         for r, t, txt in [(110, 0, 'W'), (100, 90, 'N'),
                           (110, 180, 'E'), (100, 270, 'S')]:
@@ -367,17 +370,8 @@ class PolarSky(GingaPlugin.LocalPlugin):
         o = self.dc.CompoundObject(*objs)
         self.canvas.add(o, tag='elev')
 
-        # cx, cy = self.settings['image_center']
-        r = self.settings['image_radius'] * 1.25
-
-        # data_np = np.zeros((int(r)*2, int(r)*2), dtype=float)
-        # img = AstroImage(data_np=data_np, logger=self.logger)
-        # img.info_xy = self._info_xy
-        # cvs_img = self.dc.NormImage(-r, -r, img)
-        # objs.append(cvs_img)
-
         with self.viewer.suppress_redraw:
-            self.viewer.set_limits(((-r, -r), (r, r)))
+            self.viewer.set_limits(((-rd, -rd), (rd, rd)))
             self.viewer.zoom_fit()
             self.viewer.set_pan(0.0, 0.0)
 
