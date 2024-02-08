@@ -1,8 +1,9 @@
 [build-system]
-requires = ["setuptools>=>=45",
-            "setuptools_scm[toml]>=6.2",
+requires = ["setuptools>=64",
+            "setuptools_scm[toml]>=7",
             "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 write_to = "spot/version.py"
+version_scheme = "release-branch-semver"

@@ -2,14 +2,16 @@ Subaru telescope Planning and Observation Tools (SPOT)
 
 
 ## Dependencies
-* ginga (will be installed automatically if not already)
 
-* For full functionality, requires the following packages from
-  github.com/naojsoft:
+* Most dependencies will be installed automatically via pip
+
+* For full functionality, requires the following packages manual
+  installation (do it after installing spot):
   
-  * qplan
-  * naojutils
-  * g2cam
+  * pip install git+https://github.com/naojsoft/qplan
+  * pip install git+https://github.com/naojsoft/naojutils
+  * pip install git+https://github.com/naojsoft/g2cam
+    (only needed for Subaru summit operation)
 
 ## Installation
 
