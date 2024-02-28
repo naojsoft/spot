@@ -259,6 +259,7 @@ class PolarSky(GingaPlugin.LocalPlugin):
         self.site_obj = site_obj
         obj = self.channel.opmon.get_plugin('SiteSelector')
         self.dt_utc, self.cur_tz = obj.get_datetime()
+        self.initialize_plot()
         self.update_times()
         self.update_sunmoon()
 
@@ -350,13 +351,19 @@ class PolarSky(GingaPlugin.LocalPlugin):
         # plot degrees
         # TODO: re-enable after being able to change between different
         # azimuth-orientations (N = 0 or S = 0)
-        # for r, t in [(92, 0), (92, 45), (92, 90), (98, 135),
-        #              (100, 180), (100, 225), (95, 270), (92, 315)]:
-        #     ang = (t + 90) % 360
-        #     x, y = self.p2r(r, t)
-        #     objs.append(self.dc.Text(x, y, "{}\u00b0".format(ang),
-        #                              fontscale=True, fontsize_min=12,
-        #                              color='brown'))
+        _radii = [92, 92, 92, 98, 100, 100, 95, 92]
+        _azdeg = [0, 45, 90, 135, 180, 225, 270, 315]
+        _azinfo = list(zip(_radii, _azdeg))
+        status_dict = self.site_obj.get_status()
+        base = -90
+        if status_dict['azimuth_start_direction'] == 'S':
+            base = 90
+        for r, t in _azinfo:
+            ang = (t + base) % 360
+            x, y = self.p2r(r, t)
+            objs.append(self.dc.Text(x, y, "{}\u00b0".format(ang),
+                                     fontscale=True, fontsize_min=12,
+                                     color='brown'))
 
         rd = self.settings['image_radius'] * 1.25
 

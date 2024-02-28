@@ -38,9 +38,11 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
 
         self.site = None
         # Az, Alt/El current tel position and commanded position
-        self.telescope_pos = [-90.0, 60.0]
-        self.telescope_cmd = [-90.0, 60.0]
+        self.telescope_pos = [-90.0, 89.5]
+        self.telescope_cmd = [-90.0, 89.5]
         self.telescope_diff = [0.0, 0.0]
+        # +1 (CCW), 0: (not moving) or -1 (CW)
+        self.telescope_direction = 0.0
 
         self.viewer = self.fitsimage
         self.dc = fv.get_draw_classes()
@@ -61,7 +63,11 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
                                  fontscale=True, fontsize_min=12,
                                  rot_deg=-45.0))
         objs.append(self.dc.Line(0.0, 0.0, 0.0, 0.0, color='slateblue',
-                                 linewidth=2, linestyle='dash', arrow='end',
+                                 linewidth=2, linestyle='solid', arrow='none',
+                                 alpha=0.0))
+        objs.append(self.dc.Path([(0, 0), (0, 0)],
+                                 color='slateblue',
+                                 linewidth=2, linestyle='solid', arrow='end',
                                  alpha=0.0))
         objs.append(self.dc.Circle(0.0, 0.0, r, linewidth=1, color='red',
                                    linestyle='dash', alpha=1.0))
@@ -161,6 +167,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         self.canvas.delete_all_objects()
 
         self.canvas.add(self.tel_obj, tag='telescope', redraw=False)
+        self.update_telescope_plot()
 
         self.update_tel_timer_cb(self.tmr)
 
@@ -185,6 +192,8 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         pass
 
     def update_telescope_plot(self):
+        if not self.gui_up:
+            return
         if not self.w.plot_telescope_position.get_state():
             try:
                 self.canvas.delete_object_by_tag('telescope')
@@ -201,19 +210,20 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         rd = self.settings.get('tel_fov_deg') * 0.5 * scale
         off = 4 * scale
 
-        (tel_circ, tel_line, tel_text, line, cmd_circ,
+        (tel_circ, tel_line, tel_text, line, bcurve, cmd_circ,
          cmd_line, cmd_text) = self.tel_obj.objects
 
         self.logger.debug(f'updating tel posn to alt={alt},az={az}')
         az = self.site.az_to_norm(az)
         az_cmd = self.site.az_to_norm(az_cmd)
         t, r = self.map_azalt(az, alt)
-        x, y = self.p2r(r, t)
-        self.logger.debug(f'updating tel posn to x={x},y={y}')
-        tel_circ.x, tel_circ.y = x, y
-        tel_line.x1, tel_line.y1 = x + rd, y + rd
-        tel_line.x2, tel_line.y2 = x + rd + off, y + rd + off
-        tel_text.x, tel_text.y = x + rd + off, y + rd + off
+        x0, y0 = self.p2r(r, t)
+        self.logger.debug(f'updating tel posn to x={x0},y={y0}')
+        tel_circ.x, tel_circ.y = x0, y0
+        tel_line.x1, tel_line.y1 = x0 + rd, y0 + rd
+        tel_line.x2, tel_line.y2 = x0 + rd + off, y0 + rd + off
+        tel_text.x, tel_text.y = x0 + rd + off, y0 + rd + off
+        line.x1, line.y1 = x0, y0
 
         # calculate distance to commanded position
         az_dif, alt_dif = self.telescope_diff[:2]
@@ -223,18 +233,34 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         if delta_deg < threshold:
             # line.alpha, cmd_circ.alpha = 0.0, 0.0
             line.alpha = 0.0
+            bcurve.alpha = 0.0
         else:
             # line.alpha, cmd_circ.alpha = 1.0, 1.0
             line.alpha = 1.0
-            line.x1, line.y1 = x, y
+            bcurve.alpha = 1.0
 
+        # this will be the point directly down the elevation
+        # the line will follow this path
+        t, r = self.map_azalt(az, alt_cmd)
+        origin = (t, r)
+        x1, y1 = self.p2r(r, t)
+        line.x2, line.y2 = x1, y1
+
+        # calculate the point at the destination
+        # the curve will follow this path around the azimuth
         t, r = self.map_azalt(az_cmd, alt_cmd)
-        x, y = self.p2r(r, t)
-        cmd_circ.x, cmd_circ.y = x, y
-        line.x2, line.y2 = x, y
-        cmd_line.x1, cmd_line.y1 = x - rd, y - rd
-        cmd_line.x2, cmd_line.y2 = x - rd - off, y - rd - off
-        cmd_text.x, cmd_text.y = x - rd - off, y - rd - off
+        dest = (t, r)
+        x2, y2 = self.p2r(r, t)
+        cmd_circ.x, cmd_circ.y = x2, y2
+        cmd_line.x1, cmd_line.y1 = x2 - rd, y2 - rd
+        cmd_line.x2, cmd_line.y2 = x2 - rd - off, y2 - rd - off
+        cmd_text.x, cmd_text.y = x2 - rd - off, y2 - rd - off
+
+        direction = self.telescope_direction
+        if direction == 0:
+            bcurve.points = [(x1, y1), (x2, y2)]
+        else:
+            bcurve.points = self.get_arc_points(origin, dest, direction)
 
         with self.fitsimage.suppress_redraw:
             if self.w.rotate_view_to_azimuth.get_state():
@@ -309,6 +335,19 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
     def map_azalt(self, az, alt):
         obj = self.channel.opmon.get_plugin('PolarSky')
         return obj.map_azalt(az, alt)
+
+    def get_arc_points(self, origin, dest, direction):
+        t, r = origin
+        td, _ = dest
+        pts = []
+        while abs(td - t) > 1:
+            x, y = self.p2r(r, t)
+            pts.append((x, y))
+            t = t + direction
+        t, r = dest
+        x, y = self.p2r(r, t)
+        pts.append((x, y))
+        return pts
 
     def __str__(self):
         return 'telescopeposition'
