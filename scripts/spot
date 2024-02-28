@@ -7,7 +7,11 @@ import os
 from argparse import ArgumentParser
 
 # NOTE: need to set here so that ginga.util.paths picks it up first
-os.environ['GINGA_HOME'] = os.path.join(os.environ['HOME'], '.spot')
+if 'CONFHOME' in os.environ:
+    spot_home = os.path.join(os.environ['CONFHOME'], 'spot')
+else:
+    spot_home = os.path.join(os.environ['HOME'], '.spot')
+os.environ['GINGA_HOME'] = spot_home
 
 from ginga.rv import main as g_main
 from ginga.misc.Bunch import Bunch
