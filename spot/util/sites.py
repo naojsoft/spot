@@ -46,7 +46,6 @@ class Site:
             # az_norm_deg=0.0,          #
             # az_cmd_norm_deg=0.0,      #
             az_diff_deg=0.0,          # diff between target az and cmd az
-            az_direction=1,           # -1: moving CCW, 0: not moving, 1: CW
             alt_deg=90.0,             # cur tel elevation in deg
             alt_cmd_deg=90.0,         # target elevation in deg
             alt_diff_deg=0.0,         # diff between target el and cmd el

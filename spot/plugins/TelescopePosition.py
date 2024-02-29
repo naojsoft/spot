@@ -41,8 +41,6 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         self.telescope_pos = [-90.0, 89.5]
         self.telescope_cmd = [-90.0, 89.5]
         self.telescope_diff = [0.0, 0.0]
-        # +1 (CCW), 0: (not moving) or -1 (CW)
-        self.telescope_direction = 0.0
 
         self.viewer = self.fitsimage
         self.dc = fv.get_draw_classes()
@@ -256,11 +254,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         cmd_line.x2, cmd_line.y2 = x2 - rd - off, y2 - rd - off
         cmd_text.x, cmd_text.y = x2 - rd - off, y2 - rd - off
 
-        direction = self.telescope_direction
-        if direction == 0:
-            bcurve.points = [(x1, y1), (x2, y2)]
-        else:
-            bcurve.points = self.get_arc_points(origin, dest, direction)
+        bcurve.points = self.get_arc_points(origin, dest)
 
         with self.fitsimage.suppress_redraw:
             if self.w.rotate_view_to_azimuth.get_state():
@@ -336,14 +330,15 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         obj = self.channel.opmon.get_plugin('PolarSky')
         return obj.map_azalt(az, alt)
 
-    def get_arc_points(self, origin, dest, direction):
+    def get_arc_points(self, origin, dest):
         t, r = origin
-        td, _ = dest
+        td, rd = dest
+        direction = -1 if td < t else 1
         pts = []
         while abs(td - t) > 1:
             x, y = self.p2r(r, t)
             pts.append((x, y))
-            t = t + direction
+            t += direction
         t, r = dest
         x, y = self.p2r(r, t)
         pts.append((x, y))
