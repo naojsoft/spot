@@ -21,12 +21,15 @@ naojsoft packages
 - ginga
 - qplan
 """
-# stdlib
+import os
+
+import json
 
 # ginga
 from ginga.gw import Widgets, Plot
 from ginga import GingaPlugin
 from ginga.misc import Bunch
+from ginga.util.paths import ginga_home
 
 
 class CPanel(GingaPlugin.GlobalPlugin):
@@ -52,12 +55,13 @@ class CPanel(GingaPlugin.GlobalPlugin):
         top = Widgets.VBox()
         top.set_border_width(4)
 
-        captions = (("New Workspace", 'button'),
+        captions = (("New Workspace", 'button', "wsname", 'entry'),
                     ("Select Workspace:", 'label', 'sel_ws', 'combobox')
                     )
 
         w, b = Widgets.build_info(captions)
         self.w = b
+        b.wsname.set_tooltip("Name for the new workspace (optional)")
         b.new_workspace.add_callback('activated', self.new_workspace_cb)
         b.new_workspace.set_tooltip("Create a new workspace")
         top.add_widget(w, stretch=0)
@@ -98,10 +102,29 @@ class CPanel(GingaPlugin.GlobalPlugin):
         self.gui_up = False
 
     def new_workspace_cb(self, w):
-        wsname = "WS{}".format(self.count)
-        self.count += 1
+        wsname = self.w.wsname.get_text().strip()
+        if len(wsname) == 0:
+            wsname = "WS{}".format(self.count)
+            self.count += 1
+        if self.fv.ds.has_ws(wsname):
+            self.fv.show_error(f"'{wsname}' already exists; pick a new name")
+            return
         ws = self.fv.add_workspace(wsname, 'mdi', inSpace='works',
                                    use_toolbar=False)
+
+        path = os.path.join(ginga_home, wsname + '.json')
+        if os.path.exists(path):
+            # if a saved configuration for this workspace exists, load it
+            # so that windows will be created in the appropriate places
+            with open(path, 'r') as in_f:
+                try:
+                    cfg_d = json.loads(in_f.read())
+                    print(cfg_d['tabs'])
+                    ws.child_catalog = cfg_d['tabs']
+                except Exception as e:
+                    self.logger.error("Error reading workspace '{path}': {e}",
+                                      exc_info=True)
+
         cb_dct = dict()
 
         # create targets channel
@@ -137,6 +160,11 @@ class CPanel(GingaPlugin.GlobalPlugin):
             vbox.add_widget(cb, stretch=0)
             cb.add_callback('activated', self.activate_plugin_cb,
                             wsname, plname, chname)
+
+        btn = Widgets.Button(f"Save {wsname} layout")
+        btn.add_callback('activated', self.save_ws_layout_cb, wsname)
+        btn.set_tooltip("Save the size and position of workspace windows")
+        vbox.add_widget(btn, stretch=0)
 
         self.w.stk.add_widget(vbox)
         self.ws_dct[wsname] = Bunch.Bunch(ws=ws, workspace=wsname,
@@ -177,6 +205,13 @@ class CPanel(GingaPlugin.GlobalPlugin):
         p_info = bnch['pInfo']
         if p_info.name in cb_dct:
             cb_dct[p_info.name].set_state(False)
+
+    def save_ws_layout_cb(self, w, wsname):
+        ws = self.fv.ds.get_ws(wsname)
+        cfg_d = ws.get_configuration()
+        path = os.path.join(ginga_home, wsname + '.json')
+        with open(path, 'w') as out_f:
+            out_f.write(json.dumps(cfg_d, indent=4))
 
     def __str__(self):
         return 'cpanel'
