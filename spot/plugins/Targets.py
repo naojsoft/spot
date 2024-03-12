@@ -481,10 +481,17 @@ class Targets(GingaPlugin.LocalPlugin):
             ope_buf = in_f.read()
 
         # gather target info from OPE
-        tgt_list = ope.get_targets(ope_buf, prm_dirs)
+        tgt_res = ope.get_targets(ope_buf, prm_dirs)
+
+        # Report errors, if any, from reading in the OPE file.
+        if len(tgt_res.prm_errmsg_list) > 0:
+            # pop up the error in the GUI under "Errors" tab
+            self.fv.gui_do(self.fv.show_error, '\n'.join(tgt_res.prm_errmsg_list))
+            for errmsg in tgt_res.prm_errmsg_list:
+                self.logger.error(errmsg)
 
         # process into QPlan Target object list
-        new_targets = process_tgt_list(ope_file, tgt_list)
+        new_targets = process_tgt_list(ope_file, tgt_res.tgt_list)
 
         # remove old targets from this same file
         target_dict = {(tgt.category, tgt.name): tgt
