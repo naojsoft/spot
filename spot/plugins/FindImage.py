@@ -98,6 +98,8 @@ class FindImage(GingaPlugin.LocalPlugin):
         self.settings = prefs.create_category('plugin_FindImage')
         self.settings.add_defaults(name_sources=catalog.default_name_sources,
                                    sky_radius_arcmin=3,
+                                   follow_telescope=False,
+                                   telescope_update_interval=3.0,
                                    color_map='ds9_cool')
         self.settings.load(onError='silent')
 
@@ -127,6 +129,10 @@ class FindImage(GingaPlugin.LocalPlugin):
                 bank.add_name_server(obj)
 
         self.size = (3, 3)
+
+        self.sitesel = None
+        self.tmr = GwHelp.Timer(duration=self.settings['telescope_update_interval'])
+        self.tmr.add_callback('expired', self.update_tel_timer_cb)
         self.gui_up = False
 
     def build_gui(self, container):
@@ -135,6 +141,7 @@ class FindImage(GingaPlugin.LocalPlugin):
         channel = self.fv.get_channel(wsname + '_TGTS')
         targets = channel.opmon.get_plugin('Targets')
         targets.cb.add_callback('selection-changed', self.target_selection_cb)
+        self.sitesel = channel.opmon.get_plugin('SiteSelector')
 
         top = Widgets.VBox()
         top.set_border_width(4)
@@ -170,10 +177,16 @@ class FindImage(GingaPlugin.LocalPlugin):
         captions = (('RA:', 'label', 'ra', 'entry', 'DEC:', 'label',
                      'dec', 'entry'),
                     ('Equinox:', 'label', 'equinox', 'entry',
-                     'Name:', 'label', 'name', 'entry'),
+                     'Name:', 'label', 'tgt_name', 'entry'),
+                    ('__ph3', 'spacer', 'Lock Target', 'checkbox',
+                     '__ph4', 'spacer', "Follow telescope", 'checkbox')
+
                     )
 
         w, b = Widgets.build_info(captions)
+        b.lock_target.set_tooltip("Lock target from changing by selections in 'Targets'")
+        b.follow_telescope.set_tooltip("Set pan position to telescope position")
+        b.follow_telescope.set_state(self.settings['follow_telescope'])
         self.w.update(b)
         fr.set_widget(w)
         top.add_widget(fr, stretch=0)
@@ -185,7 +198,7 @@ class FindImage(GingaPlugin.LocalPlugin):
 
         captions = (('Server:', 'llabel', 'server', 'combobox',
                      '_x1', 'spacer'),
-                    ('Name:', 'llabel', 'Name', 'entry',
+                    ('Name:', 'llabel', 'obj_name', 'entry',
                      'Search name', 'button')
                     )
         w, b = Widgets.build_info(captions)
@@ -256,6 +269,7 @@ class FindImage(GingaPlugin.LocalPlugin):
         if self.canvas not in p_canvas:
             p_canvas.add(self.canvas)
 
+        self.update_tel_timer_cb(self.tmr)
         self.resume()
 
     def pause(self):
@@ -265,6 +279,7 @@ class FindImage(GingaPlugin.LocalPlugin):
         self.canvas.ui_set_active(True, viewer=self.viewer)
 
     def stop(self):
+        self.tmr.stop()
         self.gui_up = False
         # remove the canvas from the image
         p_canvas = self.viewer.get_canvas()
@@ -459,7 +474,8 @@ class FindImage(GingaPlugin.LocalPlugin):
                                         delay=1.0)
         self.fv.update_pending()
 
-        fov_deg = 0.01
+        arcmin = self.w.size.get_value()
+        fov_deg = arcmin / 60.0
         pa_deg = 0.0
         px_scale = 0.000047
 
@@ -501,7 +517,7 @@ class FindImage(GingaPlugin.LocalPlugin):
         return (ra_list, dec_list)
 
     def getname_cb(self):
-        name = self.w.name.get_text().strip()
+        name = self.w.obj_name.get_text().strip()
         server = self.w.server.get_text()
 
         try:
@@ -515,7 +531,7 @@ class FindImage(GingaPlugin.LocalPlugin):
             self.w.ra.set_text(ra_str)
             self.w.dec.set_text(dec_str)
             self.w.equinox.set_text('2000.0') # ??!!
-            self.w.name.set_text(name)
+            self.w.obj_name.set_text(name)
 
         except Exception as e:
             errmsg = "Name service query exception: %s" % (str(e))
@@ -528,10 +544,46 @@ class FindImage(GingaPlugin.LocalPlugin):
             return
         tgt = next(iter(targets))
         if self.gui_up:
+            if self.w.lock_target.get_state():
+                # target is locked
+                self.logger.info("target is locked")
+                return
             self.w.ra.set_text(tgt.ra)
             self.w.dec.set_text(tgt.dec)
             self.w.equinox.set_text(str(tgt.equinox))
-            self.w.name.set_text(tgt.name)
+            self.w.tgt_name.set_text(tgt.name)
+            self.w.obj_name.set_text(tgt.name)
+
+    def update_info(self, status):
+        self.fv.assert_gui_thread()
+        if self.w.follow_telescope.get_state():
+            if not self.w.lock_target.get_state():
+                try:
+                    self.w.ra.set_text(wcs.ra_deg_to_str(status.ra_deg))
+                    self.w.dec.set_text(wcs.dec_deg_to_str(status.dec_deg))
+                    self.w.equinox.set_text(str(status.equinox))
+
+                except Exception as e:
+                    self.logger.error(f"error updating info: {e}", exc_info=True)
+
+            # Try to set the pan position of the viewer to our location
+            try:
+                image = self.viewer.get_image()
+                if image is not None:
+                    x, y = image.radectopix(status.ra_deg, status.dec_deg)
+                    self.viewer.set_pan(x, y)
+
+            except Exception as e:
+                self.logger.error(f"Could not set pan position: {e}",
+                                  exc_info=True)
+
+    def update_tel_timer_cb(self, timer):
+        timer.start()
+
+        status = self.sitesel.get_status()
+
+        if self.gui_up:
+            self.fv.gui_do(self.update_info, status)
 
     def __str__(self):
         return 'findimage'

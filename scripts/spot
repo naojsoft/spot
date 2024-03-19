@@ -6,13 +6,13 @@ import sys
 import os
 from argparse import ArgumentParser
 
-# NOTE: need to set here so that ginga.util.paths picks it up first
 if 'CONFHOME' in os.environ:
     spot_home = os.path.join(os.environ['CONFHOME'], 'spot')
 else:
     spot_home = os.path.join(os.environ['HOME'], '.spot')
-os.environ['GINGA_HOME'] = spot_home
 
+from ginga.util import paths
+paths.set_home(spot_home)
 from ginga.rv import main as g_main
 from ginga.misc.Bunch import Bunch
 
@@ -21,19 +21,10 @@ import spot.plugins
 
 default_layout = ['seq', {},
                    ['vbox', dict(name='top', width=1400, height=700),  # noqa
-                    dict(row=['hbox', dict(name='menu')],
+                    dict(row=['ws', dict(name='menubar', wstype='stack',
+                                         group=99)],
                          stretch=0),
                     dict(row=['hpanel', dict(name='hpnl'),
-                     # ['ws', dict(name='left', wstype='tabs',  # noqa
-                     #             width=300, height=-1, group=2),
-                     #  # (tabname, layout), ...
-                     #  [("Info", ['vpanel', {},
-                     #             ['ws', dict(name='uleft', wstype='stack',
-                     #                         height=250, group=3)],
-                     #             ['ws', dict(name='lleft', wstype='tabs',
-                     #                         height=330, group=3)],
-                     #             ]
-                     #    )]],
                      ['vbox', dict(name='main', width=600),
                       dict(row=['ws', dict(name='works', wstype='tabs',
                                            group=1, use_toolbar=False,
@@ -62,16 +53,6 @@ default_layout = ['seq', {},
                     dict(row=['hbox', dict(name='status')], stretch=0),
                     ]]
 
-def get_plugin_spec(name):
-    l_name = name.lower()
-    for spec in g_main.plugins:
-        if spec.module.lower() == l_name:
-            return spec
-    return KeyError(name)
-
-def add_plugin_spec(spec):
-    g_main.plugins.append(spec)
-
 
 if __name__ == "__main__":
 
@@ -80,53 +61,69 @@ if __name__ == "__main__":
     pluginHome = os.path.split(sys.modules['spot.plugins'].__file__)[0]
     sys.path.insert(0, pluginHome)
 
-    # add Spot plugins
-    for spec in [
-        Bunch(module='CPanel', ptype='global', workspace='right',
-              category="Planning", menu="Spot Control Panel", tab='CPanel',
-              start=True),
-        Bunch(module='FindImage', ptype='local', workspace='dialogs',
-              category="Planning", menu="FindImage", tab='FindImage'),
-        Bunch(module='InsFov', ptype='local', workspace='dialogs',
-              category="Planning", menu="InsFov", tab='InsFov'),
-        Bunch(module='PolarSky', ptype='local', workspace='dialogs',
-              category="Planning", menu="PolarSky", tab='PolarSky'),
-        Bunch(module='SkyCam', ptype='local', workspace='dialogs',
-              category="Planning", menu="SkyCam", tab='SkyCam'),
-        Bunch(module='TelescopePosition', ptype='local', workspace='channels',
-              category="Planning", menu="Telescope Position", tab='TelPos'),
-        Bunch(module='Targets', ptype='local', workspace='channels',
-              category="Planning", menu="Targets", tab='Targets'),
-        Bunch(module='Visibility', ptype='local', workspace='channels',
-              category="Planning", menu="Visibility", tab='Visibility'),
-        Bunch(module='SiteSelector', ptype='local', workspace='dialogs',
-              category="Planning", menu="Site Selector", tab='Site'),
-        Bunch(module='HSCPlanner', ptype='local', workspace='channels',
-              category="Planning", menu="HSC Planner", tab='HSC Planner'),
-        ]:
-        add_plugin_spec(spec)
-
     # construct viewer builder
     viewer = g_main.ReferenceViewer(layout=default_layout,
                                     appname='spot', channels=[])
-    viewer.add_default_plugins(except_global=['WCSMatch', 'RC', 'SAMP',
-                                              'Thumbs', 'WCSMatch',
-                                              'ChangeHistory', 'Blink',
-                                              'SaveImage', 'FBrowser',
-                                              'Colorbar', 'Header',
-                                              'Pan', 'Zoom',
-                                              'Contents', 'Info'],
-                               except_local=['TVMark', 'TVMask',
-                                             'ChangeHistory', 'Mosaic',
-                                             'LineProfile', 'PixTable',
-                                             'Pick', 'Overlays', 'Cuts',
-                                             'Blink', 'MultiDim',
-                                             'PlotTable', 'AutoLoad',
-                                             'Catalogs', 'Collage',
-                                             'Drawing', 'Ruler', 'WCSAxes'])
-    #viewer.add_separately_distributed_plugins()
 
-    argprs = ArgumentParser()
+    # Bring in Ginga plugins that may be useful in SPOT
+    for modname, remap in [('Operations', dict(workspace='operations')),
+                           # ('Colorbar', dict(workspace='colorbar')),
+                           ('Cursor', dict(workspace='readout')),
+                           ('Errors', dict(workspace='right')),
+                           ('Downloads', dict(workspace='dialogs')),
+                           ('Command', dict(workspace='dialogs')),
+                           ('Log', dict(workspace='right')),
+                           ('ScreenShot', dict(workspace='dialogs')),
+                           ('ColorMapPicker', dict(workspace='dialogs')),
+                           ('Histogram', dict(workspace='dialogs')),
+                           ('Preferences', dict(workspace='dialogs')),
+                           # ('Pan', dict(workspace='dialogs', start=False)),
+                           ('Header', dict(workspace='dialogs')),
+                           ('Zoom', dict(workspace='dialogs')),
+                           ('LoaderConfig', dict(workspace='works'))]:
+        specs = g_main.get_plugin_spec(module=modname)
+        spec = specs[0]
+        # remap to SPOT
+        spec.update(remap)
+        viewer.add_plugin_spec(spec)
+
+    # add Spot plugins
+    for spec in [
+        Bunch(module='SPOTMenubar', ptype='global', workspace='menubar',
+              category="System", hidden=True, start=True, enabled=True),
+        Bunch(module='SPOTToolbar', ptype='global', workspace='toolbar',
+              category="System", hidden=True, start=True, enabled=True),
+        Bunch(module='CPanel', ptype='global', workspace='right',
+              category="Planning", menu="Spot Control Panel", tab='CPanel',
+              start=True, enabled=True),
+        Bunch(module='FindImage', ptype='local', workspace='dialogs',
+              category="Planning", menu="FindImage", tab='FindImage',
+              enabled=True),
+        Bunch(module='InsFov', ptype='local', workspace='dialogs',
+              category="Planning", menu="InsFov", tab='InsFov', enabled=True),
+        Bunch(module='PolarSky', ptype='local', workspace='dialogs',
+              category="Planning", menu="PolarSky", tab='PolarSky',
+              enabled=True),
+        Bunch(module='SkyCam', ptype='local', workspace='dialogs',
+              category="Planning", menu="SkyCam", tab='SkyCam', enabled=True),
+        Bunch(module='TelescopePosition', ptype='local', workspace='channels',
+              category="Planning", menu="Telescope Position", tab='TelPos',
+              enabled=True),
+        Bunch(module='Targets', ptype='local', workspace='channels',
+              category="Planning", menu="Targets", tab='Targets', enabled=True),
+        Bunch(module='Visibility', ptype='local', workspace='channels',
+              category="Planning", menu="Visibility", tab='Visibility',
+              enabled=True),
+        Bunch(module='SiteSelector', ptype='local', workspace='dialogs',
+              category="Planning", menu="Site Selector", tab='Site',
+              enabled=True),
+        Bunch(module='HSCPlanner', ptype='local', workspace='channels',
+              category="Planning", menu="HSC Planner", tab='HSC Planner',
+              enabled=True),
+        ]:
+        viewer.add_plugin_spec(spec)
+
+    argprs = ArgumentParser(description="Subaru Planning and Observation Tools")
     viewer.add_default_options(argprs)
 
     (options, args) = argprs.parse_known_args(sys.argv[1:])

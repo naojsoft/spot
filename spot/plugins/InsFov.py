@@ -68,7 +68,6 @@ class InsFov(GingaPlugin.LocalPlugin):
         # user's chosen flip and PA
         self.flip = False
         self.pa_deg = 0.0
-
         self.gui_up = False
 
     def build_gui(self, container):

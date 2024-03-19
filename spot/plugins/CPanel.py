@@ -142,6 +142,7 @@ class CPanel(GingaPlugin.GlobalPlugin):
         ch_find.viewer.set_enter_focus(False)
         ch_find.opmon.add_callback('activate-plugin', self.activate_cb, cb_dct)
         ch_find.opmon.add_callback('deactivate-plugin', self.deactivate_cb, cb_dct)
+        ch_find.viewer.show_pan_mark(True, color='red')
 
         vbox = Widgets.VBox()
         vbox.set_spacing(2)

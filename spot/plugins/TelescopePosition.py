@@ -31,9 +31,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         self.settings.add_defaults(rotate_view_to_az=False,
                                    tel_fov_deg=1.5,
                                    slew_distance_threshold=0.05,
-                                   telescope_update_interval=3.0,
-                                   tel_update_interval=10.0,
-                                   status_client_host=None)
+                                   telescope_update_interval=3.0)
         self.settings.load(onError='silent')
 
         self.site = None
@@ -178,6 +176,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         self.canvas.ui_set_active(True, viewer=self.viewer)
 
     def stop(self):
+        self.tmr.stop()
         self.gui_up = False
         # remove the canvas from the image
         p_canvas = self.fitsimage.get_canvas()
