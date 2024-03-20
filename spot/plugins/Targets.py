@@ -473,6 +473,7 @@ class Targets(GingaPlugin.LocalPlugin):
 
         proc_home = os.path.join(os.environ['HOME'], 'Procedure')
         prm_dirs = [proc_home, os.path.join(proc_home, 'COMMON'),
+                    os.path.join(proc_home, 'COMMON', 'prm'),
                     os.path.join(ginga_home, 'prm')]
 
         # read OPE file
