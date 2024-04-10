@@ -533,6 +533,9 @@ class Targets(GingaPlugin.LocalPlugin):
     def get_tgt_info(self, tgt, site, start_time, color='violet'):
         # TODO: work with self.site directly, not observer
         info = tgt.calc(site.observer, start_time)
+        # TEMP/TODO: this attribute does not seem to be accurate
+        # override until we can fix it in qplan
+        info.will_be_visible = True
         color = getattr(tgt, 'color', color)
         res = Bunch.Bunch(tgt=tgt, info=info, color=color)
         return res
