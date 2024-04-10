@@ -329,9 +329,9 @@ class Targets(GingaPlugin.LocalPlugin):
                                       linewidth=2, alpha=alpha,
                                       fill=True, fillalpha=alpha))
             objs.append(self.dc.Text(x, y, res.tgt.name,
-                                     color=res.color, alpha=1.0,
-                                     #fill=True, fillcolor='black',
-                                     #fillalpha=1.0, linewidth=2,
+                                     #color=res.color, alpha=alpha,
+                                     fill=True, fillcolor=res.color,
+                                     fillalpha=alpha, linewidth=0,
                                      font="Roboto", fontscale=True,
                                      fontsize=None, fontsize_min=8))
 

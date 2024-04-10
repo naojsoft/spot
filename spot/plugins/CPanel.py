@@ -119,7 +119,6 @@ class CPanel(GingaPlugin.GlobalPlugin):
             with open(path, 'r') as in_f:
                 try:
                     cfg_d = json.loads(in_f.read())
-                    print(cfg_d['tabs'])
                     ws.child_catalog = cfg_d['tabs']
                 except Exception as e:
                     self.logger.error("Error reading workspace '{path}': {e}",
