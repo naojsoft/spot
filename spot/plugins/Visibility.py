@@ -183,7 +183,8 @@ class Visibility(GingaPlugin.LocalPlugin):
         lengths = []
         if num_tgts > 0:
             for tgt in targets:
-                info_list = site.get_target_info(tgt, time_start=start_time, time_stop=stop_time)
+                info_list = site.get_target_info(tgt, time_start=start_time,
+                                                 time_stop=stop_time)
                 target_data.append(Bunch.Bunch(history=info_list,
                                                target=tgt))
                 lengths.append(len(info_list))

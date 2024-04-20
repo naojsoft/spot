@@ -17,6 +17,7 @@ import numpy as np
 from ginga.gw import Widgets
 from ginga import GingaPlugin
 from ginga.misc import Bunch
+from ginga.util.wcs import ra_deg_to_str, dec_deg_to_str
 
 # qplan
 from qplan.util import calcpos
@@ -90,8 +91,8 @@ class PolarSky(GingaPlugin.LocalPlugin):
             moon_set = (site.moon_set(dt)).strftime("%H:%M:%S"),
             moon_illum = str("%.2f%%" % ((site.moon_phase(
                 dt)) * 100)),
-            moon_ra = str(moon_data.ra),
-            moon_dec = str(moon_data.dec)))
+            moon_ra = ra_deg_to_str(moon_data.ra_deg),
+            moon_dec = dec_deg_to_str(moon_data.dec_deg)))
 
         return info
 
