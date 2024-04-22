@@ -89,8 +89,7 @@ class PolarSky(GingaPlugin.LocalPlugin):
             # Moon info here
             moon_rise = (site.moon_rise(dt)).strftime("%H:%M:%S"),
             moon_set = (site.moon_set(dt)).strftime("%H:%M:%S"),
-            moon_illum = str("%.2f%%" % ((site.moon_phase(
-                dt)) * 100)),
+            moon_illum = str("%.2f%%" % (moon_data.moon_pct * 100)),
             moon_ra = ra_deg_to_str(moon_data.ra_deg),
             moon_dec = dec_deg_to_str(moon_data.dec_deg)))
 
