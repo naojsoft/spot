@@ -35,6 +35,7 @@ import csv
 
 # 3rd party
 import numpy as np
+import pandas as pd
 
 # ginga
 from ginga.gw import Widgets, GwHelp
@@ -45,6 +46,7 @@ from ginga.misc import Bunch, Callback
 
 # qplan
 from qplan import common
+from qplan.util import calcpos
 
 # oscript (optional, for loading OPE files)
 try:
@@ -84,11 +86,14 @@ class Targets(GingaPlugin.LocalPlugin):
         self.colors = ['red', 'blue', 'green', 'cyan', 'magenta', 'yellow']
         self.base_circ = None
         self.target_dict = {}
+        self.full_tgt_list = []
         self.plot_which = 'selected'
         self.plot_ss_objects = self.settings.get('plot_ss_objects', True)
         self.selected = set([])
-        self.tgt_info_lst = []
-        self.ss_info_lst = []
+        self.tgt_df = None
+        self.ss_df = None
+        self._mbody = None
+
 
         self.columns = [('Sel', 'selected'),
                         ('Name', 'name'),
@@ -103,8 +108,8 @@ class Targets(GingaPlugin.LocalPlugin):
                         ('Moon Sep', 'moon_sep'),
                         ('RA', 'ra'),
                         ('DEC', 'dec'),
-                        ('Eq', 'equinox'),
-                        ('Comment', 'comment'),
+                        #('Eq', 'equinox'),
+                        #('Comment', 'comment'),
                         ]
 
         # the solar system objects
@@ -298,16 +303,15 @@ class Targets(GingaPlugin.LocalPlugin):
         self.canvas.delete_object_by_tag('ss')
         self.canvas.delete_object_by_tag('targets')
 
-    def filter_targets(self, tgt_info_lst):
+    def filter_targets(self, tgt_df):
         if self.plot_which == 'all':
-            shown_tgt_lst = tgt_info_lst
+            shown_tgt_lst = tgt_df
         elif self.plot_which == 'selected':
-            shown_tgt_lst = [res for res in tgt_info_lst
-                             if res.tgt in self.selected]
+            shown_tgt_lst = tgt_df[tgt_df['selected'] == True]
 
         return shown_tgt_lst
 
-    def plot_targets(self, tgt_info_lst, tag, start_time=None):
+    def plot_targets(self, tgt_df, tag, start_time=None):
         """Plot targets.
         """
         if start_time is None:
@@ -316,21 +320,21 @@ class Targets(GingaPlugin.LocalPlugin):
 
         # filter the subset desired to be seen
         if tag != 'ss':
-            tgt_info_lst = self.filter_targets(tgt_info_lst)
+            tgt_df = self.filter_targets(tgt_df)
 
-        self.logger.info("plotting {} targets".format(len(tgt_info_lst)))
+        self.logger.info("plotting {} targets".format(len(tgt_df)))
         objs = []
-        for res in tgt_info_lst:
-            alpha = 1.0 if res.info.alt_deg > 0 else 0.0
-            t, r = self.map_azalt(res.info.az_deg, res.info.alt_deg)
+        for idx, row in tgt_df.iterrows():
+            alpha = 1.0 if row['alt_deg'] > 0 else 0.0
+            t, r = self.map_azalt(row['az_deg'], row['alt_deg'])
             x, y = self.p2r(r, t)
             objs.append(self.dc.Point(x, y, radius=3, style='cross',
-                                      color=res.color, fillcolor=res.color,
+                                      color=row['color'], fillcolor=row['color'],
                                       linewidth=2, alpha=alpha,
                                       fill=True, fillalpha=alpha))
-            objs.append(self.dc.Text(x, y, res.tgt.name,
-                                     #color=res.color, alpha=alpha,
-                                     fill=True, fillcolor=res.color,
+            objs.append(self.dc.Text(x, y, row['name'],
+                                     #color=row['color'], alpha=alpha,
+                                     fill=True, fillcolor=row['color'],
                                      fillalpha=alpha, linewidth=0,
                                      font="Roboto", fontscale=True,
                                      fontsize=None, fontsize_min=8))
@@ -343,18 +347,18 @@ class Targets(GingaPlugin.LocalPlugin):
         if tag == 'ss':
             # don't plot visibility of solar system objects in Visibility
             return
-        targets = [res.tgt for res in tgt_info_lst]
-        obj = self.channel.opmon.get_plugin('Visibility')
-        # obj.plot_targets(start_time, self.site, targets,
-        #                 timezone=self.cur_tz)
-        obj.plot_targets(start_time, self.site, targets)
 
-    def update_targets(self, tgt_info_lst, tag, start_time=None):
+        targets = (self.full_tgt_list if self.plot_which == 'all'
+                   else self.selected)
+        obj = self.channel.opmon.get_plugin('Visibility')
+        self.fv.gui_do(obj.plot_targets, start_time, self.site, targets)
+
+    def update_targets(self, tgt_df, tag, start_time=None):
         """Update targets already plotted with new positions.
         """
         self.canvas.delete_object_by_tag(tag)
         if not self.canvas.has_tag(tag):
-            self.plot_targets(tgt_info_lst, tag, start_time=start_time)
+            self.plot_targets(tgt_df, tag, start_time=start_time)
             return
         # if start_time is None:
         #     start_time = self.get_datetime()
@@ -388,43 +392,75 @@ class Targets(GingaPlugin.LocalPlugin):
         # #                  timezone=self.cur_tz)
         # obj.plot_targets(start_time, self.site, targets)
 
-    def update_all(self, start_time=None):
+    def _create_multicoord_body(self):
+        self.full_tgt_list = list(self.target_dict.values())
+        arr = np.asarray([(tgt.name, tgt.ra, tgt.dec, tgt.equinox)
+                          for tgt in self.full_tgt_list]).T
+        self._mbody = calcpos.Body(arr[0], arr[1], arr[2], arr[3])
+
+    def _create_addl_tgt_cols(self):
+        # create columns for target color, selected and category
+        self._addl_tgt_cols = np.asarray([('green2' if tgt not in
+                                           self.selected else 'pink',
+                                           tgt.category)
+                                           for tgt in self.full_tgt_list]).T
+        self._col_selected = np.array([tgt in self.selected
+                                       for tgt in self.full_tgt_list],
+                                      dtype=bool)
+
+    def update_all(self, start_time=None, targets_changed=False):
         if start_time is None:
             start_time = self.get_datetime()
         self._last_tgt_update_dt = start_time
         self.logger.info("update time: {}".format(start_time.strftime(
                          "%Y-%m-%d %H:%M:%S [%z]")))
-        # get full information about all targets
-        self.tgt_info_lst = [self.get_tgt_info(
-                             tgt, self.site, start_time,
-                             # color=self.colors[i % len(self.colors)])
-                             color='green2' if tgt not in
-                             self.selected else 'pink')
-                             for i, tgt in enumerate(self.target_dict.values())]
+        if len(self.target_dict) > 0:
+            # create multi-coordinate body if not yet created
+            if targets_changed or self._mbody is None:
+                self._create_multicoord_body()
+                self._create_addl_tgt_cols()
 
-        # update the target table
-        if self.gui_up:
-            self.targets_to_table(self.tgt_info_lst)
+            # get full information about all targets at `start_time`
+            cres = self._mbody.calc(self.site.observer, start_time)
+            dct_all = cres.get_dict()
+            dct_all['color'] = self._addl_tgt_cols[0]
+            dct_all['category'] = self._addl_tgt_cols[1]
+            dct_all['selected'] = self._col_selected
 
-            local_time = (self._last_tgt_update_dt.astimezone(self.cur_tz))
-            tzname = self.cur_tz.tzname(local_time)
-            self.w.update_time.set_text("Last updated at: " + local_time.strftime(
-                "%H:%M:%S") + f" [{tzname}]")
+            # make pandas dataframe from result
+            self.tgt_df = pd.DataFrame.from_dict(dct_all, orient='columns')
 
-        self.update_targets(self.tgt_info_lst,
-                            'targets',
-                            start_time=start_time)
+            # update the target table
+            if self.gui_up:
+                self.targets_to_table(self.tgt_df)
 
+                local_time = (self._last_tgt_update_dt.astimezone(self.cur_tz))
+                tzname = self.cur_tz.tzname(local_time)
+                self.w.update_time.set_text("Last updated at: " +
+                                            local_time.strftime("%H:%M:%S") +
+                                            f" [{tzname}]")
+
+            self.update_targets(self.tgt_df, 'targets', start_time=start_time)
+
+        ss_df = pd.DataFrame(columns=['az_deg', 'alt_deg', 'name', 'color'])
         if self.plot_ss_objects:
-            self.ss_info_lst = [self.get_tgt_info(tgt, self.site, start_time)
-                                for tgt in self.ss]
-        else:
-            self.ss_info_lst = []
-        self.update_targets(self.ss_info_lst, 'ss', start_time=start_time)
+            # TODO: until we learn how to do vector calculations for SS bodies
+            for tgt in self.ss:
+                cres = tgt.calc(self.site.observer, start_time)
+                dct = cres.get_dict(columns=['az_deg', 'alt_deg', 'name'])
+                dct['color'] = tgt.color
+                # this is the strange way to do an append in pandas df
+                ss_df.loc[len(ss_df)] = dct
+            self.ss_df = ss_df
+
+        self.update_targets(ss_df, 'ss', start_time=start_time)
 
     def update_plots(self):
-        self.update_targets(self.tgt_info_lst, 'targets')
-        self.update_targets(self.ss_info_lst, 'ss')
+        """Just update plots, targets and info haven't changed."""
+        if self.tgt_df is None:
+            return
+        self.update_targets(self.tgt_df, 'targets')
+        self.update_targets(self.ss_df, 'ss')
 
     def change_radius_cb(self, setting, radius):
         # sky radius has changed in PolarSky
@@ -503,7 +539,7 @@ class Targets(GingaPlugin.LocalPlugin):
                                  for tgt in new_targets})
 
         # update GUIs
-        self.update_all()
+        self.update_all(targets_changed=True)
 
     def process_csv_file_for_targets(self, csv_path):
         # read CSV file
@@ -528,50 +564,54 @@ class Targets(GingaPlugin.LocalPlugin):
                                  for tgt in new_targets})
 
         # update GUIs
-        self.update_all()
+        self.update_all(targets_changed=True)
 
-    def get_tgt_info(self, tgt, site, start_time, color='violet'):
-        # TODO: work with self.site directly, not observer
-        info = tgt.calc(site.observer, start_time)
-        # TEMP/TODO: this attribute does not seem to be accurate
-        # override until we can fix it in qplan
-        info.will_be_visible = True
-        color = getattr(tgt, 'color', color)
-        res = Bunch.Bunch(tgt=tgt, info=info, color=color)
-        return res
+    # def get_tgt_info(self, tgt, site, start_time, color='violet'):
+    #     # TODO: work with self.site directly, not observer
+    #     info = tgt.calc(site.observer, start_time)
+    #     # TEMP/TODO: this attribute does not seem to be accurate
+    #     # override until we can fix it in qplan
+    #     info.will_be_visible = True
+    #     color = getattr(tgt, 'color', color)
+    #     res = Bunch.Bunch(tgt=tgt, info=info, color=color)
+    #     return res
 
-    def targets_to_table(self, target_info):
+    def targets_to_table(self, tgt_df):
         tree_dict = OrderedDict()
-        for res in target_info:
-            dct = tree_dict.setdefault(res.tgt.category, dict())
-            selected = res.tgt in self.selected
+        for idx, row in tgt_df.iterrows():
+            dct = tree_dict.setdefault(row.category, dict())
+            selected = row['selected']
             # NOTE: AZ values are normalized to standard use
-            az_deg = self.site.norm_to_az(res.info.az_deg)
+            az_deg = self.site.norm_to_az(row.az_deg)
             # find shorter of the two azimuth choices
             az2_deg = (az_deg % 360) - 360
-            calc_ad = (max(res.info.atmos_disp.values())) - (
-                       min(res.info.atmos_disp.values()))
             if abs(az2_deg) < abs(az_deg):
                 az_deg = az2_deg
-            dct[res.tgt.name] = Bunch.Bunch(
+            ad_observe, ad_guide = (row.atmos_disp_observing,
+                                    row.atmos_disp_guiding)
+            calc_ad = max(ad_observe, ad_guide) - min(ad_observe, ad_guide)
+            dct[row['name']] = Bunch.Bunch(
                 selected='*' if selected else '',
-                name=res.tgt.name,
-                ra=res.tgt.ra,
-                dec=res.tgt.dec,
-                equinox=("%6.1f" % res.tgt.equinox),
+                name=row['name'],
+                ra=ra_deg_to_str(row.ra_deg),
+                dec=dec_deg_to_str(row.dec_deg),
+                #equinox=("%6.1f" % row.equinox),
                 az_deg=("% 4d" % int(round(az_deg))),
-                alt_deg=("% 3d" % int(round(res.info.alt_deg))),
-                parang_deg=("% 3d" % int(np.degrees(res.info.pang))),
-                ha=("% 6.2f" % (np.degrees(res.info.ha)/15)),
-                icon=self._get_dir_icon(res.info),
-                airmass=("% 5.2f" % res.info.airmass),
-                moon_sep=("% 3d" % int(round(res.info.moon_sep))),
-                comment=res.tgt.comment,
+                alt_deg=("% 3d" % int(round(row.alt_deg))),
+                parang_deg=("% 3d" % int(row.pang_deg)),
+                ha=("% 6.2f" % (np.degrees(row.ha)/15)),
+                icon=self._get_dir_icon(row),
+                airmass=("% 5.2f" % row.airmass),
+                moon_sep=("% 3d" % int(round(row.moon_sep))),
+                # TODO
+                #comment=row.comment,
                 ad=("% .1f" % (np.degrees(calc_ad)*3600)))
         self.w.tgt_tbl.set_tree(tree_dict)
 
     def target_selection_update(self):
         self.clear_plot()
+        # change columns with selection info
+        self._create_addl_tgt_cols()
         self.update_all()
 
         self.cb.make_callback('selection-changed', self.selected)
@@ -617,6 +657,7 @@ class Targets(GingaPlugin.LocalPlugin):
                        for tgt in self.target_dict.values()
                        if tgt not in selected}
         self.target_dict = target_dict
+        self._mbody = None
         self.target_selection_update()
         self._update_selection_buttons()
 
@@ -664,34 +705,35 @@ class Targets(GingaPlugin.LocalPlugin):
         # return self.dt_utc.astimezone(self.cur_tz)
         return self.dt_utc
 
-    def _get_dir_icon(self, info):
-        if info.will_be_visible:
-            if int(round(info.alt_deg)) <= 15:
-                if info.ha < 0:
+    def _get_dir_icon(self, row):
+        if True:  # TBD?  row.will_be_visible']:
+            ha, alt_deg = row.ha, row.alt_deg
+            if int(round(alt_deg)) <= 15:
+                if ha < 0:
                     icon = self.diricon['up_ng']
-                elif 0 < info.ha:
+                elif 0 < ha:
                     icon = self.diricon['down_ng']
-            elif 15 < int(round(info.alt_deg)) <= 30:
-                if info.ha < 0:
+            elif 15 < int(round(alt_deg)) <= 30:
+                if ha < 0:
                     icon = self.diricon['up_low']
-                elif 0 < info.ha:
+                elif 0 < ha:
                     icon = self.diricon['down_low']
-            elif 30 < int(round(info.alt_deg)) <= 60:
-                if info.ha < 0:
+            elif 30 < int(round(alt_deg)) <= 60:
+                if ha < 0:
                     icon = self.diricon['up_ok']
-                elif 0 < info.ha:
+                elif 0 < ha:
                     icon = self.diricon['down_ok']
-            elif 60 < int(round(info.alt_deg)) <= 85:
-                if info.ha < 0:
+            elif 60 < int(round(alt_deg)) <= 85:
+                if ha < 0:
                     icon = self.diricon['up_good']
-                elif 0 < info.ha:
+                elif 0 < ha:
                     icon = self.diricon['down_good']
-            elif 85 < int(round(info.alt_deg)) <= 90:
-                if info.ha < 0:
+            elif 85 < int(round(alt_deg)) <= 90:
+                if ha < 0:
                     icon = self.diricon['up_high']
-                elif 0 < info.ha:
+                elif 0 < ha:
                     icon = self.diricon['down_high']
-        elif not info.will_be_visible:
+        else:
             icon = self.diricon['invisible']
         return icon
 
@@ -718,12 +760,12 @@ def process_tgt_list(category, tgt_list):
             for (tgtname, objname, ra_str, dec_str, eq_str) in tgt_list]
 
 
-def get_info_tgt_list(tgt_list, site, start_time, color='violet'):
-    results = []
-    for tgt in tgt_list:
-        info = tgt.calc(site, start_time)
-        clr = getattr(tgt, 'color', color)
-        if info.alt_deg > 0:
-            # NOTE: AZ values are normalized to standard use (0 deg = North)
-            results.append((info.az_deg, info.alt_deg, tgt.name, clr))
-    return results
+# def get_info_tgt_list(tgt_list, site, start_time, color='violet'):
+#     results = []
+#     for tgt in tgt_list:
+#         info = tgt.calc(site, start_time)
+#         clr = getattr(tgt, 'color', color)
+#         if info.alt_deg > 0:
+#             # NOTE: AZ values are normalized to standard use (0 deg = North)
+#             results.append((info.az_deg, info.alt_deg, tgt.name, clr))
+#     return results

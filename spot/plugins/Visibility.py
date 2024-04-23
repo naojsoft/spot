@@ -28,13 +28,17 @@ naojsoft packages
 # stdlib
 from datetime import timedelta
 
+# 3rd party
+import numpy as np
+import pandas as pd
+
 # ginga
 from ginga.gw import Widgets, Plot
 from ginga.misc import Bunch
 from ginga import GingaPlugin
 
 from qplan.plots.airmass import AirMassPlot
-
+from qplan.util import calcpos
 
 class Visibility(GingaPlugin.LocalPlugin):
 
@@ -163,38 +167,47 @@ class Visibility(GingaPlugin.LocalPlugin):
 
         if self.time_axis_mode == 'midnight':
             # plot period 15 minutes before sunset to 15 minutes after sunrise
-            delta = 60 * 15
-            start_time = site.sunset(noon_time) - timedelta(0, delta)
-            stop_time = site.sunrise(start_time) + timedelta(0, delta)
+            delta = timedelta(minutes=15)
+            start_time = site.sunset(noon_time) - delta
+            stop_time = site.sunrise(start_time) + delta
         elif self.time_axis_mode == 'current':
             # Plot a time period and put the current time at 1/4 from
             # the left edge of the period.
             time_period_sec = 60 * 60 * self.time_range_current_mode
             start_offset_from_current_sec = time_period_sec / 4
-            start_time = start_time - timedelta(0, start_offset_from_current_sec)
-            stop_time = start_time + timedelta(0, time_period_sec)
+            start_time = start_time - timedelta(seconds=start_offset_from_current_sec)
+            stop_time = start_time + timedelta(seconds=time_period_sec)
 
-        site.set_date(start_time)
-
+        #site.set_date(start_time)
+        # create date array
+        dts = []
+        delta = timedelta(minutes=15)
+        time_t = start_time
+        while time_t < stop_time:
+            dts.append(time_t)
+            time_t = time_t + delta
+        dt_arr = np.array(dts)
 
         # make airmass plot
         num_tgts = len(targets)
         target_data = []
-        lengths = []
+        # lengths = []
         if num_tgts > 0:
             for tgt in targets:
-                info_list = site.get_target_info(tgt, time_start=start_time,
-                                                 time_stop=stop_time)
-                target_data.append(Bunch.Bunch(history=info_list,
+                cres = site.calc(tgt, dt_arr)
+                dct = cres.get_dict(columns=['ut', 'alt_deg', 'airmass',
+                                             'moon_alt', 'moon_sep'])
+                df = pd.DataFrame.from_dict(dct, orient='columns')
+                target_data.append(Bunch.Bunch(history=df,
                                                target=tgt))
-                lengths.append(len(info_list))
+                # lengths.append(len(df))
 
-        # clip all arrays to same length
-        min_len = 0
-        if len(lengths) > 0:
-            min_len = min(lengths)
-        for il in target_data:
-            il.history = il.history[:min_len]
+        # clip all dataframes to same length
+        # min_len = 0
+        # if len(lengths) > 0:
+        #     min_len = min(lengths)
+        # for il in target_data:
+        #     il.history = il.history[:min_len]
 
         self.clear_plot()
 
