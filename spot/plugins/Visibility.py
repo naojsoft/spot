@@ -59,8 +59,8 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.plot_legend = False
         self.gui_up = False
 
-        self.time_axis_options = ('Midnight', 'Current')
-        self.time_axis_default_mode = 'Midnight'
+        self.time_axis_options = ('Night Center', 'Day Center', 'Current')
+        self.time_axis_default_mode = 'Night Center'
         self.time_axis_default_index = self.time_axis_options.index(self.time_axis_default_mode)
 
         # When time_axis_mode is "Current", x-axis range will be
@@ -165,11 +165,19 @@ class Visibility(GingaPlugin.LocalPlugin):
         ndate = start_time.astimezone(timezone).strftime("%Y-%m-%d") + " 12:00:00"
         noon_time = site.get_date(ndate, timezone=timezone)
 
-        if self.time_axis_mode == 'midnight':
+        if self.time_axis_mode == 'night center':
             # plot period 15 minutes before sunset to 15 minutes after sunrise
             delta = timedelta(minutes=15)
             start_time = site.sunset(noon_time) - delta
             stop_time = site.sunrise(start_time) + delta
+        elif self.time_axis_mode == 'day center':
+            # plot period 15 minutes before sunrise to 15 minutes after sunset
+            midnight_before = noon_time - timedelta(hours=12)
+            delta = timedelta(minutes=15)
+            start_time = site.sunrise(midnight_before) - delta
+            print("day start", start_time)
+            stop_time = site.sunset(noon_time) + delta
+            print("day end", stop_time)
         elif self.time_axis_mode == 'current':
             # Plot a time period and put the current time at 1/4 from
             # the left edge of the period.
@@ -178,7 +186,7 @@ class Visibility(GingaPlugin.LocalPlugin):
             start_time = start_time - timedelta(seconds=start_offset_from_current_sec)
             stop_time = start_time + timedelta(seconds=time_period_sec)
 
-        #site.set_date(start_time)
+        site.set_date(start_time)
         # create date array
         dts = []
         delta = timedelta(minutes=15)

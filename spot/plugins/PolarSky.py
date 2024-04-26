@@ -12,6 +12,7 @@ naojsoft packages
 """
 # 3rd party
 import numpy as np
+from datetime import timedelta
 
 # ginga
 from ginga.gw import Widgets
@@ -62,8 +63,8 @@ class PolarSky(GingaPlugin.LocalPlugin):
         tzname = self.cur_tz.tzname(dt)
         info.update(dict(date_current = dt.strftime("%Y-%m-%d"),
                          local_current = dt.strftime("%H:%M:%S") + f" [{tzname}]",
-                         utc = self.dt_utc.strftime("%H:%M:%S"),
-                         lst = self.site_obj.observer.get_last().strftime("%H:%M")))
+                         utc = self.dt_utc.strftime("%H:%M:%S [%m/%d]"),
+                         lst = self.site_obj.observer.get_last(dt).strftime("%H:%M")))
         return info
 
     def get_sunmoon_info(self):
@@ -71,25 +72,42 @@ class PolarSky(GingaPlugin.LocalPlugin):
         site = self.site_obj.observer
         info = Bunch.Bunch()
 
+        # noon and midnight on the current date
+        noon = dt.replace(hour=12, minute=0, second=0, microsecond=0)
+        midnight = noon + timedelta(hours=12)
+        prev_noon = noon - timedelta(hours=24)
+        prev_midnight = noon - timedelta(hours=12)
+        sunrise_today = site.sunrise(prev_midnight)
+
+        if dt < sunrise_today:
+            # it's not yet daytime on this date
+            noon = prev_noon
+
         info.update(dict(
             # Sun rise/set info
-            sun_set = (site.sunset(dt)).strftime("%H:%M:%S"),
+            sun_set = (site.sunset(noon)).strftime("%H:%M:%S [%m/%d]"),
+            civil_set = (site.evening_twilight_6(
+                noon)).strftime("%H:%M:%S [%m/%d]"),
             nautical_set = (site.evening_twilight_12(
-                dt)).strftime("%H:%M:%S"),
+                noon)).strftime("%H:%M:%S [%m/%d]"),
             astronomical_set = (site.evening_twilight_18(
-                dt)).strftime("%H:%M:%S"),
-            sun_rise = (site.sunrise(dt)).strftime("%H:%M:%S"),
-            nautical_rise = (site.morning_twilight_12(
-                dt)).strftime("%H:%M:%S"),
+                noon)).strftime("%H:%M:%S [%m/%d]"),
             astronomical_rise = (site.morning_twilight_18(
-                dt)).strftime("%H:%M:%S")))
+                noon)).strftime("%H:%M:%S [%m/%d]"),
+            nautical_rise = (site.morning_twilight_12(
+                noon)).strftime("%H:%M:%S [%m/%d]"),
+            civil_rise = (site.morning_twilight_6(
+                noon)).strftime("%H:%M:%S [%m/%d]"),
+            sun_rise = (site.sunrise(noon)).strftime("%H:%M:%S [%m/%d]"),
+            night_center = (site.night_center(noon)).strftime("%H:%M:%S [%m/%d]")))
 
         moon_data = calcpos.Moon.calc(site, dt)
         info.update(dict(
             # Moon info here
-            moon_rise = (site.moon_rise(dt)).strftime("%H:%M:%S"),
-            moon_set = (site.moon_set(dt)).strftime("%H:%M:%S"),
+            moon_rise = (site.moon_rise(dt)).strftime("%H:%M:%S [%m/%d]"),
+            moon_set = (site.moon_set(dt)).strftime("%H:%M:%S [%m/%d]"),
             moon_illum = str("%.2f%%" % (moon_data.moon_pct * 100)),
+            moon_alt = "%.1f deg" % moon_data.alt_deg,
             moon_ra = ra_deg_to_str(moon_data.ra_deg),
             moon_dec = dec_deg_to_str(moon_data.dec_deg)))
 
@@ -105,7 +123,7 @@ class PolarSky(GingaPlugin.LocalPlugin):
         top = Widgets.VBox()
         top.set_border_width(4)
 
-        # Date info - TODO: add LST
+        # Date info
         info = self.get_time_info()
         fr = Widgets.Frame('Site Date/Time')
         self.w.dt_table = Widgets.GridBox(rows=4, columns=2)
@@ -132,26 +150,34 @@ class PolarSky(GingaPlugin.LocalPlugin):
 
         # Sun info
         fr = Widgets.Frame('Sun')
-        sun_table = Widgets.GridBox(rows=4, columns=3)
+        sun_table = Widgets.GridBox(rows=6, columns=3)
         self.w.sun_table = sun_table
         sun_table.add_widget(Widgets.Label(''), 0, 0)
         sun_table.add_widget(Widgets.Label('Site:'), 1, 0)
-        sun_table.add_widget(Widgets.Label('Nautical:'), 2, 0)
-        sun_table.add_widget(Widgets.Label('Astronomical:'), 3, 0)
+        sun_table.add_widget(Widgets.Label('Civil:'), 2, 0)
+        sun_table.add_widget(Widgets.Label('Nautical:'), 3, 0)
+        sun_table.add_widget(Widgets.Label('Astronomical:'), 4, 0)
+        sun_table.add_widget(Widgets.Label('Night center:'), 5, 0)
         sun_table.add_widget(Widgets.Label('Sunset'), 0, 1)
         self.w.sun_set = Widgets.Label(info.sun_set)
         sun_table.add_widget(self.w.sun_set, 1, 1)
+        self.w.civil_set = Widgets.Label(info.civil_set)
+        sun_table.add_widget(self.w.civil_set, 2, 1)
         self.w.nautical_set = Widgets.Label(info.nautical_set)
-        sun_table.add_widget(self.w.nautical_set, 2, 1)
+        sun_table.add_widget(self.w.nautical_set, 3, 1)
         self.w.astronomical_set = Widgets.Label(info.astronomical_set)
-        sun_table.add_widget(self.w.astronomical_set, 3, 1)
+        sun_table.add_widget(self.w.astronomical_set, 4, 1)
+        self.w.night_center = Widgets.Label(info.night_center)
+        sun_table.add_widget(self.w.night_center, 5, 1)
         sun_table.add_widget(Widgets.Label('Sunrise'), 0, 2)
         self.w.sun_rise = Widgets.Label(info.sun_rise)
         sun_table.add_widget(self.w.sun_rise, 1, 2)
+        self.w.civil_rise = Widgets.Label(info.civil_rise)
+        sun_table.add_widget(self.w.civil_rise, 2, 2)
         self.w.nautical_rise = Widgets.Label(info.nautical_rise)
-        sun_table.add_widget(self.w.nautical_rise, 2, 2)
+        sun_table.add_widget(self.w.nautical_rise, 3, 2)
         self.w.astronomical_rise = Widgets.Label(info.astronomical_rise)
-        sun_table.add_widget(self.w.astronomical_rise, 3, 2)
+        sun_table.add_widget(self.w.astronomical_rise, 4, 2)
 
         sun_hbox = Widgets.HBox()
         sun_hbox.add_widget(self.w.sun_table, stretch=0)
@@ -163,21 +189,24 @@ class PolarSky(GingaPlugin.LocalPlugin):
         fr = Widgets.Frame('Moon')
         moon_table = Widgets.GridBox(rows=2, columns=6)
         self.w.moon_table = moon_table
-        moon_table.add_widget(Widgets.Label('Rise:'), 0, 0)
-        moon_table.add_widget(Widgets.Label('Set:'), 1, 0)
-        moon_table.add_widget(Widgets.Label('Illum:'), 2, 0)
-        moon_table.add_widget(Widgets.Label('RA:'), 3, 0)
-        moon_table.add_widget(Widgets.Label('DEC:'), 4, 0)
+        moon_table.add_widget(Widgets.Label('Altitude:'), 0, 0)
+        moon_table.add_widget(Widgets.Label('Next Rise:'), 1, 0)
+        moon_table.add_widget(Widgets.Label('Next Set:'), 2, 0)
+        moon_table.add_widget(Widgets.Label('Illum:'), 3, 0)
+        moon_table.add_widget(Widgets.Label('RA:'), 4, 0)
+        moon_table.add_widget(Widgets.Label('DEC:'), 5, 0)
+        self.w.moon_alt = Widgets.Label(info.moon_alt)
+        moon_table.add_widget(self.w.moon_alt, 0, 1)
         self.w.moon_rise = Widgets.Label(info.moon_rise)
-        moon_table.add_widget(self.w.moon_rise, 0, 1)
+        moon_table.add_widget(self.w.moon_rise, 1, 1)
         self.w.moon_set = Widgets.Label(info.moon_set)
-        moon_table.add_widget(self.w.moon_set, 1, 1)
+        moon_table.add_widget(self.w.moon_set, 2, 1)
         self.w.moon_illum = Widgets.Label(info.moon_illum)
-        moon_table.add_widget(self.w.moon_illum, 2, 1)
+        moon_table.add_widget(self.w.moon_illum, 3, 1)
         self.w.moon_ra = Widgets.Label(info.moon_ra)
-        moon_table.add_widget(self.w.moon_ra, 3, 1)
+        moon_table.add_widget(self.w.moon_ra, 4, 1)
         self.w.moon_dec = Widgets.Label(info.moon_dec)
-        moon_table.add_widget(self.w.moon_dec, 4, 1)
+        moon_table.add_widget(self.w.moon_dec, 5, 1)
 
         moon_hbox = Widgets.HBox()
         moon_hbox.add_widget(self.w.moon_table, stretch=0)
@@ -268,12 +297,8 @@ class PolarSky(GingaPlugin.LocalPlugin):
         self.dt_utc = time_utc
         self.cur_tz = cur_tz
 
-        elapsed = abs((self.dt_utc - old_dt_utc).total_seconds())
-        if elapsed > self.settings['times_update_interval']:
-            self.update_times()
-
-        if elapsed > 60 * 60 * 12:  # every 12 hours
-            self.update_sunmoon()
+        self.update_times()
+        self.update_sunmoon()
 
     def replot_all(self):
         self.initialize_plot()
@@ -290,15 +315,19 @@ class PolarSky(GingaPlugin.LocalPlugin):
         info = self.get_sunmoon_info()
         if self.gui_up:
             self.w.sun_set.set_text(info.sun_set)
+            self.w.civil_set.set_text(info.civil_set)
             self.w.nautical_set.set_text(info.nautical_set)
             self.w.astronomical_set.set_text(info.astronomical_set)
-            self.w.sun_rise.set_text(info.sun_rise)
-            self.w.nautical_rise.set_text(info.nautical_rise)
             self.w.astronomical_rise.set_text(info.astronomical_rise)
+            self.w.nautical_rise.set_text(info.nautical_rise)
+            self.w.civil_rise.set_text(info.civil_rise)
+            self.w.sun_rise.set_text(info.sun_rise)
+            self.w.night_center.set_text(info.night_center)
 
             self.w.moon_rise.set_text(info.moon_rise)
             self.w.moon_set.set_text(info.moon_set)
             self.w.moon_illum.set_text(info.moon_illum)
+            self.w.moon_alt.set_text(info.moon_alt)
             self.w.moon_ra.set_text(info.moon_ra)
             self.w.moon_dec.set_text(info.moon_dec)
 
