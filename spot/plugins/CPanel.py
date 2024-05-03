@@ -152,6 +152,7 @@ class CPanel(GingaPlugin.GlobalPlugin):
                 ("Visibility Plot", 'Visibility', chname_tgts),
                 ("Sky Cams", 'SkyCam', chname_tgts),
                 ("Telescope Position", 'TelescopePosition', chname_tgts),
+                ("Rotation Calculator", 'RotCalc', chname_tgts),
                 ("Finding Chart", 'FindImage', chname_find),
                 ("Instrument FOV", "InsFov", chname_find),
                 ("HSC Planner", "HSCPlanner", chname_find)]:

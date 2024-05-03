@@ -394,6 +394,9 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def _create_multicoord_body(self):
         self.full_tgt_list = list(self.target_dict.values())
+        if len(self.full_tgt_list) == 0:
+            self._mbody = None
+            return
         arr = np.asarray([(tgt.name, tgt.ra, tgt.dec, tgt.equinox)
                           for tgt in self.full_tgt_list]).T
         self._mbody = calcpos.Body(arr[0], arr[1], arr[2], arr[3])
@@ -414,7 +417,9 @@ class Targets(GingaPlugin.LocalPlugin):
         self._last_tgt_update_dt = start_time
         self.logger.info("update time: {}".format(start_time.strftime(
                          "%Y-%m-%d %H:%M:%S [%z]")))
-        if len(self.target_dict) > 0:
+        if len(self.target_dict) == 0:
+            self.w.tgt_tbl.clear()
+        else:
             # create multi-coordinate body if not yet created
             if targets_changed or self._mbody is None:
                 self._create_multicoord_body()
@@ -676,7 +681,8 @@ class Targets(GingaPlugin.LocalPlugin):
         sel_dct = self.w.tgt_tbl.get_selected()
         selected = set([self.target_dict[(category, name)]
                         for category, dct in sel_dct.items()
-                        for name in dct.keys()])
+                        for name in dct.keys()
+                        if (category, name) in self.target_dict])
         self.w.btn_select.set_enabled(len(selected - self.selected) > 0)
         self.w.btn_unselect.set_enabled(len(selected & self.selected) > 0)
         self.w.btn_delete.set_enabled(len(selected) > 0)

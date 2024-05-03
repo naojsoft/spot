@@ -56,6 +56,8 @@ class Site:
             dec_cmd_deg=0.0,          # target DEC in deg
             cmd_equinox=2000.0,       # ref equinox for target coords
             slew_time_sec=0.0,        # slew time in sec to target
+            rot_deg=0.0,              # current rotator position in deg
+            rot_cmd_deg=0.0,          # rotator commanded position in deg
             tel_status='Pointing',    # current telescope status string
             humidity=0.0,
             wavelength={'': 0.0, '': 0.0}
