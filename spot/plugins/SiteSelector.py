@@ -89,8 +89,9 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         top.add_widget(fr, stretch=0)
 
         for site_name in sites.get_site_names():
-            b.site.insert_alpha(site_name)
-        b.site.set_text(self.site_obj.name)
+            site = sites.get_site(site_name)
+            b.site.insert_alpha(str(site))
+        b.site.set_text(str(self.site_obj))
         b.site.add_callback('activated', self.site_changed_cb)
 
         fr = Widgets.Frame("Time")
@@ -167,7 +168,9 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         return (self.dt_utc, self.cur_tz)
 
     def site_changed_cb(self, w, idx):
-        self.site_obj = sites.get_site(w.get_text())
+        site_names = sites.get_site_names()
+        site_name = site_names[idx]
+        self.site_obj = sites.get_site(site_name)
         self.site_obj.initialize()
         self.status = self.site_obj.get_status()
 

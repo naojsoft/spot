@@ -2,7 +2,8 @@
 # [1] Southern Hemispheres should have a negative Latitude, Northern positive
 #     Western Longitudes should have a negative Longitude, Eastern positive
 #
-AAO (Australia):
+AAO:
+  fullname: AAO (Australia)
   azimuth_start_direction: N
   elevation_m: 1164
   fov_deg: 1.0
@@ -15,7 +16,8 @@ AAO (Australia):
   humidity: 10
   wavelength: {'observing': 3500., 'guiding': 6500.}
 
-GTC (La Palma, Canary):
+GTC:
+  fullname: GTC (La Palma, Canary)
   azimuth_start_direction: N
   elevation_m: 2267
   fov_deg: 1.0
@@ -28,7 +30,8 @@ GTC (La Palma, Canary):
   humidity: 10
   wavelength: {'observing': 3500., 'guiding': 6500.}
 
-OAO (Okayama, Japan):
+OAO:
+  fullname: OAO (Okayama, Japan)
   azimuth_start_direction: N
   elevation_m: 390
   fov_deg: 1.0
@@ -41,7 +44,8 @@ OAO (Okayama, Japan):
   humidity: 10
   wavelength: {'observing': 3500., 'guiding': 6500.}
 
-SALT (SAAO, South Africa):
+SALT:
+  fullname: SALT (SAAO, South Africa)
   azimuth_start_direction: N
   elevation_m: 1798
   fov_deg: 1.0
@@ -54,7 +58,8 @@ SALT (SAAO, South Africa):
   humidity: 10
   wavelength: {'observing': 3500., 'guiding': 6500.}
 
-Subaru (Maunakea, Hawaii):
+Subaru:
+  fullname: Subaru (Maunakea, Hawaii)
   azimuth_start_direction: S
   elevation_m: 4163
   fov_deg: 1.5
@@ -67,7 +72,8 @@ Subaru (Maunakea, Hawaii):
   humidity: 10
   wavelength: {'observing': 3500., 'guiding': 6500.}
 
-VLT (Cerro Paranal, Chile):
+VLT:
+  fullname: VLT (Cerro Paranal, Chile)
   azimuth_start_direction: N
   elevation_m: 2635
   fov_deg: 1.0

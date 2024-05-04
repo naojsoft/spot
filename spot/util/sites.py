@@ -5,9 +5,11 @@ NOTES:
 
 """
 # stdlib
+import os.path
 from dateutil import tz
 
-# astropy
+# 3rd party
+import yaml
 from astropy import units as u
 from astropy.coordinates import Longitude, Latitude
 
@@ -18,8 +20,11 @@ from ginga.misc.Bunch import Bunch
 from spot.util.polar import subaru_normalize_az
 from spot.util.calcpos import Observer
 
+from spot import __file__
+cfg_sites_yml = os.path.join(os.path.dirname(__file__), "config", "sites.yml")
+
 _external_status_dct = {}
-site_dict = {}
+site_dict = Bunch(caseless=True)
 site_names = []
 
 
@@ -30,6 +35,7 @@ class Site:
         self.name = name
         self.observer = None
         self.status_dict = dict(
+            fullname='Unnamed site',
             longitude_deg=0.0,
             latitude_deg=0.0,
             elevation_m=0.0,
@@ -73,7 +79,7 @@ class Site:
         status = Bunch(self.get_status())
         timezone = tz.tzoffset(status.timezone_name,
                                status.timezone_offset_min * 60)
-        self.observer = Observer(str(self),
+        self.observer = Observer(self.name,
                                  longitude=Longitude(status.longitude_deg * u.deg).to_string(sep=':', precision=3),
                                  latitude=Latitude(status.latitude_deg * u.deg).to_string(sep=':', precision=3),
                                  elevation=status.elevation_m,
@@ -94,7 +100,7 @@ class Site:
         return az_deg
 
     def __str__(self):
-        return self.name
+        return self.status_dict.get('fullname', self.name)
 
 
 def update_status(dct):
@@ -110,11 +116,17 @@ def get_site(name):
 def configure_sites(yml_dct):
     global site_dict, site_names
 
-    site_dict = dict()
+    site_dict = Bunch(caseless=True)
+    site_names = []
     for name, dct in yml_dct.items():
+        site_names.append(name)
         site = Site(name)
         site.status_dict.update(dct)
         site_dict[name] = site
 
-    site_names = list(site_dict.keys())
     site_names.sort()
+
+def configure_default_sites():
+    with open(cfg_sites_yml, 'r') as in_f:
+        yml_dct = yaml.safe_load(in_f.read())
+        configure_sites(yml_dct)
