@@ -40,7 +40,7 @@ import pandas as pd
 from ginga.gw import Widgets, GwHelp
 from ginga import GingaPlugin
 from ginga.util.paths import ginga_home
-from ginga.util.wcs import (ra_deg_to_str, dec_deg_to_str)
+from ginga.util import wcs
 from ginga.misc import Bunch, Callback
 
 # local
@@ -534,8 +534,19 @@ class Targets(GingaPlugin.LocalPlugin):
         # process into Target object list
         new_targets = []
         for (tgtname, objname, ra_str, dec_str, eq_str) in tgt_res.tgt_list:
-            ra_deg, dec_deg, eq = normalize_ra_dec_equinox(ra_str, dec_str,
-                                                           eq_str)
+            try:
+                ra_deg, dec_deg, eq = normalize_ra_dec_equinox(ra_str, dec_str,
+                                                               eq_str)
+                # these will check angles and force an exception if there is
+                # a bad angle
+                ra_str = wcs.ra_deg_to_str(ra_deg)
+                dec_str = wcs.dec_deg_to_str(dec_deg)
+            except Exception as e:
+                errmsg = f"Bad coordinate for '{objname}': RA={ra_str} DEC={dec_str} EQ={eq_str}: {e}"
+                self.logger.error(errmsg, exc_info=True)
+                self.fv.show_error(errmsg)
+                continue
+
             new_targets.append(Target(name=objname, ra=ra_deg, dec=dec_deg,
                                       equinox=eq, comment=tgtname,
                                       category=ope_file))
@@ -558,10 +569,22 @@ class Targets(GingaPlugin.LocalPlugin):
         with open(csv_path, newline='') as csv_f:
             reader = csv.DictReader(csv_f, delimiter=',', quotechar='"')
             for row in reader:
-                ra_deg, dec_deg, eq = normalize_ra_dec_equinox(row['RA'],
-                                                               row['DEC'],
-                                                               row['Equinox'])
-                new_targets.append(Target(name=row.get('Name', 'none'),
+                name = row.get('Name', 'none')
+                try:
+                    ra_deg, dec_deg, eq = normalize_ra_dec_equinox(row['RA'],
+                                                                   row['DEC'],
+                                                                   row['Equinox'])
+                    # these will check angles and force an exception if there is
+                    # a bad angle
+                    ra_str = wcs.ra_deg_to_str(ra_deg)
+                    dec_str = wcs.dec_deg_to_str(dec_deg)
+                except Exception as e:
+                    errmsg = f"Bad coordinate for '{name}': RA={ra_str} DEC={dec_str} EQ={eq_str}: {e}"
+                    self.logger.error(errmsg, exc_info=True)
+                    self.fv.show_error(errmsg)
+                    continue
+
+                new_targets.append(Target(name=name,
                                           ra=ra_deg,
                                           dec=dec_deg,
                                           equinox=eq,
@@ -597,8 +620,8 @@ class Targets(GingaPlugin.LocalPlugin):
             dct[row['name']] = Bunch.Bunch(
                 selected='*' if selected else '',
                 name=row['name'],
-                ra=ra_deg_to_str(row.ra_deg),
-                dec=dec_deg_to_str(row.dec_deg),
+                ra=wcs.ra_deg_to_str(row.ra_deg),
+                dec=wcs.dec_deg_to_str(row.dec_deg),
                 #equinox=("%6.1f" % row.equinox),
                 az_deg=("% 4d" % int(round(az_deg))),
                 alt_deg=("% 3d" % int(round(row.alt_deg))),
