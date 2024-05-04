@@ -53,7 +53,8 @@ try:
 except ImportError:
     have_oscript = False
 
-from spot.util.target import Target
+from spot.util.target import Target, normalize_ra_dec_equinox
+
 # where our icons are stored
 from spot import __file__
 icondir = os.path.join(os.path.dirname(__file__), 'icons')
@@ -395,9 +396,10 @@ class Targets(GingaPlugin.LocalPlugin):
         if len(self.full_tgt_list) == 0:
             self._mbody = None
             return
-        arr = np.asarray([(tgt.name, tgt.ra, tgt.dec, tgt.equinox)
+        names = np.asarray([tgt.name for tgt in self.full_tgt_list])
+        arr = np.asarray([(tgt.ra, tgt.dec, tgt.equinox)
                           for tgt in self.full_tgt_list]).T
-        self._mbody = calcpos.Body(arr[0], arr[1], arr[2], arr[3])
+        self._mbody = calcpos.Body(names, arr[0], arr[1], arr[2])
 
     def _create_addl_tgt_cols(self):
         # create columns for target color, selected and category
@@ -530,7 +532,13 @@ class Targets(GingaPlugin.LocalPlugin):
                 self.logger.error(errmsg)
 
         # process into Target object list
-        new_targets = process_tgt_list(ope_file, tgt_res.tgt_list)
+        new_targets = []
+        for (tgtname, objname, ra_str, dec_str, eq_str) in tgt_res.tgt_list:
+            ra_deg, dec_deg, eq = normalize_ra_dec_equinox(ra_str, dec_str,
+                                                           eq_str)
+            new_targets.append(Target(name=objname, ra=ra_deg, dec=dec_deg,
+                                      equinox=eq, comment=tgtname,
+                                      category=ope_file))
 
         # remove old targets from this same file
         target_dict = {(tgt.category, tgt.name): tgt
@@ -550,12 +558,15 @@ class Targets(GingaPlugin.LocalPlugin):
         with open(csv_path, newline='') as csv_f:
             reader = csv.DictReader(csv_f, delimiter=',', quotechar='"')
             for row in reader:
-                new_targets.append(Target(category=csv_path,
-                                          name=row.get('Name', 'none'),
-                                          ra=row['RA'],
-                                          dec=row['DEC'],
-                                          equinox=row['Equinox'],
-                                          comment=row.get('comment', '')))
+                ra_deg, dec_deg, eq = normalize_ra_dec_equinox(row['RA'],
+                                                               row['DEC'],
+                                                               row['Equinox'])
+                new_targets.append(Target(name=row.get('Name', 'none'),
+                                          ra=ra_deg,
+                                          dec=dec_deg,
+                                          equinox=eq,
+                                          comment=row.get('comment', ''),
+                                          category=csv_path))
 
         # remove old targets from this same file
         target_dict = {(tgt.category, tgt.name): tgt
@@ -748,18 +759,4 @@ class Targets(GingaPlugin.LocalPlugin):
 
 
 def process_tgt_list(category, tgt_list):
-    return [Target(category=category, name=objname,
-                   ra=ra_str, dec=dec_str, equinox=eq_str,
-                   comment=tgtname)
-            for (tgtname, objname, ra_str, dec_str, eq_str) in tgt_list]
-
-
-# def get_info_tgt_list(tgt_list, site, start_time, color='violet'):
-#     results = []
-#     for tgt in tgt_list:
-#         info = tgt.calc(site, start_time)
-#         clr = getattr(tgt, 'color', color)
-#         if info.alt_deg > 0:
-#             # NOTE: AZ values are normalized to standard use (0 deg = North)
-#             results.append((info.az_deg, info.alt_deg, tgt.name, clr))
-#     return results
+    return res

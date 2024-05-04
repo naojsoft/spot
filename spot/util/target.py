@@ -11,21 +11,17 @@ except ImportError:
 
 class Target(Body):
 
-    def __init__(self, category=None, name=None,
-                 ra=None, dec=None, equinox=2000.0,
-                 comment=''):
-        ra, dec, eq = normalize_ra_dec_equinox(ra, dec, equinox)
-
-        super().__init__(name=name, ra=ra, dec=dec, equinox=eq)
+    def __init__(self, name=None, ra=None, dec=None, equinox=2000.0,
+                 comment='', category=None):
+        super().__init__(name, ra, dec, equinox, comment=comment)
         self.category = category
-        self.comment = comment
 
     def import_record(self, rec):
-        self.name = rec['name']
-        self.ra, self.dec, self.equinox = normalize_ra_dec_equinox(rec['ra'],
-                                                                   rec['dec'],
-                                                                   rec['equinox'])
-        self.comment = rec.get('comment', '').strip()
+        self.name = rec['Name']
+        self.ra, self.dec, self.equinox = normalize_ra_dec_equinox(rec['RA'],
+                                                                   rec['DEC'],
+                                                                   rec['Equinox'])
+        self.comment = rec.get('Comment', '').strip()
 
 
 def normalize_ra_dec_equinox(ra, dec, eq):
