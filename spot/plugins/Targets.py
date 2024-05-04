@@ -21,7 +21,6 @@ Requirements
 naojsoft packages
 -----------------
 - ginga
-- qplan
 - oscript
 """
 # stdlib
@@ -530,7 +529,7 @@ class Targets(GingaPlugin.LocalPlugin):
             for errmsg in tgt_res.prm_errmsg_list:
                 self.logger.error(errmsg)
 
-        # process into QPlan Target object list
+        # process into Target object list
         new_targets = process_tgt_list(ope_file, tgt_res.tgt_list)
 
         # remove old targets from this same file
@@ -569,16 +568,6 @@ class Targets(GingaPlugin.LocalPlugin):
 
         # update GUIs
         self.update_all(targets_changed=True)
-
-    # def get_tgt_info(self, tgt, site, start_time, color='violet'):
-    #     # TODO: work with self.site directly, not observer
-    #     info = tgt.calc(site.observer, start_time)
-    #     # TEMP/TODO: this attribute does not seem to be accurate
-    #     # override until we can fix it in qplan
-    #     info.will_be_visible = True
-    #     color = getattr(tgt, 'color', color)
-    #     res = Bunch.Bunch(tgt=tgt, info=info, color=color)
-    #     return res
 
     def targets_to_table(self, tgt_df):
         tree_dict = OrderedDict()

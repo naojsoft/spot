@@ -9,7 +9,6 @@ Requirements
 naojsoft packages
 -----------------
 - ginga
-- qplan
 """
 # stdlib
 import os.path
