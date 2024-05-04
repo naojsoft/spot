@@ -548,8 +548,8 @@ class FindImage(GingaPlugin.LocalPlugin):
                 # target is locked
                 self.logger.info("target is locked")
                 return
-            self.w.ra.set_text(tgt.ra)
-            self.w.dec.set_text(tgt.dec)
+            self.w.ra.set_text(wcs.ra_deg_to_str(tgt.ra))
+            self.w.dec.set_text(wcs.dec_deg_to_str(tgt.dec))
             self.w.equinox.set_text(str(tgt.equinox))
             self.w.tgt_name.set_text(tgt.name)
             self.w.obj_name.set_text(tgt.name)

@@ -1,8 +1,6 @@
 """
 RotCalc.py -- Rotation check and calculator
 
-E. Jeschke
-
 Requirements
 ============
 
@@ -22,9 +20,9 @@ from ginga.misc import Bunch
 from ginga import GingaPlugin
 from ginga.util import wcs
 
-# qplan
-from qplan.util import calcpos
-from qplan.misc import calc_rotation_choices
+# local
+from spot.util import calcpos
+from spot.util.rot import calc_rotation_choices
 
 # spot
 #from spot.util.polar import subaru_normalize_az
@@ -367,8 +365,8 @@ class RotCalc(GingaPlugin.LocalPlugin):
                 # target is locked
                 self.logger.info("target is locked")
                 return
-            self.w.ra.set_text(tgt.ra)
-            self.w.dec.set_text(tgt.dec)
+            self.w.ra.set_text(wcs.ra_deg_to_str(tgt.ra))
+            self.w.dec.set_text(wcs.dec_deg_to_str(tgt.dec))
             #self.w.equinox.set_text(str(tgt.equinox))
             self.w.tgt_name.set_text(tgt.name)
 

@@ -37,8 +37,9 @@ from ginga.gw import Widgets, Plot
 from ginga.misc import Bunch
 from ginga import GingaPlugin
 
-from qplan.plots.airmass import AirMassPlot
-from qplan.util import calcpos
+from spot.plots.altitude import AltitudePlot
+from spot.util import calcpos
+
 
 class Visibility(GingaPlugin.LocalPlugin):
 
@@ -72,7 +73,7 @@ class Visibility(GingaPlugin.LocalPlugin):
         top = Widgets.VBox()
         top.set_border_width(4)
 
-        self.plot = AirMassPlot(700, 500, logger=self.logger)
+        self.plot = AltitudePlot(700, 500, logger=self.logger)
         #obj = self.channel.opmon.get_plugin('Targets')
         #self.plot.colors = obj.colors
 

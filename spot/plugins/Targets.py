@@ -44,9 +44,8 @@ from ginga.util.paths import ginga_home
 from ginga.util.wcs import (ra_deg_to_str, dec_deg_to_str)
 from ginga.misc import Bunch, Callback
 
-# qplan
-from qplan import common
-from qplan.util import calcpos
+# local
+from spot.util import calcpos
 
 # oscript (optional, for loading OPE files)
 try:
@@ -113,12 +112,12 @@ class Targets(GingaPlugin.LocalPlugin):
                         ]
 
         # the solar system objects
-        ss = [(common.moon, 'navajowhite2'),
-              (common.sun, 'darkgoldenrod1'),
-              (common.mercury, 'gray'), (common.venus, 'gray80'),
-              (common.mars, 'mistyrose'), (common.jupiter, 'gray90'),
-              (common.saturn, 'gray70'), (common.uranus, 'gray'),
-              (common.neptune, 'gray'), (common.pluto, 'gray'),
+        ss = [(calcpos.Moon, 'navajowhite2'),
+              (calcpos.Sun, 'darkgoldenrod1'),
+              (calcpos.Mercury, 'gray'), (calcpos.Venus, 'gray80'),
+              (calcpos.Mars, 'mistyrose'), (calcpos.Jupiter, 'gray90'),
+              (calcpos.Saturn, 'gray70'), (calcpos.Uranus, 'gray'),
+              (calcpos.Neptune, 'gray'), (calcpos.Pluto, 'gray'),
               ]
         self.ss = []
         for tup in ss:

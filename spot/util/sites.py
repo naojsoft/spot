@@ -14,11 +14,9 @@ from astropy.coordinates import Longitude, Latitude
 # ginga
 from ginga.misc.Bunch import Bunch
 
-# qplan
-from qplan.util.calcpos import Observer
-
 # local
 from spot.util.polar import subaru_normalize_az
+from spot.util.calcpos import Observer
 
 _external_status_dct = {}
 site_dict = {}
@@ -78,9 +76,6 @@ class Site:
         self.observer = Observer(str(self),
                                  longitude=Longitude(status.longitude_deg * u.deg).to_string(sep=':', precision=3),
                                  latitude=Latitude(status.latitude_deg * u.deg).to_string(sep=':', precision=3),
-                                 #elevation=status.elevation_m * u.m,
-                                 #pressure=status.pressure_mbar / 1000 * u.bar,
-                                 #temperature=status.temperature_c * u.deg_C,
                                  elevation=status.elevation_m,
                                  pressure=status.pressure_mbar,
                                  temperature=status.temperature_c,

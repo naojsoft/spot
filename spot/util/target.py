@@ -1,6 +1,6 @@
 from ginga.util.wcs import hmsStrToDeg, dmsStrToDeg
 
-from qplan.entity import StaticTarget
+from spot.util.calcpos import Body
 
 try:
     from oscript.util import ope
@@ -9,16 +9,16 @@ except ImportError:
     have_oscript = False
 
 
-class Target(StaticTarget):
+class Target(Body):
 
     def __init__(self, category=None, name=None,
                  ra=None, dec=None, equinox=2000.0,
                  comment=''):
         ra, dec, eq = normalize_ra_dec_equinox(ra, dec, equinox)
 
-        super().__init__(name=name, ra=ra, dec=dec, equinox=eq,
-                         comment=comment)
+        super().__init__(name=name, ra=ra, dec=dec, equinox=eq)
         self.category = category
+        self.comment = comment
 
     def import_record(self, rec):
         self.name = rec['name']
@@ -26,8 +26,6 @@ class Target(StaticTarget):
                                                                    rec['dec'],
                                                                    rec['equinox'])
         self.comment = rec.get('comment', '').strip()
-
-        self._recalc_body()
 
 
 def normalize_ra_dec_equinox(ra, dec, eq):

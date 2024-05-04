@@ -20,8 +20,8 @@ from ginga import GingaPlugin
 from ginga.misc import Bunch
 from ginga.util.wcs import ra_deg_to_str, dec_deg_to_str
 
-# qplan
-from qplan.util import calcpos
+# local
+from spot.util import calcpos
 
 
 class PolarSky(GingaPlugin.LocalPlugin):
