@@ -1,4 +1,5 @@
 from ginga.util.wcs import hmsStrToDeg, dmsStrToDeg
+from ginga.misc import Bunch
 
 from spot.util.calcpos import Body
 
@@ -15,6 +16,12 @@ class Target(Body):
                  comment='', category=None):
         super().__init__(name, ra, dec, equinox, comment=comment)
         self.category = category
+        self.metadata = None
+
+    def set_metadata(self, **kwargs):
+        if self.metadata is None:
+            self.metadata = Bunch.Bunch()
+        self.metadata.update(kwargs)
 
     def import_record(self, rec):
         self.name = rec['Name']

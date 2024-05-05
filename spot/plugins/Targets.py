@@ -143,6 +143,8 @@ class Targets(GingaPlugin.LocalPlugin):
         self.dc = fv.get_draw_classes()
         canvas = self.dc.DrawingCanvas()
         canvas.set_surface(self.fitsimage)
+        canvas.set_draw_mode('pick')
+        canvas.register_for_cursor_drawing(self.fitsimage)
         self.canvas = canvas
 
         self.gui_up = False
@@ -310,6 +312,15 @@ class Targets(GingaPlugin.LocalPlugin):
 
         return shown_tgt_lst
 
+    def select_star_cb(self, obj, canvas, event, pt, action):
+        info = obj.get_data()
+        if info.get('tag', None) != 'targets':
+            return
+        idx = info.get('index')
+        # TODO
+        #self.table.show_selection(info.star)
+        return True
+
     def plot_targets(self, tgt_df, tag, start_time=None):
         """Plot targets.
         """
@@ -318,8 +329,15 @@ class Targets(GingaPlugin.LocalPlugin):
         self.canvas.delete_object_by_tag(tag)
 
         # filter the subset desired to be seen
+        pt_radius = 3
+        cl_radius = pt_radius * 2
+        radius_dct = dict(Sun=cl_radius * 8,
+                          Moon=cl_radius * 8)
         if tag != 'ss':
             tgt_df = self.filter_targets(tgt_df)
+            fill = False
+        else:
+            fill = True
 
         self.logger.info("plotting {} targets".format(len(tgt_df)))
         objs = []
@@ -327,16 +345,28 @@ class Targets(GingaPlugin.LocalPlugin):
             alpha = 1.0 if row['alt_deg'] > 0 else 0.0
             t, r = self.map_azalt(row['az_deg'], row['alt_deg'])
             x, y = self.p2r(r, t)
-            objs.append(self.dc.Point(x, y, radius=3, style='cross',
-                                      color=row['color'], fillcolor=row['color'],
-                                      linewidth=2, alpha=alpha,
-                                      fill=True, fillalpha=alpha))
-            objs.append(self.dc.Text(x, y, row['name'],
-                                     #color=row['color'], alpha=alpha,
-                                     fill=True, fillcolor=row['color'],
-                                     fillalpha=alpha, linewidth=0,
-                                     font="Roboto", fontscale=True,
-                                     fontsize=None, fontsize_min=8))
+            point = self.dc.Point(x, y, radius=pt_radius, style='cross',
+                                  color=row['color'], fillcolor=row['color'],
+                                  linewidth=2, alpha=alpha,
+                                  fill=True, fillalpha=alpha)
+            radius = radius_dct.get(row['name'], cl_radius)
+            circle = self.dc.Circle(x, y, radius, color=row['color'],
+                                    linewidth=1, alpha=alpha,
+                                    fill=fill, fillcolor=row['color'],
+                                    fillalpha=0.7)
+            text = self.dc.Text(x, y, row['name'],
+                                #color=row['color'], alpha=alpha,
+                                fill=True, fillcolor=row['color'],
+                                fillalpha=alpha, linewidth=0,
+                                font="Roboto", fontscale=True,
+                                fontsize=None, fontsize_min=8)
+            star = self.dc.CompoundObject(point, circle, text)
+            star.opaque = True
+            star.pickable = True
+            star.set_data(tag=tag, index=idx)
+            star.add_callback('pick-up', self.select_star_cb, 'select')
+            #star.add_callback('pick-hover', self.select_star_cb, 'info')
+            objs.append(star)
 
         o = self.dc.CompoundObject(*objs)
         self.canvas.add(o, tag=tag, redraw=False)

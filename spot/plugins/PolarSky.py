@@ -339,13 +339,18 @@ class PolarSky(GingaPlugin.LocalPlugin):
 
         objs = []
 
-        # plot circles
-        els = [85, 70, 50, 30, 15]
-        # els.insert(0, 89)
-        # plot circles
-        circ_color = 'darkgreen'
+        # colors
+        circ_color = 'mediumseagreen'
         # circ_fill = 'palegreen1'
         circ_fill = '#fdf6f6'
+        annot_color = 'coral2'
+
+        # plot circles
+        els = [(85, 2, 'darkorange'), (70, 1, circ_color), (50, 1, circ_color),
+               (30, 2, 'darkorange'), (10, 3, 'darkred')]
+        wds = [3, 1, 1, 3, 1]
+        # els.insert(0, 89)
+        # plot circles
         image = self.viewer.get_image()
         # fillalpha = 0.5 if image is None else 0.0
         fillalpha = 0.0
@@ -359,14 +364,14 @@ class PolarSky(GingaPlugin.LocalPlugin):
         x, y, r = self.r2xyr(1)
         objs.append(self.dc.Circle(x, y, r, color=circ_color, linewidth=1))
         t = -75
-        for el in els:
-            r = (90 - el)
+        for el_deg, wd_px, color in els:
+            r = (90 - el_deg)
             r2 = r + 1
             x, y, _r = self.r2xyr(r)
-            objs.append(self.dc.Circle(x, y, _r, color=circ_color,
-                                       linestyle='solid'))
+            objs.append(self.dc.Circle(x, y, _r, color=color,
+                                       linewidth=wd_px, linestyle='solid'))
             x, y = self.p2r(r, t)
-            objs.append(self.dc.Text(x, y, "{}".format(el), color='brown',
+            objs.append(self.dc.Text(x, y, "{}".format(el_deg), color=annot_color,
                                      fontscale=True, fontsize_min=12))
 
         # plot lines
@@ -392,7 +397,7 @@ class PolarSky(GingaPlugin.LocalPlugin):
             x, y = self.p2r(r, t)
             objs.append(self.dc.Text(x, y, "{}\u00b0".format(ang),
                                      fontscale=True, fontsize_min=12,
-                                     color='brown'))
+                                     color=annot_color))
 
         rd = self.settings['image_radius'] * 1.25
 
@@ -400,8 +405,8 @@ class PolarSky(GingaPlugin.LocalPlugin):
         for r, t, txt in [(110, 0, 'W'), (100, 90, 'N'),
                           (110, 180, 'E'), (100, 270, 'S')]:
             x, y = self.p2r(r, t)
-            objs.append(self.dc.Text(x, y, txt, color='brown', fontscale=True,
-                                     fontsize_min=16))
+            objs.append(self.dc.Text(x, y, txt, color=annot_color,
+                                     fontscale=True, fontsize_min=16))
 
         o = self.dc.CompoundObject(*objs)
         self.canvas.add(o, tag='elev')
