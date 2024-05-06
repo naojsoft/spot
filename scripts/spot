@@ -26,7 +26,7 @@ default_layout = ['seq', {},
                          stretch=0),
                     dict(row=['hpanel', dict(name='hpnl'),
                      ['vbox', dict(name='main', width=600),
-                      dict(row=['ws', dict(name='works', wstype='tabs',
+                      dict(row=['ws', dict(name='channels', wstype='tabs',
                                            group=1, use_toolbar=False,
                                            default=True),
                                  ],
@@ -80,7 +80,7 @@ if __name__ == "__main__":
                            # ('Pan', dict(workspace='dialogs', start=False)),
                            ('Header', dict(workspace='dialogs')),
                            ('Zoom', dict(workspace='dialogs')),
-                           ('LoaderConfig', dict(workspace='works'))]:
+                           ('LoaderConfig', dict(workspace='channels'))]:
         specs = g_main.get_plugin_spec(module=modname)
         spec = specs[0]
         # remap to SPOT

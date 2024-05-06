@@ -109,7 +109,7 @@ class CPanel(GingaPlugin.GlobalPlugin):
         if self.fv.ds.has_ws(wsname):
             self.fv.show_error(f"'{wsname}' already exists; pick a new name")
             return
-        ws = self.fv.add_workspace(wsname, 'mdi', inSpace='works',
+        ws = self.fv.add_workspace(wsname, 'mdi', inSpace='channels',
                                    use_toolbar=False)
 
         path = os.path.join(ginga_home, wsname + '.json')
@@ -152,7 +152,7 @@ class CPanel(GingaPlugin.GlobalPlugin):
                 ("Visibility Plot", 'Visibility', chname_tgts),
                 ("Sky Cams", 'SkyCam', chname_tgts),
                 ("Telescope Position", 'TelescopePosition', chname_tgts),
-                ("Rotation Calculator", 'RotCalc', chname_tgts),
+                #("Rotation Calculator", 'RotCalc', chname_tgts),
                 ("Finding Chart", 'FindImage', chname_find),
                 ("Instrument FOV", "InsFov", chname_find),
                 ("HSC Planner", "HSCPlanner", chname_find)]:

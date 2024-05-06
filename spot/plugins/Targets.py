@@ -179,8 +179,17 @@ class Targets(GingaPlugin.LocalPlugin):
         b.file_path.add_callback('activated', self.file_setpath_cb)
 
         plot_update_text = "Please select file for list display"
+
+        hbox = Widgets.HBox()
+        hbox.set_spacing(5)
         self.w.update_time = Widgets.Label(plot_update_text)
-        top.add_widget(self.w.update_time, stretch=0)
+        hbox.add_widget(self.w.update_time, stretch=0)
+        hbox.add_widget(Widgets.Label(''), stretch=1)
+        cbox = Widgets.CheckBox("Merge Targets")
+        self.w.merge_targets = cbox
+        cbox.set_state(False)
+        hbox.add_widget(cbox, stretch=0)
+        top.add_widget(hbox, stretch=0)
 
         self.w.tgt_tbl = Widgets.TreeView(auto_expand=True,
                                           selection='multiple',
@@ -353,7 +362,7 @@ class Targets(GingaPlugin.LocalPlugin):
             circle = self.dc.Circle(x, y, radius, color=row['color'],
                                     linewidth=1, alpha=alpha,
                                     fill=fill, fillcolor=row['color'],
-                                    fillalpha=0.7)
+                                    fillalpha=alpha * 0.7)
             text = self.dc.Text(x, y, row['name'],
                                 #color=row['color'], alpha=alpha,
                                 fill=True, fillcolor=row['color'],
@@ -538,6 +547,52 @@ class Targets(GingaPlugin.LocalPlugin):
 
         self.w.tgt_tbl.set_optimal_column_widths()
 
+    def add_targets(self, category, tgt_df, merge=False):
+        """Add targets from a Pandas dataframe."""
+        new_targets = []
+        for idx, row in tgt_df.iterrows():
+            name = row.get('Name', 'none')
+            try:
+                ra, dec, eqx = row['RA'], row['DEC'], row['Equinox']
+                ra_deg, dec_deg, eq = normalize_ra_dec_equinox(ra, dec, eqx)
+                # these will check angles and force an exception if there is
+                # a bad angle
+                ra_str = wcs.ra_deg_to_str(ra_deg)
+                dec_str = wcs.dec_deg_to_str(dec_deg)
+            except Exception as e:
+                errmsg = f"Bad coordinate for '{name}': RA={ra} DEC={dec} EQ={eqx}: {e}"
+                self.logger.error(errmsg, exc_info=True)
+                self.fv.show_error(errmsg)
+                continue
+
+            new_targets.append(Target(name=name,
+                                      ra=ra_deg,
+                                      dec=dec_deg,
+                                      equinox=eq,
+                                      comment=row.get('comment', ''),
+                                      category=category))
+
+        if not merge:
+            # remove old targets from this same file
+            target_dict = {(tgt.category, tgt.name): tgt
+                           for tgt in self.target_dict.values()
+                           if tgt.category != category}
+        else:
+            target_dict = self.target_dict
+        # add new targets
+        target_dict.update({(tgt.category, tgt.name): tgt
+                            for tgt in new_targets})
+        self.target_dict = target_dict
+
+        # update GUIs
+        self.update_all(targets_changed=True)
+
+    def process_csv_file_for_targets(self, csv_path):
+        tgt_df = pd.read_csv(csv_path)
+        merge = self.w.merge_targets.get_state()
+        category = csv_path if not merge else "Targets"
+        self.add_targets(category, tgt_df, merge=merge)
+
     def process_ope_file_for_targets(self, ope_file):
         if not have_oscript:
             self.fv.show_error("Please install the 'oscript' module to use this feature")
@@ -564,74 +619,13 @@ class Targets(GingaPlugin.LocalPlugin):
         # process into Target object list
         new_targets = []
         for (tgtname, objname, ra_str, dec_str, eq_str) in tgt_res.tgt_list:
-            try:
-                ra_deg, dec_deg, eq = normalize_ra_dec_equinox(ra_str, dec_str,
-                                                               eq_str)
-                # these will check angles and force an exception if there is
-                # a bad angle
-                ra_str = wcs.ra_deg_to_str(ra_deg)
-                dec_str = wcs.dec_deg_to_str(dec_deg)
-            except Exception as e:
-                errmsg = f"Bad coordinate for '{objname}': RA={ra_str} DEC={dec_str} EQ={eq_str}: {e}"
-                self.logger.error(errmsg, exc_info=True)
-                self.fv.show_error(errmsg)
-                continue
+            new_targets.append((objname, ra_str, dec_str, eq_str))
 
-            new_targets.append(Target(name=objname, ra=ra_deg, dec=dec_deg,
-                                      equinox=eq, comment=tgtname,
-                                      category=ope_file))
-
-        # remove old targets from this same file
-        target_dict = {(tgt.category, tgt.name): tgt
-                       for tgt in self.target_dict.values()
-                       if tgt.category != ope_file}
-        self.target_dict = target_dict
-        # add new targets
-        self.target_dict.update({(tgt.category, tgt.name): tgt
-                                 for tgt in new_targets})
-
-        # update GUIs
-        self.update_all(targets_changed=True)
-
-    def process_csv_file_for_targets(self, csv_path):
-        # read CSV file
-        new_targets = []
-        with open(csv_path, newline='') as csv_f:
-            reader = csv.DictReader(csv_f, delimiter=',', quotechar='"')
-            for row in reader:
-                name = row.get('Name', 'none')
-                try:
-                    ra_deg, dec_deg, eq = normalize_ra_dec_equinox(row['RA'],
-                                                                   row['DEC'],
-                                                                   row['Equinox'])
-                    # these will check angles and force an exception if there is
-                    # a bad angle
-                    ra_str = wcs.ra_deg_to_str(ra_deg)
-                    dec_str = wcs.dec_deg_to_str(dec_deg)
-                except Exception as e:
-                    errmsg = f"Bad coordinate for '{name}': RA={ra_str} DEC={dec_str} EQ={eq_str}: {e}"
-                    self.logger.error(errmsg, exc_info=True)
-                    self.fv.show_error(errmsg)
-                    continue
-
-                new_targets.append(Target(name=name,
-                                          ra=ra_deg,
-                                          dec=dec_deg,
-                                          equinox=eq,
-                                          comment=row.get('comment', ''),
-                                          category=csv_path))
-
-        # remove old targets from this same file
-        target_dict = {(tgt.category, tgt.name): tgt
-                       for tgt in self.target_dict.values()
-                       if tgt.category != csv_path}
-        self.target_dict = target_dict
-        # add new targets
-        self.target_dict.update({(tgt.category, tgt.name): tgt
-                                 for tgt in new_targets})
-
-        # update GUIs
-        self.update_all(targets_changed=True)
+        tgt_df = pd.DataFrame(new_targets,
+                              columns=["Name", "RA", "DEC", "Equinox"])
+        merge = self.w.merge_targets.get_state()
+        category = ope_file if not merge else "Targets"
+        self.add_targets(category, tgt_df, merge=merge)
 
     def targets_to_table(self, tgt_df):
         tree_dict = OrderedDict()

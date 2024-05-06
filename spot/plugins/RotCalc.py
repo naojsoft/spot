@@ -13,6 +13,7 @@ from datetime import timedelta
 import os
 
 import numpy as np
+import pandas as pd
 
 # ginga
 from ginga.gw import Widgets, GwHelp
@@ -104,14 +105,29 @@ class RotCalc(GingaPlugin.LocalPlugin):
         top = Widgets.VBox()
         top.set_border_width(4)
 
-        fr = Widgets.Frame("PA / Time")
-
-        captions = (('PA (deg):', 'label', 'pa', 'entryset',
-                     'Time (sec):', 'label', 'secs', 'entryset'),
+        fr = Widgets.Frame("Current Rot / Az")
+        captions = (('Cur Rot:', 'label', 'cur_rot', 'llabel',
+                     'Cmd Rot:', 'label', 'cmd_rot', 'llabel',
+                     'Cur Az:', 'label', 'cur_az', 'llabel',
+                     'Cmd Az:', 'label', 'cmd_az', 'llabel'),
                     )
 
         w, b = Widgets.build_info(captions)
         self.w = b
+        fr.set_widget(w)
+        top.add_widget(fr, stretch=0)
+
+        fr = Widgets.Frame("PA / Time /Az El")
+
+        captions = (('PA (deg):', 'label', 'pa', 'entryset',
+                     'Time (sec):', 'label', 'secs', 'entryset'),
+                    ('Az:', 'label', 'az', 'entry', 'El:', 'label',
+                     'el', 'entry', "Choose Name:", 'label',
+                     'choose_name', 'entry', "Gen Target", 'button'),
+                    )
+
+        w, b = Widgets.build_info(captions)
+        self.w.update(b)
 
         fr.set_widget(w)
         top.add_widget(fr, stretch=0)
@@ -122,18 +138,8 @@ class RotCalc(GingaPlugin.LocalPlugin):
         b.secs.set_text("{}".format(15 * 60.0))
         b.secs.add_callback('activated', self.set_time_cb)
         b.secs.set_tooltip("Number of seconds on target")
-
-        fr = Widgets.Frame("Current Rot / Az")
-        captions = (('Cur Rot:', 'label', 'cur_rot', 'llabel',
-                     'Cmd Rot:', 'label', 'cmd_rot', 'llabel',
-                     'Cur Az:', 'label', 'cur_az', 'llabel',
-                     'Cmd Az:', 'label', 'cmd_az', 'llabel'),
-                    )
-
-        w, b = Widgets.build_info(captions)
-        self.w.update(b)
-        fr.set_widget(w)
-        top.add_widget(fr, stretch=0)
+        b.gen_target.add_callback('activated', self.azel_to_radec_cb)
+        b.gen_target.set_tooltip("Generate a target from AZ/EL at given time")
 
         fr = Widgets.Frame("Pointing")
 
@@ -144,7 +150,7 @@ class RotCalc(GingaPlugin.LocalPlugin):
                     ('__ph1', 'spacer', 'Setup', 'button',
                      '__ph2', 'spacer', 'Record', 'button',
                      '__ph3', 'spacer', 'Lock Target', 'checkbox',
-                     )
+                     "Send Target", 'button')
                     )
 
         w, b = Widgets.build_info(captions)
@@ -154,6 +160,8 @@ class RotCalc(GingaPlugin.LocalPlugin):
         b.setup.add_callback('activated', lambda w: self.setup())
         b.record.add_callback('activated', lambda w: self.record())
         b.record.set_enabled(False)
+        b.send_target.add_callback('activated', self.send_target_cb)
+        b.send_target.set_tooltip("Send the target coordinates to Gen2")
         self.w.update(b)
         fr.set_widget(w)
         top.add_widget(fr, stretch=0)
@@ -370,6 +378,40 @@ class RotCalc(GingaPlugin.LocalPlugin):
             #self.w.equinox.set_text(str(tgt.equinox))
             self.w.tgt_name.set_text(tgt.name)
 
+    def azel_to_radec_cb(self, w):
+        az_deg = float(self.w.az.get_text())
+        el_deg = float(self.w.el.get_text())
+        az_deg = subaru_unnormalize_az(az_deg)
+        ra_deg, dec_deg = self.site.observer.radec_of(az_deg, el_deg,
+                                                      date=self.dt_utc)
+        equinox = 2000.0
+        name = self.w.choose_name.get_text().strip()
+        if len(name) == 0:
+            name = f"ra={ra_deg:.2f},dec={dec_deg:.2f}"
+
+        tgt_df = pd.DataFrame([(name, ra_deg, dec_deg, equinox)],
+                              columns=["Name", "RA", "DEC", "Equinox"])
+        obj = self.channel.opmon.get_plugin('Targets')
+        obj.add_targets("Targets", tgt_df, merge=True)
+
+    def send_target_cb(self, w):
+        ra_deg = wcs.hmsStrToDeg(self.w.ra.get_text())
+        dec_deg = wcs.dmsStrToDeg(self.w.dec.get_text())
+        ra_soss = wcs.ra_deg_to_str(ra_deg, format='%02d%02d%02d.%03d')
+        dec_soss = wcs.dec_deg_to_str(dec_deg, format='%s%02d%02d%02d.%02d')
+        equinox = 2000.0
+        status_dict = {"GEN2.SPOT.RA": ra_soss,
+                       "GEN2.SPOT.DEC": dec_soss,
+                       "GEN2.SPOT.EQUINOX": equinox}
+        try:
+            obj = self.fv.gpmon.get_plugin('Gen2Int')
+            obj.send_status(status_dict)
+
+        except Exception as e:
+            errmsg = f"Failed to send status: {e}"
+            self.fv.show_error(errmsg)
+            self.logger.error(errmsg, exc_info=True)
+
     def _lock_target_cb(self, w, tf):
         self.tgt_locked = tf
 
@@ -454,6 +496,14 @@ class RotCalc(GingaPlugin.LocalPlugin):
 def subaru_normalize_az(az_deg, normalize_angle=True):
     div = 360.0 if az_deg >= 0.0 else -360.0
     az_deg = az_deg + 180.0
+    if normalize_angle:
+        az_deg = np.remainder(az_deg, div)
+
+    return az_deg
+
+def subaru_unnormalize_az(az_deg, normalize_angle=True):
+    div = 360.0 if az_deg >= 0.0 else -360.0
+    az_deg = az_deg - 180.0
     if normalize_angle:
         az_deg = np.remainder(az_deg, div)
 

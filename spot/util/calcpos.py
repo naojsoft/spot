@@ -152,9 +152,11 @@ class Observer(object):
         """
         self.date = self.date_to_local(date)
 
-    def radec_of(self, az_deg, alt_deg):
-        obstime = Time(self.date_to_utc(self.date))
-        frame = AltAz(alt=el_deg * u.deg, az=az_deg * u.deg,
+    def radec_of(self, az_deg, alt_deg, date=None):
+        if date is None:
+            date = self.date
+        obstime = Time(date)
+        frame = AltAz(alt=alt_deg * u.deg, az=az_deg * u.deg,
                       obstime=obstime, location=self.location,
                       pressure=self.pressure_mbar * u.mbar,
                       temperature=self.temp_C * u.deg_C,
@@ -166,8 +168,10 @@ class Observer(object):
         ra_deg, dec_deg = coord.ra.deg, coord.dec.deg
         return ra_deg, dec_deg
 
-    def azalt_of(self, ra_deg, dec_deg):
-        obstime = Time(self.date_to_utc(self.date))
+    def azalt_of(self, ra_deg, dec_deg, date=None):
+        if date is None:
+            date = self.date
+        obstime = Time(date)
         coord = SkyCoord(frame=ICRS, ra=ra_deg * u.deg, dec=dec_deg * u.deg,
                          obstime=obstime)
         frame = AltAz(obstime=obstime, location=self.location,
