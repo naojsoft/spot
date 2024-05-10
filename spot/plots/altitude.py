@@ -86,7 +86,7 @@ class AltitudePlot(plots.Plot):
         localdate_start_str = localdate_start.strftime('%Y-%b-%d %Hh')
         localdate_end_str = localdate_end.strftime('%Y-%b-%d %Hh')
 
-        min_interval = 12  # hour/5min
+        min_interval = 4
         mt = lt_data[0:-1:min_interval]
         targets, legend = [], []
 
