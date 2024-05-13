@@ -722,10 +722,13 @@ class CalculationResult(object):
     def pang(self):
         """Return the parallactic angle of the target(s) in radians."""
         if self._pang is None:
+            # self._pang = self._calc_parallactic(self.dec,
+            #                                     self.ha,
+            #                                     self.observer.lat_deg,
+            #                                     self.az)
             self._pang = self._calc_parallactic(self.dec,
                                                 self.ha,
-                                                self.observer.lat_deg,
-                                                self.az)
+                                                self.observer.lat_deg)
         return self._pang
 
     @property
@@ -803,38 +806,46 @@ class CalculationResult(object):
         altaz = moon.transform_to(frame)
         self._moon_alt = altaz.alt.deg
 
-    def _calc_parallactic(self, dec, ha, lat_deg, az):
-        """Compute parallactic angle(s)."""
-        lat = np.radians(lat_deg)
-        cos_dec = np.cos(dec)
-        if isinstance(cos_dec, np.ndarray):
-            # handle poles (cos_dec == 0) in vector form
-            # holds the result
-            pang_res = np.zeros((len(dec)), float)
-            pole = np.isclose(cos_dec, 0.0)
-            notpole = np.logical_not(pole)
+    # def _calc_parallactic(self, dec, ha, lat_deg, az):
+    #     """Compute parallactic angle(s)."""
+    #     lat = np.radians(lat_deg)
+    #     cos_dec = np.cos(dec)
+    #     if isinstance(cos_dec, np.ndarray):
+    #         # handle poles (cos_dec == 0) in vector form
+    #         # holds the result
+    #         pang_res = np.zeros((len(dec)), float)
+    #         pole = np.isclose(cos_dec, 0.0)
+    #         notpole = np.logical_not(pole)
 
-            sinp = -1.0 * np.sin(az[notpole]) * np.cos(lat) / cos_dec[notpole]
-            cosp = -1.0 * np.cos(az[notpole]) * np.cos(ha[notpole]) - \
-                              np.sin(az[notpole]) * np.sin(ha[notpole]) * np.sin(lat)
-            pang_res[notpole] = np.arctan2(sinp[notpole], cosp[notpole])
-            if lat > 0.0:
-                pang_res[pole] = np.pi
-            else:
-                pang_res[pole] = 0.
-        else:
-            # scalar calculation
-            if not np.isclose(cos_dec, 0.0):
-                sinp = -1.0 * np.sin(az) * np.cos(lat) / cos_dec
-                cosp = -1.0 * np.cos(az) * np.cos(ha) - \
-                                  np.sin(az) * np.sin(ha) * np.sin(lat)
-                pang_res = np.arctan2(sinp, cosp)
-            else:
-                if lat > 0.0:
-                    pang_res = np.pi
-                else:
-                    parang = 0.
-        return pang_res
+    #         sinp = -1.0 * np.sin(az[notpole]) * np.cos(lat) / cos_dec[notpole]
+    #         cosp = -1.0 * np.cos(az[notpole]) * np.cos(ha[notpole]) - \
+    #                           np.sin(az[notpole]) * np.sin(ha[notpole]) * np.sin(lat)
+    #         pang_res[notpole] = np.arctan2(sinp[notpole], cosp[notpole])
+    #         if lat > 0.0:
+    #             pang_res[pole] = np.pi
+    #         else:
+    #             pang_res[pole] = 0.
+    #     else:
+    #         # scalar calculation
+    #         if not np.isclose(cos_dec, 0.0):
+    #             sinp = -1.0 * np.sin(az) * np.cos(lat) / cos_dec
+    #             cosp = -1.0 * np.cos(az) * np.cos(ha) - \
+    #                               np.sin(az) * np.sin(ha) * np.sin(lat)
+    #             pang_res = np.arctan2(sinp, cosp)
+    #         else:
+    #             if lat > 0.0:
+    #                 pang_res = np.pi
+    #             else:
+    #                 parang = 0.
+    #     return pang_res
+
+    def _calc_parallactic(self, dec_rad, ha_rad, lat_deg):
+        """Compute parallactic angle(s)."""
+        lat_rad = np.radians(lat_deg)
+        pang_rad = np.arctan2(np.sin(ha_rad),
+                              np.tan(lat_rad) * np.cos(dec_rad) -
+                              np.sin(dec_rad) * np.cos(ha_rad))
+        return pang_rad
 
     def calc_separation_alt_az(self, body):
         """Compute deltas for azimuth and altitude from another target"""
