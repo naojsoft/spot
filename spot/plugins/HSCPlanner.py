@@ -611,7 +611,7 @@ class HSCPlanner(GingaPlugin.LocalPlugin):
         self.canvas.add(obj, tag='ccd_overlay', redraw=False)
 
         # rotate for pa
-        obj.rotate(-self.pa_deg, xoff=ctr_x, yoff=ctr_y)
+        obj.rotate_deg([-self.pa_deg], (ctr_x, ctr_y))
         self.ccd_overlay = obj
 
         self.canvas.update_canvas()

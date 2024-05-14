@@ -77,6 +77,7 @@ if __name__ == "__main__":
                            ('ColorMapPicker', dict(workspace='dialogs')),
                            ('Histogram', dict(workspace='dialogs')),
                            ('Preferences', dict(workspace='dialogs')),
+                           ('FBrowser', dict(workspace='dialogs')),
                            # ('Pan', dict(workspace='dialogs', start=False)),
                            ('Header', dict(workspace='dialogs')),
                            ('Zoom', dict(workspace='dialogs')),
