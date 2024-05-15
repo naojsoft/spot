@@ -1,8 +1,6 @@
 """
 TelescopePosition.py -- Overlay telescope position on polar plot
 
-E. Jeschke
-
 Requirements
 ============
 
@@ -21,7 +19,8 @@ from ginga.util import wcs
 
 
 class TelescopePosition(GingaPlugin.LocalPlugin):
-
+    """TODO
+    """
     def __init__(self, fv, fitsimage):
         super().__init__(fv, fitsimage)
 
@@ -140,7 +139,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         btn.add_callback('activated', lambda w: self.close())
         btns.add_widget(btn, stretch=0)
         btn = Widgets.Button("Help")
-        # btn.add_callback('activated', lambda w: self.help())
+        btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
@@ -152,6 +151,10 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
     def close(self):
         self.fv.stop_local_plugin(self.chname, str(self))
         return True
+
+    def help(self):
+        name = str(self).capitalize()
+        self.fv.help_text(name, self.__doc__, trim_pfx=4)
 
     def start(self):
         # insert canvas, if not already

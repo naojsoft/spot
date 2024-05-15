@@ -33,7 +33,45 @@ from ginga.util.paths import ginga_home
 
 
 class CPanel(GingaPlugin.GlobalPlugin):
+    """
+    CPanel
+    ======
+    CPanel is the Control Panel for the SPOT application.
 
+    Use CPanel to launch a new workspace, or to open SPOT planning plugins
+    in a specific workspace.
+
+    Creating a workspace
+    --------------------
+    Use the "New Workspace" button to create a new workspace.  If you want to
+    give it a specific name, put a name in the entry box to the right of the
+    button before pressing the button.  Workspace names must be unique.
+    If you don't provide a name, the workspaces will be created with a generic
+    name.
+
+    Select the new workspace by selecting its tab in order to see and work
+    with the plugins that will be opened there.
+
+    Selecting a workspace to start a plugin
+    ---------------------------------------
+    Using the "Select Workspace" drop-down menu, choose a workspace in which
+    you want to launch one of the SPOT planning plugins.  Then use the
+    checkboxes below to start (check) or stop (uncheck) a plugin.
+
+    You will almost always want to start the "SiteSelector" plugin, because it
+    controls many of the aspects of the other plugins visible on the workspace.
+
+    Saving the workspace layout
+    ---------------------------
+    By pressing the "Save <wsname> layout" button, you will save the current
+    position and size of the plugins that you have opened in the given
+    workspace.  Each workspace's layout can be saved separately under its
+    unique name, under $HOME/.spot
+
+    When you start up SPOT the next time and open a workspace with the same
+    name, it will remember the positions and sizes of the windows when you
+    reopen plugins.
+    """
     def __init__(self, fv):
         super().__init__(fv)
 
@@ -74,19 +112,19 @@ class CPanel(GingaPlugin.GlobalPlugin):
 
         top.add_widget(Widgets.Label(''), stretch=1)
 
-        # btns = Widgets.HBox()
-        # btns.set_border_width(4)
-        # btns.set_spacing(3)
+        btns = Widgets.HBox()
+        btns.set_border_width(4)
+        btns.set_spacing(3)
 
-        # btn = Widgets.Button("Close")
-        # btn.add_callback('activated', lambda w: self.close())
-        # btns.add_widget(btn, stretch=0)
-        # btn = Widgets.Button("Help")
-        # #btn.add_callback('activated', lambda w: self.help())
-        # btns.add_widget(btn, stretch=0)
-        # btns.add_widget(Widgets.Label(''), stretch=1)
+        #btn = Widgets.Button("Close")
+        #btn.add_callback('activated', lambda w: self.close())
+        #btns.add_widget(btn, stretch=0)
+        btn = Widgets.Button("Help")
+        btn.add_callback('activated', lambda w: self.help())
+        btns.add_widget(btn, stretch=0)
+        btns.add_widget(Widgets.Label(''), stretch=1)
 
-        # top.add_widget(btns, stretch=0)
+        top.add_widget(btns, stretch=0)
 
         container.add_widget(top, stretch=1)
         self.gui_up = True
@@ -94,6 +132,10 @@ class CPanel(GingaPlugin.GlobalPlugin):
     def close(self):
         self.fv.stop_global_plugin(str(self))
         return True
+
+    def help(self):
+        name = str(self).capitalize()
+        self.fv.help_text(name, self.__doc__, trim_pfx=4)
 
     def start(self):
         pass

@@ -486,7 +486,7 @@ class HSCPlanner(GingaPlugin.LocalPlugin):
 
     def help(self):
         name = str(self).capitalize()
-        self.fv.show_help_text(name, self.__doc__, wsname='channels')
+        self.fv.help_text(name, self.__doc__, trim_pfx=4)
 
     def start(self):
         # start operation

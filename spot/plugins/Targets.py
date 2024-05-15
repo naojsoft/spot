@@ -61,7 +61,8 @@ icondir = os.path.join(os.path.dirname(__file__), 'icons')
 
 
 class Targets(GingaPlugin.LocalPlugin):
-
+    """TODO
+    """
     def __init__(self, fv, fitsimage):
         super().__init__(fv, fitsimage)
 
@@ -256,7 +257,7 @@ class Targets(GingaPlugin.LocalPlugin):
         btn.add_callback('activated', lambda w: self.close())
         btns.add_widget(btn, stretch=0)
         btn = Widgets.Button("Help")
-        # btn.add_callback('activated', lambda w: self.help())
+        btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
@@ -268,6 +269,10 @@ class Targets(GingaPlugin.LocalPlugin):
     def close(self):
         self.fv.stop_local_plugin(self.chname, str(self))
         return True
+
+    def help(self):
+        name = str(self).capitalize()
+        self.fv.help_text(name, self.__doc__, trim_pfx=4)
 
     def start(self):
         skycam = self.channel.opmon.get_plugin('SkyCam')

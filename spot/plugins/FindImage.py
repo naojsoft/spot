@@ -1,8 +1,6 @@
 """
 FindImage.py -- Download images matching a target
 
-E. Jeschke
-T. Inagaki
 J. Merchant
 
 Requirements
@@ -88,7 +86,8 @@ service_urls = {
 
 
 class FindImage(GingaPlugin.LocalPlugin):
-
+    """TODO
+    """
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
         super().__init__(fv, fitsimage)
@@ -240,7 +239,7 @@ class FindImage(GingaPlugin.LocalPlugin):
         btn.add_callback('activated', lambda w: self.close())
         btns.add_widget(btn, stretch=0)
         btn = Widgets.Button("Help")
-        # btn.add_callback('activated', lambda w: self.help())
+        btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
@@ -252,6 +251,10 @@ class FindImage(GingaPlugin.LocalPlugin):
     def close(self):
         self.fv.stop_local_plugin(self.chname, str(self))
         return True
+
+    def help(self):
+        name = str(self).capitalize()
+        self.fv.help_text(name, self.__doc__, trim_pfx=4)
 
     def start(self):
         # surreptitiously share setting of sky_radius with InsFov plugin

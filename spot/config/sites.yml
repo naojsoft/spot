@@ -16,8 +16,36 @@ AAO:
   humidity: 10
   wavelength: {'observing': 3500., 'guiding': 6500.}
 
+CFHT:
+  fullname: Canada France Hawaii (Maunakea, Hawaii)
+  azimuth_start_direction: N
+  elevation_m: 4204
+  fov_deg: 1.0
+  latitude_deg: 20.0195
+  longitude_deg: -155.6720
+  pressure_mbar: 615
+  temperature_c: 0
+  timezone_name: HST
+  timezone_offset_min: -600
+  humidity: 10
+  wavelength: {'observing': 3500., 'guiding': 6500.}
+
+ELT:
+  fullname: Extremely Large Telescope (Cerro Paranal, Chile)
+  azimuth_start_direction: N
+  elevation_m: 2516
+  fov_deg: 1.0
+  latitude_deg: -24.5894
+  longitude_deg: -70.1919
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: PRT
+  timezone_offset_min: -240
+  humidity: 10
+  wavelength: {'observing': 3500., 'guiding': 6500.}
+
 GTC:
-  fullname: GTC (La Palma, Canary)
+  fullname: GTC (La Palma, Canary Islands)
   azimuth_start_direction: N
   elevation_m: 2267
   fov_deg: 1.0
@@ -27,6 +55,76 @@ GTC:
   temperature_c: 10
   timezone_name: GMT
   timezone_offset_min: 0
+  humidity: 10
+  wavelength: {'observing': 3500., 'guiding': 6500.}
+
+Gemini_North:
+  fullname: Gemini North (Maunakea, Hawaii)
+  azimuth_start_direction: N
+  elevation_m: 4214
+  fov_deg: 1.0
+  latitude_deg: 19.82396
+  longitude_deg: -155.46984
+  pressure_mbar: 615
+  temperature_c: 10
+  timezone_name: HST
+  timezone_offset_min: -600
+  humidity: 10
+  wavelength: {'observing': 3500., 'guiding': 6500.}
+
+Gemini_South:
+  fullname: Gemini South (Cerro Pachón, Chile)
+  azimuth_start_direction: N
+  elevation_m: 2737
+  fov_deg: 1.0
+  latitude_deg: 30.24073
+  longitude_deg: -70.73659
+  pressure_mbar: 680
+  temperature_c: 15
+  timezone_name: PRT
+  timezone_offset_min: -240
+  humidity: 10
+  wavelength: {'observing': 3500., 'guiding': 6500.}
+
+GMT:
+  fullname: Giant Magellan (Las Campanas, Chile)
+  azimuth_start_direction: N
+  elevation_m: 2516
+  fov_deg: 1.0
+  latitude_deg: -29.0482
+  longitude_deg: -70.6829
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: PRT
+  timezone_offset_min: -240
+  humidity: 10
+  wavelength: {'observing': 3500., 'guiding': 6500.}
+
+Keck:
+  fullname: W.M. Keck (Maunakea, Hawaii)
+  azimuth_start_direction: N
+  elevation_m: 4163
+  fov_deg: 1.0
+  latitude_deg: 20.0243
+  longitude_deg: -155.6655
+  pressure_mbar: 615
+  temperature_c: 0
+  timezone_name: HST
+  timezone_offset_min: -600
+  humidity: 10
+  wavelength: {'observing': 3500., 'guiding': 6500.}
+
+LBT:
+  fullname: Large Binocular Telescope (Arizona)
+  azimuth_start_direction: N
+  elevation_m: 3221
+  fov_deg: 1.0
+  latitude_deg: 32.7041
+  longitude_deg: -109.8892
+  pressure_mbar: 675
+  temperature_c: 15
+  timezone_name: MST
+  timezone_offset_min: -420
   humidity: 10
   wavelength: {'observing': 3500., 'guiding': 6500.}
 
@@ -61,10 +159,10 @@ SALT:
 Subaru:
   fullname: Subaru (Maunakea, Hawaii)
   azimuth_start_direction: S
-  elevation_m: 4163
+  elevation_m: 4139
   fov_deg: 1.5
-  latitude_deg: 19.825499999999998
-  longitude_deg: 204.52397222222223
+  latitude_deg: 19.8285
+  longitude_deg: -155.4761
   pressure_mbar: 615
   temperature_c: 0
   timezone_name: HST
@@ -77,8 +175,8 @@ VLT:
   azimuth_start_direction: N
   elevation_m: 2635
   fov_deg: 1.0
-  latitude_deg: -24.62732777777778
-  longitude_deg: 289.5957333333333
+  latitude_deg: -24.6275
+  longitude_deg: 70.4045
   pressure_mbar: 1015
   temperature_c: 10
   timezone_name: PRT

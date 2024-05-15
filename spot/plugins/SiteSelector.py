@@ -1,8 +1,6 @@
 """
 SiteSelector.py -- Select observing position
 
-E. Jeschke
-
 Requirements
 ============
 
@@ -33,7 +31,46 @@ cfgdir = os.path.join(os.path.dirname(__file__), 'config')
 
 
 class SiteSelector(GingaPlugin.LocalPlugin):
+    """
+    SiteSelector
+    ============
+    The SiteSelector plugin is used to select the location from where you
+    are planning to observe, as well as the time of observation at that
+    location.
 
+    You will almost always want to start this plugin first, because it
+    controls many of the aspects of the other plugins visible on the workspace.
+
+    Setting the observing location
+    ------------------------------
+    Use the "Site:" drop-down menu to select the observing location.  There
+    are a number of predefined sites available.
+
+    Adding your own custom observing location
+    -----------------------------------------
+    If your desired location is not available, you can easily add your own.
+    If you have the SPOT source code checked out, you can find the file
+    "sites.yml" in .../spot/spot/config/.  Copy this file to $HOME/.spot
+    and edit it to add your own site.  Be sure to set all of the keywords
+    for your site (latitude, longitude, elevation, etc).  Restart spot and
+    you should be able to see your new location.
+
+    Setting the time of observation
+    -------------------------------
+    The time can be set to the current time or a fixed time. To set to the
+    current time, chose "Now" from the "Time mode:" drop-down menu.
+
+    To set a fixed time, chose "Fixed"--this will enable the "Date time:"
+    and "UTC offset (min):" controls.  Enter the date/time in the first box
+    in the format YYYY-MM-DD HH:MM:SS and press "Set".
+
+    By default the UTC offset of the fixed time will be set to that of the
+    timezone of the observing location; but you can enter a custom offset
+    (in *minutes*) from UTC in the other box and press "Set" to indicate
+    a special offset for interpreting the time.  *NOTE that this does NOT
+    change the timezone of the observing location*--just the interpretation
+    of the fixed time you are setting.
+    """
     def __init__(self, fv, fitsimage):
         super().__init__(fv, fitsimage)
 
@@ -58,9 +95,16 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         with open(path, 'r') as site_f:
             sites.configure_sites(yaml.safe_load(site_f))
 
+        self.site_dict = dict()
+        site_names = sites.get_site_names()
+        for site_name in site_names:
+            site = sites.get_site(site_name)
+            # mapping from full name to short name
+            self.site_dict[str(site)] = site_name
+
         default_site = self.settings.get('default_site', None)
         if default_site is None:
-            default_site = sites.get_site_names()[0]
+            default_site = sites_names()[0]
         self.site_obj = sites.get_site(default_site)
         self.site_obj.initialize()
         self.status = self.site_obj.get_status()
@@ -88,9 +132,8 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         fr.set_widget(w)
         top.add_widget(fr, stretch=0)
 
-        for site_name in sites.get_site_names():
-            site = sites.get_site(site_name)
-            b.site.insert_alpha(str(site))
+        for full_name, site_name in self.site_dict.items():
+            b.site.insert_alpha(full_name)
         b.site.set_text(str(self.site_obj))
         b.site.add_callback('activated', self.site_changed_cb)
 
@@ -139,7 +182,7 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         btn.add_callback('activated', lambda w: self.close())
         btns.add_widget(btn, stretch=0)
         btn = Widgets.Button("Help")
-        # btn.add_callback('activated', lambda w: self.help())
+        btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
@@ -151,6 +194,10 @@ class SiteSelector(GingaPlugin.LocalPlugin):
     def close(self):
         self.fv.stop_local_plugin(self.chname, str(self))
         return True
+
+    def help(self):
+        name = str(self).capitalize()
+        self.fv.help_text(name, self.__doc__, trim_pfx=4)
 
     def start(self):
         self.update_timer_cb(self.tmr)
@@ -168,8 +215,8 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         return (self.dt_utc, self.cur_tz)
 
     def site_changed_cb(self, w, idx):
-        site_names = sites.get_site_names()
-        site_name = site_names[idx]
+        full_name = w.get_text()
+        site_name = self.site_dict[full_name]
         self.site_obj = sites.get_site(site_name)
         self.site_obj.initialize()
         self.status = self.site_obj.get_status()

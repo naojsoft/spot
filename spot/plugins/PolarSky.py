@@ -1,8 +1,6 @@
 """
 PolarSky.py -- Overlay objects on polar sky plot
 
-E. Jeschke
-
 Requirements
 ============
 
@@ -25,7 +23,8 @@ from spot.util import calcpos
 
 
 class PolarSky(GingaPlugin.LocalPlugin):
-
+    """TODO
+    """
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
         super().__init__(fv, fitsimage)
@@ -236,6 +235,10 @@ class PolarSky(GingaPlugin.LocalPlugin):
     def close(self):
         self.fv.stop_local_plugin(self.chname, str(self))
         return True
+
+    def help(self):
+        name = str(self).capitalize()
+        self.fv.help_text(name, self.__doc__, trim_pfx=4)
 
     def start(self):
         # self.viewer.set_bg(0.95, 0.95, 0.95)

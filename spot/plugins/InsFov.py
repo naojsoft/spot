@@ -1,8 +1,6 @@
 """
 InsFov.py -- Overlay FOV info on images
 
-E. Jeschke
-
 Requirements
 ============
 
@@ -26,8 +24,11 @@ remove_inst = ['CSW', 'FLDMON', 'LGS', 'SUKA', 'VGW', 'WAVEPLAT',
                'SCEXAO', 'CHARIS', 'VAMPIRES', 'MEC', 'MIMIZUKU',
                'TELSIM', 'PFS', 'HSC',
                ]
-class InsFov(GingaPlugin.LocalPlugin):
 
+
+class InsFov(GingaPlugin.LocalPlugin):
+    """TODO
+    """
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
         super().__init__(fv, fitsimage)
@@ -122,7 +123,7 @@ class InsFov(GingaPlugin.LocalPlugin):
         btn.add_callback('activated', lambda w: self.close())
         btns.add_widget(btn, stretch=0)
         btn = Widgets.Button("Help")
-        #btn.add_callback('activated', lambda w: self.help())
+        btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
@@ -134,6 +135,10 @@ class InsFov(GingaPlugin.LocalPlugin):
     def close(self):
         self.fv.stop_local_plugin(self.chname, str(self))
         return True
+
+    def help(self):
+        name = str(self).capitalize()
+        self.fv.help_text(name, self.__doc__, trim_pfx=4)
 
     def start(self):
         # insert canvas, if not already
