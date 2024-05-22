@@ -241,6 +241,12 @@ class Targets(GingaPlugin.LocalPlugin):
         self.w.merge_targets = cbox
         cbox.set_state(False)
         hbox.add_widget(cbox, stretch=0)
+        cbox = Widgets.CheckBox("List All Targets")
+        cbox.set_tooltip("List only targets referenced in OPE file or list all targets in OPE and PRM files")
+        self.w.list_all_targets = cbox
+        cbox.set_state(False)
+        cbox.add_callback('activated', self.list_all_cb)
+        hbox.add_widget(cbox, stretch=0)
         top.add_widget(hbox, stretch=0)
 
         self.w.tgt_tbl = Widgets.TreeView(auto_expand=True,
@@ -404,34 +410,36 @@ class Targets(GingaPlugin.LocalPlugin):
         else:
             fill = True
 
-        self.logger.info("plotting {} targets".format(len(tgt_df)))
+        self.logger.info("plotting {} targets tag {}".format(len(tgt_df), tag))
         objs = []
         for idx, row in tgt_df.iterrows():
-            alpha = 1.0 if row['alt_deg'] > 0 else 0.0
-            t, r = self.map_azalt(row['az_deg'], row['alt_deg'])
-            x, y = self.p2r(r, t)
-            point = self.dc.Point(x, y, radius=pt_radius, style='cross',
-                                  color=row['color'], fillcolor=row['color'],
-                                  linewidth=2, alpha=alpha,
-                                  fill=True, fillalpha=alpha)
-            radius = radius_dct.get(row['name'], cl_radius)
-            circle = self.dc.Circle(x, y, radius, color=row['color'],
-                                    linewidth=1, alpha=alpha,
-                                    fill=fill, fillcolor=row['color'],
-                                    fillalpha=alpha * 0.7)
-            text = self.dc.Text(x, y, row['name'],
-                                #color=row['color'], alpha=alpha,
-                                fill=True, fillcolor=row['color'],
-                                fillalpha=alpha, linewidth=0,
-                                font="Roboto", fontscale=True,
-                                fontsize=None, fontsize_min=8)
-            star = self.dc.CompoundObject(point, circle, text)
-            star.opaque = True
-            star.pickable = True
-            star.set_data(tag=tag, index=idx)
-            star.add_callback('pick-up', self.select_star_cb, 'select')
-            #star.add_callback('pick-hover', self.select_star_cb, 'info')
-            objs.append(star)
+            is_ref = row.get('is_ref', None)
+            if tag == 'ss' or self.w.list_all_targets.get_state() or is_ref:
+                alpha = 1.0 if row['alt_deg'] > 0 else 0.0
+                t, r = self.map_azalt(row['az_deg'], row['alt_deg'])
+                x, y = self.p2r(r, t)
+                point = self.dc.Point(x, y, radius=pt_radius, style='cross',
+                                      color=row['color'], fillcolor=row['color'],
+                                      linewidth=2, alpha=alpha,
+                                      fill=True, fillalpha=alpha)
+                radius = radius_dct.get(row['name'], cl_radius)
+                circle = self.dc.Circle(x, y, radius, color=row['color'],
+                                        linewidth=1, alpha=alpha,
+                                        fill=fill, fillcolor=row['color'],
+                                        fillalpha=alpha * 0.7)
+                text = self.dc.Text(x, y, row['name'],
+                                    #color=row['color'], alpha=alpha,
+                                    fill=True, fillcolor=row['color'],
+                                    fillalpha=alpha, linewidth=0,
+                                    font="Roboto", fontscale=True,
+                                    fontsize=None, fontsize_min=8)
+                star = self.dc.CompoundObject(point, circle, text)
+                star.opaque = True
+                star.pickable = True
+                star.set_data(tag=tag, index=idx)
+                star.add_callback('pick-up', self.select_star_cb, 'select')
+                #star.add_callback('pick-hover', self.select_star_cb, 'info')
+                objs.append(star)
 
         o = self.dc.CompoundObject(*objs)
         self.canvas.add(o, tag=tag, redraw=False)
@@ -442,8 +450,12 @@ class Targets(GingaPlugin.LocalPlugin):
             # don't plot visibility of solar system objects in Visibility
             return
 
-        targets = (self.full_tgt_list if self.plot_which == 'all'
-                   else self.selected)
+        tgt_list = self.full_tgt_list if self.plot_which == 'all' else self.selected
+        targets = []
+        for tgt in tgt_list:
+            is_ref = tgt.metadata.is_ref
+            if self.w.list_all_targets.get_state() or is_ref:
+                targets.append(tgt)
         obj = self.channel.opmon.get_plugin('Visibility')
         self.fv.gui_do(obj.plot_targets, start_time, self.site, targets)
 
@@ -505,6 +517,9 @@ class Targets(GingaPlugin.LocalPlugin):
         self._col_selected = np.array([tgt in self.selected
                                        for tgt in self.full_tgt_list],
                                       dtype=bool)
+        self._is_ref =  np.array([tgt.metadata.is_ref
+                                  for tgt in self.full_tgt_list],
+                                 dtype=bool)
 
     def update_all(self, start_time=None, targets_changed=False):
         if start_time is None:
@@ -526,6 +541,7 @@ class Targets(GingaPlugin.LocalPlugin):
             dct_all['color'] = self._addl_tgt_cols[0]
             dct_all['category'] = self._addl_tgt_cols[1]
             dct_all['selected'] = self._col_selected
+            dct_all['is_ref'] = self._is_ref
 
             # make pandas dataframe from result
             self.tgt_df = pd.DataFrame.from_dict(dct_all, orient='columns')
@@ -621,12 +637,14 @@ class Targets(GingaPlugin.LocalPlugin):
                 self.fv.show_error(errmsg)
                 continue
 
-            new_targets.append(Target(name=name,
-                                      ra=ra_deg,
-                                      dec=dec_deg,
-                                      equinox=eq,
-                                      comment=row.get('comment', ''),
-                                      category=category))
+            t = Target(name=name,
+                       ra=ra_deg,
+                       dec=dec_deg,
+                       equinox=eq,
+                       comment=row.get('comment', ''),
+                       category=category)
+            t.set_metadata(is_ref=row.get('IsRef', None))
+            new_targets.append(t)
 
         if not merge:
             # remove old targets from this same file
@@ -674,11 +692,16 @@ class Targets(GingaPlugin.LocalPlugin):
 
         # process into Target object list
         new_targets = []
-        for (tgtname, objname, ra_str, dec_str, eq_str) in tgt_res.tgt_list:
-            new_targets.append((objname, ra_str, dec_str, eq_str))
+        for tgt_info in tgt_res.tgt_list_info:
+            objname = tgt_info.objname
+            ra_str = tgt_info.ra
+            dec_str = tgt_info.dec
+            eq_str = tgt_info.eq
+            is_ref = tgt_info.is_referenced
+            new_targets.append((objname, ra_str, dec_str, eq_str, is_ref))
 
         tgt_df = pd.DataFrame(new_targets,
-                              columns=["Name", "RA", "DEC", "Equinox"])
+                              columns=["Name", "RA", "DEC", "Equinox", "IsRef"])
         merge = self.w.merge_targets.get_state()
         category = ope_file if not merge else "Targets"
         self.add_targets(category, tgt_df, merge=merge)
@@ -686,33 +709,35 @@ class Targets(GingaPlugin.LocalPlugin):
     def targets_to_table(self, tgt_df):
         tree_dict = OrderedDict()
         for idx, row in tgt_df.iterrows():
-            dct = tree_dict.setdefault(row.category, dict())
-            selected = row['selected']
-            # NOTE: AZ values are normalized to standard use
-            az_deg = self.site.norm_to_az(row.az_deg)
-            # find shorter of the two azimuth choices
-            az2_deg = (az_deg % 360) - 360
-            if abs(az2_deg) < abs(az_deg):
-                az_deg = az2_deg
-            ad_observe, ad_guide = (row.atmos_disp_observing,
-                                    row.atmos_disp_guiding)
-            calc_ad = max(ad_observe, ad_guide) - min(ad_observe, ad_guide)
-            dct[row['name']] = Bunch.Bunch(
-                selected='*' if selected else '',
-                name=row['name'],
-                ra=wcs.ra_deg_to_str(row.ra_deg),
-                dec=wcs.dec_deg_to_str(row.dec_deg),
-                #equinox=("%6.1f" % row.equinox),
-                az_deg=("% 4d" % int(round(az_deg))),
-                alt_deg=("% 3d" % int(round(row.alt_deg))),
-                parang_deg=("% 3d" % int(row.pang_deg)),
-                ha=("% 6.2f" % (np.degrees(row.ha)/15)),
-                icon=self._get_dir_icon(row),
-                airmass=("% 5.2f" % row.airmass),
-                moon_sep=("% 3d" % int(round(row.moon_sep))),
-                # TODO
-                #comment=row.comment,
-                ad=("% .1f" % (np.degrees(calc_ad)*3600)))
+            is_ref = row.get('is_ref', None)
+            if self.w.list_all_targets.get_state() or is_ref:
+                dct = tree_dict.setdefault(row.category, dict())
+                selected = row['selected']
+                # NOTE: AZ values are normalized to standard use
+                az_deg = self.site.norm_to_az(row.az_deg)
+                # find shorter of the two azimuth choices
+                az2_deg = (az_deg % 360) - 360
+                if abs(az2_deg) < abs(az_deg):
+                    az_deg = az2_deg
+                ad_observe, ad_guide = (row.atmos_disp_observing,
+                                        row.atmos_disp_guiding)
+                calc_ad = max(ad_observe, ad_guide) - min(ad_observe, ad_guide)
+                dct[row['name']] = Bunch.Bunch(
+                    selected='*' if selected else '',
+                    name=row['name'],
+                    ra=wcs.ra_deg_to_str(row.ra_deg),
+                    dec=wcs.dec_deg_to_str(row.dec_deg),
+                    #equinox=("%6.1f" % row.equinox),
+                    az_deg=("% 4d" % int(round(az_deg))),
+                    alt_deg=("% 3d" % int(round(row.alt_deg))),
+                    parang_deg=("% 3d" % int(row.pang_deg)),
+                    ha=("% 6.2f" % (np.degrees(row.ha)/15)),
+                    icon=self._get_dir_icon(row),
+                    airmass=("% 5.2f" % row.airmass),
+                    moon_sep=("% 3d" % int(round(row.moon_sep))),
+                    # TODO
+                    #comment=row.comment,
+                    ad=("% .1f" % (np.degrees(calc_ad)*3600)))
         self.w.tgt_tbl.set_tree(tree_dict)
 
     def target_selection_update(self):
@@ -732,6 +757,12 @@ class Targets(GingaPlugin.LocalPlugin):
                         for name in dct.keys()])
         self.selected = selected
         self.target_selection_update()
+
+    def list_all_cb(self, w, arg1):
+        if self.tgt_df is not None:
+            self.targets_to_table(self.tgt_df)
+            self.update_targets(self.tgt_df, 'targets')
+        self.update_targets(self.ss_df, 'ss')
 
     def select_cb(self, w):
         sel_dct = self.w.tgt_tbl.get_selected()
