@@ -61,6 +61,15 @@ class CPanel(GingaPlugin.GlobalPlugin):
     You will almost always want to start the "SiteSelector" plugin, because it
     controls many of the aspects of the other plugins visible on the workspace.
 
+    Hint: Minimizing plugins
+    ------------------------
+    Sometimes you want to start a plugin to use some of its features, but
+    you may not be interested in looking at the plugin UI (good examples
+    are the "SiteSelector", "PolarSky", and "SkyCam" plugins). In such cases
+    you can start the plugin and then click on the UI minimization button
+    in the plugin UI title bar to minimize the plugin and create space for
+    other plugins.
+
     Saving the workspace layout
     ---------------------------
     By pressing the "Save <wsname> layout" button, you will save the current

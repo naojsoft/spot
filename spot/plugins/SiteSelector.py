@@ -67,9 +67,17 @@ class SiteSelector(GingaPlugin.LocalPlugin):
     By default the UTC offset of the fixed time will be set to that of the
     timezone of the observing location; but you can enter a custom offset
     (in *minutes*) from UTC in the other box and press "Set" to indicate
-    a special offset for interpreting the time.  *NOTE that this does NOT
-    change the timezone of the observing location*--just the interpretation
-    of the fixed time you are setting.
+    a special offset for interpreting the time.
+
+    .. note:: this does NOT change the timezone of the observing location;
+              it just sets the interpretation of the fixed time you are
+              setting.
+
+    Updating of plugins
+    -------------------
+    Whenever you change the observing location or the time, the other plugins
+    should update automatically (if they subscribe for site and time changes,
+    which most are designed to do).
     """
     def __init__(self, fv, fitsimage):
         super().__init__(fv, fitsimage)
@@ -104,7 +112,7 @@ class SiteSelector(GingaPlugin.LocalPlugin):
 
         default_site = self.settings.get('default_site', None)
         if default_site is None:
-            default_site = sites_names()[0]
+            default_site = site_names[0]
         self.site_obj = sites.get_site(default_site)
         self.site_obj.initialize()
         self.status = self.site_obj.get_status()

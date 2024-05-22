@@ -9,7 +9,7 @@ from argparse import ArgumentParser
 if 'CONFHOME' in os.environ:
     spot_home = os.path.join(os.environ['CONFHOME'], 'spot')
 else:
-    spot_home = os.path.join(os.environ['HOME'], '.spot')
+    spot_home = os.path.join(os.path.expanduser('~'), '.spot')
 
 from ginga.util import paths
 paths.set_home(spot_home)

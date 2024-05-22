@@ -23,7 +23,18 @@ from spot.util import calcpos
 
 
 class PolarSky(GingaPlugin.LocalPlugin):
-    """TODO
+    """
+    PolarSky
+    ========
+    PolarSky draws a polar plot on the "<wsname>_TGTS" window, takes care of
+    plotting objects there and also shows a small window with an astronomical
+    almanac info (sun set/rise, moon set/rise, twilights, etc).
+
+    Since the polar plot guides are useful in interpreting the plots of
+    targets, etc. you will usually want to start this plugin if you are
+    planning to also use the ``Targets`` or ``Visibility`` plugins.
+    If you are not interested in the almanac info you can minimize the
+    plugin UI after starting it.
     """
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger

@@ -28,7 +28,7 @@ from spot.util.rot import calc_rotation_choices
 # spot
 #from spot.util.polar import subaru_normalize_az
 
-default_report = os.path.join(os.environ['HOME'], "rot_report.csv")
+default_report = os.path.join(os.path.expanduser('~'), "rot_report.csv")
 
 
 class RotCalc(GingaPlugin.LocalPlugin):
