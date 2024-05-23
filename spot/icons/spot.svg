@@ -1,0 +1,56 @@
+<svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <!-- Gradient definitions for smoother transitions -->
+  <defs>
+    <linearGradient id="gradTan" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:tan;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:burlywood;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="gradSandyBrown" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:sandybrown;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:peru;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="gradOffWhite" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:lightgoldenrodyellow;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:white;stop-opacity:1" />
+    </linearGradient>
+    <clipPath id="clipCircle">
+      <circle cx="200" cy="200" r="190" />
+    </clipPath>
+  </defs>
+
+  <!-- Background (space) -->
+  <rect width="400" height="400" fill="black" />
+
+  <!-- Stars positioned outside the circle -->
+  <circle cx="350" cy="50" r="2" fill="white" />
+  <circle cx="50" cy="350" r="1.5" fill="white" />
+  <circle cx="360" cy="380" r="1.5" fill="white" />
+  <circle cx="375" cy="375" r="2" fill="white" />
+  <circle cx="30" cy="40" r="1" fill="white" />
+
+  <!-- Jupiter's body -->
+  <g clip-path="url(#clipCircle)">
+    <g transform="rotate(-20 200 200)">
+      <circle cx="200" cy="200" r="190" fill="url(#gradTan)" stroke="none" />
+    </g>
+
+    <!-- Wavy bands on Jupiter contained within the circle -->
+    <g transform="rotate(-20 200 200)">
+      <path d="M 10 180 Q 90 150 170 180 T 390 180 Q 310 210 230 180 T 10 180" fill="burlywood" />
+      <path d="M 10 130 Q 90 100 170 130 T 390 130 Q 310 160 230 130 T 10 130" fill="sandybrown" />
+      <path d="M 10 230 Q 90 200 170 230 T 390 230 Q 310 260 230 230 T 10 230" fill="sandybrown" />
+      <path d="M 10 90 Q 90 60 170 90 T 390 90 Q 310 120 230 90 T 10 90" fill="peru" />
+      <path d="M 10 270 Q 90 240 170 270 T 390 270 Q 310 300 230 270 T 10 270" fill="peru" />
+      <path d="M 10 50 Q 90 20 170 50 T 390 50 Q 310 80 230 50 T 10 50" fill="saddlebrown" />
+      <path d="M 10 310 Q 90 280 170 310 T 390 310 Q 310 340 230 310 T 10 310" fill="saddlebrown" />
+      <path d="M 10 150 Q 90 120 170 150 T 390 150 Q 310 180 230 150 T 10 150" fill="url(#gradOffWhite)" />
+      <path d="M 10 250 Q 90 220 170 250 T 390 250 Q 310 280 230 250 T 10 250" fill="url(#gradOffWhite)" />
+    </g>
+
+    <!-- Great Red Spot rotated by 20 degrees -->
+    <g transform="rotate(-20 200 200)">
+      <ellipse cx="280" cy="250" rx="35" ry="25" fill="darkred" />
+      <ellipse cx="280" cy="250" rx="30" ry="20" fill="red" />
+    </g>
+  </g>
+</svg>
