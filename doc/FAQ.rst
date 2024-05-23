@@ -11,7 +11,7 @@ SPOT usage.
 Platforms
 ---------
 
-Does Ginga run on Mac/Windows/Linux/XYZ?
+Does SPOT run on Mac/Windows/Linux/XYZ?
 ----------------------------------------
 SPOT is written entirely in the Python programming language, and uses only
 supporting Python packages.  As long as a platform supports Python

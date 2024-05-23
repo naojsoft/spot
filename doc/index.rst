@@ -36,10 +36,7 @@ Getting the Source
 
 Clone from Github::
 
-    git clone https://github.com/ejeschke/ginga.git
-
-To get a ZIP file or tarball instead, see the links on
-`About Ginga <http://ejeschke.github.io/ginga/>`_.
+    git clone https://github.com/naojsoft/spot.git
 
 =============
 Documentation

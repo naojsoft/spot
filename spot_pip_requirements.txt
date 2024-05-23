@@ -2,8 +2,13 @@
 # pip install -r spot_pip_requirements.txt
 #
 
+jplephem>=2.21
+skyfield>=1.48
+astroquery>=0.4.6
+python-magic>=0.4.15
+ginga>=5.0.1
+
 # NAOJ packages
-ginga @ git+http://github.com/naojsoft/ginga
 naojutils @ git+http://github.com/naojsoft/naojutils
 oscript @ git+http://github.com/naojsoft/oscript
 g2cam @ git+http://github.com/naojsoft/g2cam

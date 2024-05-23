@@ -8,6 +8,10 @@ __pycache__
 # testing stuff
 .pytest_cache
 
+# i18n translation files
+*.pot
+*.mo
+
 # emacs backups
 *~
 \#*\#
@@ -15,7 +19,26 @@ __pycache__
 # Mac OSX
 .DS_Store
 
+# Other generated files
+htmlcov
+.coverage
+MANIFEST
+ 
+# Sphinx
+doc/_build
+
+# TeX products
+*.aux
+*.log
+*.pdf
+*.toc
+
 # pip "in-place" build files and version.py file
 build
+sdist
 *.egg-info
 version.py
+
+# Other
+.cache
+.tox

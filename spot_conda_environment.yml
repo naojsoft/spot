@@ -5,15 +5,15 @@ name: spot
 dependencies:
   - python=3.11
   - pip
-  - ephem
   - astropy
   - scipy
   - matplotlib
   - pillow
+  - pandas
   - pyqt
+  - qtpy
   - python-dateutil
   - pyyaml
-  - qtpy
   - requests
   - ply
   - pytz
