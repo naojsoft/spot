@@ -1,3 +1,5 @@
+![SPOT logo](doc/_static/spot-128x128.png)
+
 Site Planning and Observation Tool (SPOT) 
 
 ## About
