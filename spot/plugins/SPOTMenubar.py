@@ -32,6 +32,8 @@ class SPOTMenubar(Menubar.Menubar):
 
         item = wsmenu.add_name("Add Workspace")
         item.add_callback('activated', self.add_workspace_cb)
+        # item = wsmenu.add_name("Delete Workspace")
+        # item.add_callback('activated', self.del_workspace_cb)
 
         # # create a Option pulldown menu, and add it to the menu bar
         # optionmenu = menubar.add_name("Option")
@@ -54,6 +56,11 @@ class SPOTMenubar(Menubar.Menubar):
     def add_workspace_cb(self, w):
         self.fv.call_global_plugin_method('CPanel', 'new_workspace_cb',
                                           [w], {})
+
+    def del_workspace_cb(self, w):
+        ws = self.fv.get_current_workspace()
+        if ws is not None:
+            self.fv.workspace_closed_cb(ws)
 
     def __str__(self):
         return 'spotmenubar'

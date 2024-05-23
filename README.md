@@ -1,14 +1,14 @@
-Subaru telescope Planning and Observation Tools (SPOT) 
+Site Planning and Observation Tool (SPOT) 
 
 ## About
 
-![SPOT screenshot](spot/doc/screenshot-wd1200.png)
+![SPOT screenshot](doc/screenshot-wd1200.png)
 
 SPOT is a tool for planning observations.
 
 ## Installation
 
-See the [quick installation instructions](spot/doc/INSTALL.md).
+See the [quick installation instructions](INSTALL.md).
 
 
 
