@@ -17,7 +17,9 @@ from ginga.rv import main as g_main
 from ginga.misc.Bunch import Bunch
 
 import spot.plugins
-
+import spot.icons
+icondir = os.path.split(spot.icons.__file__)[0]
+paths.set_icon(os.path.join(icondir, "spot.svg"))
 
 default_layout = ['seq', {},
                    ['vbox', dict(name='top', width=1400, height=700),  # noqa

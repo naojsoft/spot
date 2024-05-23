@@ -21,13 +21,6 @@
   <!-- Background (space) -->
   <rect width="400" height="400" fill="black" />
 
-  <!-- Stars positioned outside the circle -->
-  <circle cx="350" cy="50" r="2" fill="white" />
-  <circle cx="50" cy="350" r="1.5" fill="white" />
-  <circle cx="360" cy="380" r="1.5" fill="white" />
-  <circle cx="375" cy="375" r="2" fill="white" />
-  <circle cx="30" cy="40" r="1" fill="white" />
-
   <!-- Jupiter's body -->
   <g clip-path="url(#clipCircle)">
     <g transform="rotate(-20 200 200)">
@@ -49,8 +42,8 @@
 
     <!-- Great Red Spot rotated by 20 degrees -->
     <g transform="rotate(-20 200 200)">
-      <ellipse cx="280" cy="250" rx="35" ry="25" fill="darkred" />
-      <ellipse cx="280" cy="250" rx="30" ry="20" fill="red" />
+      <ellipse cx="280" cy="250" rx="55" ry="40" fill="darkred" />
+      <ellipse cx="280" cy="250" rx="50" ry="35" fill="red" />
     </g>
   </g>
 </svg>
