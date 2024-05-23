@@ -1,4 +1,4 @@
-# Subaru telescope Planning and Observation Tool (SPOT) 
+# Site Planning and Observation Tool (SPOT)
 
 ## Installation
 
