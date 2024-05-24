@@ -16,7 +16,14 @@ Activate this environment:
     $ conda activate spot
 ```
 
-and then use [this file](spot_pip_requirements.txt) to install the
+If you have cloned the SPOT source:
+
+```bash
+    $ pip install .
+```
+
+Finally, if you want to use NAOJ features, use
+[this file](spot_pip_requirements.txt) to install the
 remaining requirements via *pip*:
 
 ```bash
@@ -24,8 +31,9 @@ remaining requirements via *pip*:
 ```
 
 Assuming everything installed without error, you are now ready to run
-spot.
+spot:
 
-
-
+```bash
+    $ spot --loglevel=20 --stderr
+```
 

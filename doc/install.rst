@@ -34,7 +34,6 @@ REQUIRED
 * PyQt (v5 or v6)
 * QtPy
 * ginga
-* python-magic
 * astroquery
 
 RECOMMENDED
@@ -45,9 +44,8 @@ without the following packages:
 
 * scipy
 
-For use at Subaru Telescope you may need the following packages:
+For use of "NAOJ features" you may need the following packages:
 
-* naojutils (pip install git+https://github.com/naojsoft/naojutils)
 * g2cam (pip install git+https://github.com/naojsoft/g2cam)
 * oscript (pip install git+https://github.com/naojsoft/oscript)
 * naojutils (pip install git+https://github.com/naojsoft/naojutils
@@ -69,10 +67,18 @@ For most users, we recommend installing the
  
      conda activate spot
  
-and then use `this file <http://github.com/naojsoft/spot/blob/main/spot_pip_requirements.txt>`_ to install the remaining requirements via *pip*::
- 
+#. Install from pip::
+
+     pip install spot-nik
+
+#. **If you downloaded source instead**::
+
+     pip install .
+
+#. (**ONLY for NAOJ features**) then use `this file <http://github.com/naojsoft/spot/blob/main/spot_pip_requirements.txt>`_ to install the remaining requirements via *pip*::
+
     pip install -r spot_pip_requirements.txt
- 
+
 Assuming everything installed without error, you are now ready to run
 spot.
 
