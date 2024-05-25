@@ -557,10 +557,10 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def update_plots(self):
         """Just update plots, targets and info haven't changed."""
-        if self.tgt_df is None:
-            return
-        self.update_targets(self.tgt_df, 'targets')
-        self.update_targets(self.ss_df, 'ss')
+        if self.tgt_df is not None:
+            self.update_targets(self.tgt_df, 'targets')
+        if self.plot_ss_objects:
+            self.update_targets(self.ss_df, 'ss')
 
     def change_radius_cb(self, setting, radius):
         # sky radius has changed in PolarSky
