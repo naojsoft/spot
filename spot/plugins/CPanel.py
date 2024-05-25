@@ -152,6 +152,17 @@ class CPanel(GingaPlugin.GlobalPlugin):
     def stop(self):
         self.gui_up = False
 
+    def recreate_channel(self, info, chname):
+        channel = self.fv.add_channel(chname, workspace=info.workspace,
+                                      num_images=1)
+        channel.viewer.set_enter_focus(False)
+        channel.opmon.add_callback('activate-plugin', self.activate_cb,
+                                   info.cb_dct)
+        channel.opmon.add_callback('deactivate-plugin', self.deactivate_cb,
+                                   info.cb_dct)
+        if chname.endswith('_FIND'):
+            channel.viewer.show_pan_mark(True, color='red')
+
     def new_workspace_cb(self, w):
         wsname = self.w.wsname.get_text().strip()
         if len(wsname) == 0:
@@ -162,6 +173,7 @@ class CPanel(GingaPlugin.GlobalPlugin):
             return
         ws = self.fv.add_workspace(wsname, 'mdi', inSpace='channels',
                                    use_toolbar=False)
+        self.fv.init_workspace(ws)
 
         path = os.path.join(ginga_home, wsname + '.json')
         if os.path.exists(path):
@@ -235,6 +247,8 @@ class CPanel(GingaPlugin.GlobalPlugin):
 
     def activate_plugin_cb(self, w, tf, wsname, plname, chname):
         info = self.ws_dct[wsname]
+        if not self.fv.has_channel(chname):
+            self.recreate_channel(info, chname)
         channel = self.fv.get_channel(chname)
         opmon = channel.opmon
         if tf:
