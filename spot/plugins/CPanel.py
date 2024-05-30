@@ -165,6 +165,7 @@ class CPanel(GingaPlugin.GlobalPlugin):
 
     def new_workspace_cb(self, w):
         wsname = self.w.wsname.get_text().strip()
+        wsname = wsname.replace("\n", '').replace(" ", "_")[:15]
         if len(wsname) == 0:
             wsname = "WS{}".format(self.count)
             self.count += 1
