@@ -441,7 +441,7 @@ class Observer(object):
             date = self.get_date(date)
 
         t, y = self._find_rising(ssbodies['moon'], date,
-                                 date + timedelta(days=1, hours=0),
+                                 date + timedelta(days=2, hours=0),
                                  self.horizon - moon_radius_deg * 2)
         return t[0].astimezone(self.tz_local)
 
@@ -453,7 +453,7 @@ class Observer(object):
             date = self.get_date(date)
 
         t, y = self._find_setting(ssbodies['moon'], date,
-                                  date + timedelta(days=1, hours=0),
+                                  date + timedelta(days=2, hours=0),
                                   self.horizon - moon_radius_deg * 2)
         return t[0].astimezone(self.tz_local)
 
