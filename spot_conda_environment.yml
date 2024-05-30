@@ -16,5 +16,4 @@ dependencies:
   - pyyaml
   - requests
   - ply
-  - pytz
- 
+
