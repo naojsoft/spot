@@ -20,6 +20,7 @@ from ginga.util.wcs import ra_deg_to_str, dec_deg_to_str
 
 # local
 from spot.util import calcpos
+from spot.util.rot import normalize_angle
 
 
 class PolarSky(GingaPlugin.LocalPlugin):
@@ -44,6 +45,10 @@ class PolarSky(GingaPlugin.LocalPlugin):
         prefs = self.fv.get_preferences()
         self.settings = prefs.create_category('plugin_PolarSky')
         self.settings.add_defaults(image_radius=1850,
+                                   elevations=[10, 30, 50, 70, 85],
+                                   danger_elevations=[10],
+                                   warning_elevations=[30, 85],
+                                   limit_az_180=True,
                                    times_update_interval=1.0)
         self.settings.load(onError='silent')
 
@@ -234,7 +239,7 @@ class PolarSky(GingaPlugin.LocalPlugin):
         btn.add_callback('activated', lambda w: self.close())
         btns.add_widget(btn, stretch=0)
         btn = Widgets.Button("Help")
-        # btn.add_callback('activated', lambda w: self.help())
+        btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
@@ -359,11 +364,17 @@ class PolarSky(GingaPlugin.LocalPlugin):
         circ_fill = '#fdf6f6'
         annot_color = 'coral2'
 
-        # plot circles
-        els = [(85, 2, 'darkorange'), (70, 1, circ_color), (50, 1, circ_color),
-               (30, 2, 'darkorange'), (10, 3, 'darkred')]
-        wds = [3, 1, 1, 3, 1]
-        # els.insert(0, 89)
+        els = []
+        elevations = self.settings['elevations']
+        for el_deg in elevations:
+            if el_deg in self.settings['danger_elevations']:
+                linewd, color = 3, 'darkred'
+            elif el_deg in self.settings['warning_elevations']:
+                linewd, color = 2, 'darkorange'
+            else:
+                linewd, color = 1, circ_color
+
+            els.append((el_deg, linewd, color))
         # plot circles
         image = self.viewer.get_image()
         # fillalpha = 0.5 if image is None else 0.0
@@ -397,8 +408,6 @@ class PolarSky(GingaPlugin.LocalPlugin):
                                      linestyle='dash'))
 
         # plot degrees
-        # TODO: re-enable after being able to change between different
-        # azimuth-orientations (N = 0 or S = 0)
         _radii = [92, 92, 92, 98, 100, 100, 95, 92]
         _azdeg = [0, 45, 90, 135, 180, 225, 270, 315]
         _azinfo = list(zip(_radii, _azdeg))
@@ -408,6 +417,8 @@ class PolarSky(GingaPlugin.LocalPlugin):
             base = 90
         for r, t in _azinfo:
             ang = (t + base) % 360
+            if self.settings['limit_az_180']:
+                ang = normalize_angle(ang, limit='half')
             x, y = self.p2r(r, t)
             objs.append(self.dc.Text(x, y, "{}\u00b0".format(ang),
                                      fontscale=True, fontsize_min=12,

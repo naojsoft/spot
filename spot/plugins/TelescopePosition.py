@@ -12,6 +12,8 @@ naojsoft packages
 import math
 from datetime import timedelta
 
+import numpy as np
+
 # ginga
 from ginga.gw import Widgets, GwHelp
 from ginga import GingaPlugin
@@ -256,7 +258,10 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         cmd_line.x2, cmd_line.y2 = x2 - rd - off, y2 - rd - off
         cmd_text.x, cmd_text.y = x2 - rd - off, y2 - rd - off
 
-        bcurve.points = self.get_arc_points(origin, dest)
+        direction = np.sign(az_dif)
+        if np.isclose(direction, 0.0):
+            direction = 1
+        bcurve.points = self.get_arc_points(origin, dest, direction)
 
         with self.fitsimage.suppress_redraw:
             if self.w.rotate_view_to_azimuth.get_state():
@@ -332,15 +337,14 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         obj = self.channel.opmon.get_plugin('PolarSky')
         return obj.map_azalt(az, alt)
 
-    def get_arc_points(self, origin, dest):
+    def get_arc_points(self, origin, dest, direction):
         t, r = origin
         td, rd = dest
-        direction = -1 if td < t else 1
         pts = []
         while abs(td - t) > 1:
             x, y = self.p2r(r, t)
             pts.append((x, y))
-            t += direction
+            t = np.fmod(t + direction, 360.0)
         t, r = dest
         x, y = self.p2r(r, t)
         pts.append((x, y))

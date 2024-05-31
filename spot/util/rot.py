@@ -57,3 +57,28 @@ def calc_rotation_choices(cr_start, cr_stop, pa_deg):
     return TelMove(rot1_start, rot1_stop, rot2_start, rot2_stop,
                    az1_start, az1_stop, az2_start, az2_stop,
                    cr_start.alt_deg, cr_stop.alt_deg)
+
+
+def normalize_angle(ang_deg, limit=None, ang_offset=0):
+    """Normalize an angle.
+
+    limit: None (-360, 360), 'full' (0, 360), or 'half' (-180, 180)
+    """
+    ang_deg = ang_deg + ang_offset
+
+    # constrain to -360, +360
+    if np.fabs(ang_deg) >= 360.0:
+        ang_deg = np.remainder(ang_deg, np.sign(ang_deg) * 360.0)
+    if limit is None:
+        return ang_deg
+
+    # constrain to 0, +360
+    if ang_deg < 0.0:
+        ang_deg += 360.0
+    if limit != 'half':
+        return ang_deg
+
+    # constrain to -180, +180
+    if ang_deg > 180.0:
+        ang_deg -= 360.0
+    return ang_deg
