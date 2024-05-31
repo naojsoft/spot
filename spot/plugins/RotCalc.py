@@ -121,9 +121,6 @@ class RotCalc(GingaPlugin.LocalPlugin):
 
         captions = (('PA (deg):', 'label', 'pa', 'entryset',
                      'Time (sec):', 'label', 'secs', 'entryset'),
-                    ('Az:', 'label', 'az', 'entry', 'El:', 'label',
-                     'el', 'entry', "Choose Name:", 'label',
-                     'choose_name', 'entry', "Gen Target", 'button'),
                     )
 
         w, b = Widgets.build_info(captions)
@@ -138,8 +135,6 @@ class RotCalc(GingaPlugin.LocalPlugin):
         b.secs.set_text("{}".format(15 * 60.0))
         b.secs.add_callback('activated', self.set_time_cb)
         b.secs.set_tooltip("Number of seconds on target")
-        b.gen_target.add_callback('activated', self.azel_to_radec_cb)
-        b.gen_target.set_tooltip("Generate a target from AZ/EL at given time")
 
         fr = Widgets.Frame("Pointing")
 
@@ -378,22 +373,6 @@ class RotCalc(GingaPlugin.LocalPlugin):
             #self.w.equinox.set_text(str(tgt.equinox))
             self.w.tgt_name.set_text(tgt.name)
 
-    def azel_to_radec_cb(self, w):
-        az_deg = float(self.w.az.get_text())
-        el_deg = float(self.w.el.get_text())
-        az_deg = subaru_unnormalize_az(az_deg)
-        ra_deg, dec_deg = self.site.observer.radec_of(az_deg, el_deg,
-                                                      date=self.dt_utc)
-        equinox = 2000.0
-        name = self.w.choose_name.get_text().strip()
-        if len(name) == 0:
-            name = f"ra={ra_deg:.2f},dec={dec_deg:.2f}"
-
-        tgt_df = pd.DataFrame([(name, ra_deg, dec_deg, equinox)],
-                              columns=["Name", "RA", "DEC", "Equinox"])
-        obj = self.channel.opmon.get_plugin('Targets')
-        obj.add_targets("Targets", tgt_df, merge=True)
-
     def send_target_cb(self, w):
         ra_deg = wcs.hmsStrToDeg(self.w.ra.get_text())
         dec_deg = wcs.dmsStrToDeg(self.w.dec.get_text())
@@ -496,14 +475,6 @@ class RotCalc(GingaPlugin.LocalPlugin):
 def subaru_normalize_az(az_deg, normalize_angle=True):
     div = 360.0 if az_deg >= 0.0 else -360.0
     az_deg = az_deg + 180.0
-    if normalize_angle:
-        az_deg = np.remainder(az_deg, div)
-
-    return az_deg
-
-def subaru_unnormalize_az(az_deg, normalize_angle=True):
-    div = 360.0 if az_deg >= 0.0 else -360.0
-    az_deg = az_deg - 180.0
     if normalize_angle:
         az_deg = np.remainder(az_deg, div)
 

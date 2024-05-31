@@ -209,6 +209,12 @@ class CPanel(GingaPlugin.GlobalPlugin):
 
         vbox = Widgets.VBox()
         vbox.set_spacing(2)
+        plugins = self.fv.get_plugins()
+        # for spec in plugins:
+        #     if 'ch_sfx' in spec and spec.get('enabled', True):
+        #         name = spec.menu
+        #         chname = "{}_{}".format(wsname, spec.ch_sfx)
+        #         plname = spec.module
         for name, plname, chname in [
                 ("Site Selector", 'SiteSelector', chname_tgts),
                 ("PolarSky", 'PolarSky', chname_tgts),
@@ -216,15 +222,18 @@ class CPanel(GingaPlugin.GlobalPlugin):
                 ("Visibility Plot", 'Visibility', chname_tgts),
                 ("Sky Cams", 'SkyCam', chname_tgts),
                 ("Telescope Position", 'TelescopePosition', chname_tgts),
-                #("Rotation Calculator", 'RotCalc', chname_tgts),
+                ("Rotation Calculator", 'RotCalc', chname_tgts),
+                ("Target Generator", 'TargetGenerator', chname_tgts),
                 ("Finding Chart", 'FindImage', chname_find),
                 ("Instrument FOV", "InsFov", chname_find),
                 ("HSC Planner", "HSCPlanner", chname_find)]:
-            cb = Widgets.CheckBox(name)
-            cb_dct[plname] = cb
-            vbox.add_widget(cb, stretch=0)
-            cb.add_callback('activated', self.activate_plugin_cb,
-                            wsname, plname, chname)
+            spec = self.fv.get_plugin_spec(plname)
+            if spec.get('enabled', True):
+                cb = Widgets.CheckBox(name)
+                cb_dct[plname] = cb
+                vbox.add_widget(cb, stretch=0)
+                cb.add_callback('activated', self.activate_plugin_cb,
+                                wsname, plname, chname)
 
         btn = Widgets.Button(f"Save {wsname} layout")
         btn.add_callback('activated', self.save_ws_layout_cb, wsname)
