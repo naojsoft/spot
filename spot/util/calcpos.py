@@ -1,6 +1,7 @@
 #
 # calcpos.py -- module for wrapping astronomical ephemeris calculations
 #
+import os
 
 # third-party imports
 import numpy as np
@@ -8,16 +9,26 @@ from datetime import datetime, time, timedelta
 from dateutil import tz
 import dateutil.parser
 
+# set up download directory for files
+from ginga.util.paths import ginga_home
+datadir = os.path.join(ginga_home, "downloads")
+if not os.path.isdir(datadir):
+    os.mkdir(datadir)
+
 import erfa
 from astropy import units as u
 from astropy.time import Time
 from astropy.coordinates import (EarthLocation, Longitude, Latitude,
                                  SkyCoord, AltAz, ICRS, get_body,
                                  solar_system_ephemeris)
+from astropy.config import set_temp_cache
+set_temp_cache(path=datadir)
 solar_system_ephemeris.set("jpl")
 
 from skyfield import almanac
-from skyfield.api import load, wgs84
+from skyfield.api import Loader, wgs84
+# don't download ephemeris to the CWD
+load = Loader(os.path.join(datadir))
 
 # Constants
 earth_radius_m = 6378136.6

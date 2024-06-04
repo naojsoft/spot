@@ -19,6 +19,9 @@ from ginga.gw import Widgets, GwHelp
 from ginga import GingaPlugin
 from ginga.util import wcs
 
+# local
+from spot.util.rot import normalize_angle
+
 
 class TelescopePosition(GingaPlugin.LocalPlugin):
     """TODO
@@ -258,7 +261,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         cmd_line.x2, cmd_line.y2 = x2 - rd - off, y2 - rd - off
         cmd_text.x, cmd_text.y = x2 - rd - off, y2 - rd - off
 
-        direction = np.sign(az_dif)
+        direction = int(np.sign(az_dif))
         if np.isclose(direction, 0.0):
             direction = 1
         bcurve.points = self.get_arc_points(origin, dest, direction)
@@ -339,14 +342,19 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
 
     def get_arc_points(self, origin, dest, direction):
         t, r = origin
+        t = normalize_angle(int(t), limit='full')
         td, rd = dest
+        td = normalize_angle(int(td), limit='full')
         pts = []
         while abs(td - t) > 1:
             x, y = self.p2r(r, t)
             pts.append((x, y))
-            t = np.fmod(t + direction, 360.0)
-        t, r = dest
-        x, y = self.p2r(r, t)
+            t = t + direction
+            if t < 0:
+                t = t + 360.0
+            elif t >= 360.0:
+                t = t - 360.0
+        x, y = self.p2r(rd, td)
         pts.append((x, y))
         return pts
 

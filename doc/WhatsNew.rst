@@ -5,6 +5,9 @@ What's New
 Ver 0.3.2 (unreleased)
 ======================
 - Fixed an issue where channels could not be closed
+- Fixed an issue with the TelescopePosition plugin where it could freeze
+  tracking the telescope slew
+- Fixed download location of skyfield ephemeris files
 
 Ver 0.3.1 (2024-05-22)
 ======================
