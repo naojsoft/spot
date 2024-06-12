@@ -52,7 +52,7 @@ image_sources = {
     'SkyView: AKARI WIDE-S': dict(),
     'SkyView: AKARI WIDE-L': dict(),
     'SkyView: AKARI N160': dict(),
-    'SkyView: NAVSS': dict(),
+    'SkyView: NVSS': dict(),
     'SkyView: GALEX Near UV': dict(),
     'SkyView: GALEX Far UV': dict(),
     'ESO: DSS1': dict(),
