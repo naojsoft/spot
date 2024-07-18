@@ -359,7 +359,7 @@ class PolarSky(GingaPlugin.LocalPlugin):
         objs = []
 
         # colors
-        circ_color = 'mediumseagreen'
+        circ_color = 'cyan'
         # circ_fill = 'palegreen1'
         circ_fill = '#fdf6f6'
         annot_color = 'coral2'
@@ -368,7 +368,7 @@ class PolarSky(GingaPlugin.LocalPlugin):
         elevations = self.settings['elevations']
         for el_deg in elevations:
             if el_deg in self.settings['danger_elevations']:
-                linewd, color = 3, 'darkred'
+                linewd, color = 3, 'red'
             elif el_deg in self.settings['warning_elevations']:
                 linewd, color = 2, 'darkorange'
             else:
