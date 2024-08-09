@@ -124,6 +124,8 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.plot_polar_azel = False
         self.plot_legend = False
         self.plot_which = 'selected'
+        self._satellite_barh_data = None
+        self._collision_barh_data = None
         self.gui_up = False
 
         self.time_axis_options = ('Night Center', 'Day Center', 'Current')
@@ -492,6 +494,11 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.plot_legend = tf
         self.replot()
 
+    def configure_plot_cb(self, w, idx):
+        option = w.get_text()
+        self.plot_which = option.lower()
+        self.replot()
+
     def set_time_axis_mode_cb(self, w, index):
         self.time_axis_mode = w.get_text().lower()
         self.vis_dict = dict()
@@ -563,6 +570,28 @@ class Visibility(GingaPlugin.LocalPlugin):
     def map_azalt(self, az, alt):
         obj = self.channel.opmon.get_plugin('PolarSky')
         return obj.map_azalt(az, alt)
+
+    def set_satellite_windows(self, windows):
+        if windows is None:
+            self._satellite_barh_data = None
+        else:
+            windows_open, windows_close = windows.T
+            windows_dur_sec = windows_close - windows_open
+            windows_dur = np.array((windows_open, windows_dur_sec)).T
+            self._satellite_barh_data = windows_dur
+
+        self.replot()
+
+    def set_collision_windows(self, windows):
+        if windows is None:
+            self._collision_barh_data = None
+        else:
+            windows_open, windows_close = windows.T
+            windows_dur_sec = windows_close - windows_open
+            windows_dur = np.array((windows_open, windows_dur_sec)).T
+            self._collision_barh_data = windows_dur
+
+        self.replot()
 
     def __str__(self):
         return 'visibility'

@@ -848,6 +848,14 @@ class CalculationResult(object):
         delta_alt = cr1.alt_deg - cr2.alt_deg
         return (delta_alt, delta_az)
 
+    def calc_separation(self, body):
+        """Compute separation from another target"""
+        coord1 = self.body._get_coord(self.obstime)
+        coord2 = body._get_coord(self.obstime)
+        sep = coord1.separation(coord2)
+
+        return sep.arcsecond
+
     def _calc_atmos_refco(self, bar_press_mbar, temp_degc, rh_pct, wl_mm):
         """Compute atmospheric refraction coefficients (radians)"""
         refa, refb = erfa.refco(bar_press_mbar, temp_degc, rh_pct, wl_mm)

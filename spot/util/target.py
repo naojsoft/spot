@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+
 from ginga.util.wcs import hmsStrToDeg, dmsStrToDeg
 from ginga.misc import Bunch
 
@@ -16,7 +18,7 @@ class Target(Body):
                  comment='', category=None):
         super().__init__(name, ra, dec, equinox, comment=comment)
         self.category = category
-        self.metadata = None
+        self.metadata = dict()
 
     def set(self, **kwargs):
         if self.metadata is None:
@@ -43,6 +45,20 @@ class Target(Body):
                                                                    rec['DEC'],
                                                                    rec['Equinox'])
         self.comment = rec.get('Comment', '').strip()
+
+    def get(self, key, val):
+        return self.metadata.get(key, val)
+
+    def __getitem__(self, key):
+        return self.metadata[key]
+
+    def __setitem__(self, key, value):
+        self.metadata[key] = value
+
+    def __delitem__(self, key):
+        if key not in self.metadata:
+            raise KeyError(key)
+        del self.metadata[key]
 
 
 def normalize_ra_dec_equinox(ra, dec, eq):

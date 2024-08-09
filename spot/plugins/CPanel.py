@@ -125,8 +125,10 @@ class CPanel(GingaPlugin.GlobalPlugin):
         b.sel_ws.set_tooltip("Select an opened workspace")
         b.sel_ws.add_callback('activated', self.select_workspace_cb)
 
+        scr = Widgets.ScrollArea()
         self.w.stk = Widgets.StackWidget()
-        top.add_widget(self.w.stk, stretch=0)
+        scr.set_widget(self.w.stk)
+        top.add_widget(scr, stretch=1)
 
         top.add_widget(Widgets.Label(''), stretch=1)
 

@@ -177,6 +177,7 @@ class Targets(GingaPlugin.LocalPlugin):
         self.show_unref_tgts = False
         self.tgt_df = None
         self.ss_df = None
+        self.fov_dct = Bunch.Bunch(dict(Sun=6.5, Moon=6.5), caseless=True)
         self._mbody = None
         self._updating_table_flag = False
 
@@ -680,8 +681,11 @@ class Targets(GingaPlugin.LocalPlugin):
             t.set(is_ref=row.get('IsRef', True), comment=comment)
             new_targets.append(t)
 
+        self.add_target_list(category, new_targets, merge=merge)
+
+    def add_target_list(self, category, targets, merge=False):
         if not merge:
-            # remove old targets from this same file
+            # remove old targets from this same category
             target_dict = {(tgt.category, tgt.name): tgt
                            for tgt in self.target_dict.values()
                            if tgt.category != category}
@@ -689,7 +693,7 @@ class Targets(GingaPlugin.LocalPlugin):
             target_dict = self.target_dict
         # add new targets
         target_dict.update({(tgt.category, tgt.name): tgt
-                            for tgt in new_targets})
+                            for tgt in targets})
         self.target_dict = target_dict
 
         self.full_tgt_list = list(self.target_dict.values())
@@ -985,6 +989,9 @@ class Targets(GingaPlugin.LocalPlugin):
         # return self.dt_utc.astimezone(self.site.observer.tz_local)
         # return self.dt_utc.astimezone(self.cur_tz)
         return self.dt_utc
+
+    def update_targets_fov(self, dct):
+        self.fov_dct.update(dct)
 
     def _get_dir_icon(self, row):
         if True:  # TBD?  row.will_be_visible']:

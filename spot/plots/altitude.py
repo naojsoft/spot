@@ -42,16 +42,22 @@ class AltitudePlot(plots.Plot):
     def plot_altitude(self, site, tgt_data, tz, current_time=None,
                       plot_moon_distance=False,
                       show_target_legend=False,
-                      center_time=None):
+                      center_time=None,
+                      satellite_barh_data=None,
+                      collision_barh_data=None):
         self._plot_altitude(self.fig, site, tgt_data, tz, current_time=current_time,
                             plot_moon_distance=plot_moon_distance,
                             show_target_legend=show_target_legend,
-                            center_time=center_time)
+                            center_time=center_time,
+                            satellite_barh_data=satellite_barh_data,
+                            collision_barh_data=collision_barh_data)
 
     def _plot_altitude(self, figure, site, tgt_data, tz, current_time=None,
                        plot_moon_distance=False,
                        show_target_legend=False,
-                       center_time=None):
+                       center_time=None,
+                       satellite_barh_data=None,
+                       collision_barh_data=None):
         """
         Plot into `figure` an altitude chart using target data from `info`
         with time plotted in timezone `tz` (a tzinfo instance).
@@ -157,7 +163,7 @@ class AltitudePlot(plots.Plot):
         ax1.plot(lt_data, moon_data, moon_color, linewidth=3.0,
                  alpha=0.9, aa=True)
         ax1.text(mpl_dt.date2num(illum_time),
-                 moon_data.max() + 4.0, moon_name, color='#CDBE70',
+                 moon_data.max() + 4.0, moon_name, color=moon_color, # '#CDBE70'
                  ha='center', va='center', clip_on=True)
 
         # Plot airmass scale
@@ -179,7 +185,7 @@ class AltitudePlot(plots.Plot):
         targname = "moon"
         ## ax1.text(mpl_dt.date2num(moon_data[moon_data.argmax()]),
         ##          moon_data.max() + 0.08, targname.upper(), color=color,
-        ##          ha='center', va='center')
+        ##          ha='center', va='center', clip_on=True)
 
         # plot lower and upper safe limits for clear observing
         min_alt, max_alt = 30.0, 75.0
@@ -210,6 +216,14 @@ class AltitudePlot(plots.Plot):
 
         # plot moon's position at midnight
         #self._moon_position(ax1, site)
+
+        # plot satellite open/close windows if that info was provided
+        if satellite_barh_data is not None:
+            self._plot_satellite_windows(ax1, satellite_barh_data, lt_data[-1])
+
+        # plot collisions open/close windows if that info was provided
+        if collision_barh_data is not None:
+            self._plot_collision_windows(ax1, collision_barh_data, lt_data[-1])
 
         canvas = self.fig.canvas
         if canvas is not None:
@@ -283,3 +297,25 @@ class AltitudePlot(plots.Plot):
         ax.axhspan(ymin, lo_lim, facecolor='#F9EB4E', alpha=0.20)
 
         ax.axhspan(hi_lim, ymax, facecolor='#F9EB4E', alpha=0.20)
+
+    def _plot_satellite_windows(self, ax, dt_boxes, x_lim_end):
+        # plot the open windows
+        ax.broken_barh(dt_boxes, (3, 8),
+                       facecolors=[0.267, 0.482, 0.804],
+                       edgecolors='white')
+        # hack to get "SAT" annotation in a decent spot
+        x_pos = x_lim_end - timedelta(hours=1)
+        ax.annotate('SAT', xy=(x_pos, 5),
+                    color='pink', fontsize=14, ha='left')
+
+    def _plot_collision_closures(self, ax, dt_boxes, x_lim_end):
+
+        # plot the open windows
+        ax.broken_barh(dt_boxes, (12, 8),
+                       facecolors=[0.804, 0.482, 0.267],
+                       edgecolors='white')
+
+        # hack to get "TEL" annotation in a decent spot
+        x_pos = x_lim_end - timedelta(hours=1)
+        ax.annotate('TEL', xy=(x_pos, 14),
+                    color='cyan', fontsize=14, ha='left')
