@@ -428,8 +428,8 @@ class PolarSky(GingaPlugin.LocalPlugin):
         rd = self.settings['image_radius'] * 1.25
 
         # plot compass directions
-        for r, t, txt in [(110, 0, 'W'), (100, 90, 'N'),
-                          (110, 180, 'E'), (100, 270, 'S')]:
+        for r, t, txt in [(105, 0, 'W'), (100, 90, 'N'),
+                          (105, 180, 'E'), (104, 270, 'S')]:
             x, y = self.p2r(r, t)
             objs.append(self.dc.Text(x, y, txt, color=annot_color,
                                      fontscale=True, fontsize_min=16))

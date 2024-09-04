@@ -428,11 +428,12 @@ class Targets(GingaPlugin.LocalPlugin):
                                         fill=fill, fillcolor=row['color'],
                                         fillalpha=alpha * 0.7)
                 text = self.dc.Text(x, y, row['name'],
-                                    #color=row['color'], alpha=alpha,
+                                    color=row['color'], alpha=alpha,
                                     fill=True, fillcolor=row['color'],
                                     fillalpha=alpha, linewidth=0,
-                                    font="Roboto", fontscale=True,
-                                    fontsize=None, fontsize_min=8)
+                                    font="Roboto condensed bold",
+                                    fontscale=True,
+                                    fontsize=None, fontsize_min=12)
                 star = self.dc.CompoundObject(point, circle, text)
                 star.opaque = True
                 star.pickable = True
@@ -738,7 +739,11 @@ class Targets(GingaPlugin.LocalPlugin):
                     # TODO
                     #comment=row.comment,
                     ad=("% .1f" % (np.degrees(calc_ad)*3600)))
+
+        # save and restore selection after update
+        paths = self.w.tgt_tbl.get_selected_paths()
         self.w.tgt_tbl.set_tree(tree_dict)
+        self.w.tgt_tbl.select_paths(paths)
 
     def target_selection_update(self):
         self.clear_plot()
