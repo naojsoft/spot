@@ -86,7 +86,48 @@ service_urls = {
 
 
 class FindImage(GingaPlugin.LocalPlugin):
-    """TODO
+    """
+    FindImage
+    =========
+    The FindImage plugin is used to download and display images from
+    image catalogs for known coordinates.  It uses the "{wsname}_FIND"
+    viewer to show the images found.
+
+    .. note:: Make sure you have the "Targets" plugin also open, as it is
+              used in conjunction with this plugin.
+
+    Selecting a Target
+    ------------------
+    In the "Targets" plugin, double-click a target to uniquely select it.
+    This should populate the "RA", "DEC", "Equinox" and "Name" fields in
+    the "Pointing" area of FindImage.
+
+    .. important:: To keep the coordinates from changing due to other
+                   selections in the targets table, check the "Lock Target"
+                   checkbox after populating these fields.
+
+    .. note:: If you have working telescope status integration, you can
+              click the "Follow telescope" checkbox to have the "Pointing"
+              area updated by the telescope's actual position (the
+              "Lock Target" checkbox must be unchecked to allow the
+              coordinates to be updated).  Further, the image in the
+              finding viewer will be panned according to the telescope's
+              current position, allowing you to follow a dithering pattern
+              (for example).
+
+    Loading an image from an image source
+    -------------------------------------
+    Once RA/DEC coordinates are displayed in the "Pointing" area, an image
+    can be downloaded using the controls in the "Image Source" area.
+    Choose an image source from the drop-down control labeled "Source",
+    select a size (in arcminutes) using the "Size" control and click the
+    "Find Image" button.  It may take a little while for the image to be
+    downloaded and displayed in the finder viewer.
+
+    .. note:: Alternatively, you can click "Create Blank" to create a blank
+              image with a WCS set to the desired location.  This may
+              possibly be useful if an image source is not available.
+
     """
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
@@ -160,7 +201,6 @@ class FindImage(GingaPlugin.LocalPlugin):
 
         for name in image_sources.keys():
             b.image_source.append_text(name)
-        # b.image_source.add_callback('activated', self.select_source_cb)
         b.find_image.add_callback('activated', self.find_image_cb)
 
         b.size.set_limits(1, 120, incr_value=1)
@@ -173,51 +213,24 @@ class FindImage(GingaPlugin.LocalPlugin):
 
         fr = Widgets.Frame("Pointing")
 
-        captions = (('RA:', 'label', 'ra', 'entry', 'DEC:', 'label',
-                     'dec', 'entry'),
-                    ('Equinox:', 'label', 'equinox', 'entry',
-                     'Name:', 'label', 'tgt_name', 'entry'),
+        captions = (('RA:', 'label', 'ra', 'llabel', 'DEC:', 'label',
+                     'dec', 'llabel'),
+                    ('Equinox:', 'label', 'equinox', 'llabel',
+                     'Name:', 'label', 'tgt_name', 'llabel'),
                     ('__ph3', 'spacer', 'Lock Target', 'checkbox',
                      '__ph4', 'spacer', "Follow telescope", 'checkbox')
-
                     )
 
         w, b = Widgets.build_info(captions)
+        b.ra.set_text('')
+        b.dec.set_text('')
+        b.equinox.set_text('')
+        b.tgt_name.set_text('')
         b.lock_target.set_tooltip("Lock target from changing by selections in 'Targets'")
         b.follow_telescope.set_tooltip("Set pan position to telescope position")
         b.follow_telescope.set_state(self.settings['follow_telescope'])
         self.w.update(b)
         fr.set_widget(w)
-        top.add_widget(fr, stretch=0)
-
-        # name resolver
-        vbox = Widgets.VBox()
-        fr = Widgets.Frame(" Name Server ")
-        fr.set_widget(vbox)
-
-        captions = (('Server:', 'llabel', 'server', 'combobox',
-                     '_x1', 'spacer'),
-                    ('Name:', 'llabel', 'obj_name', 'entry',
-                     'Search name', 'button')
-                    )
-        w, b = Widgets.build_info(captions)
-        self.w.update(b)
-        b.search_name.add_callback('activated', lambda w: self.getname_cb())
-        b.search_name.set_tooltip("Lookup name and populate ra/dec coordinates")
-        vbox.add_widget(w, stretch=0)
-
-        combobox = b.server
-        index = 0
-        self.name_server_options = list(self.fv.imgsrv.get_server_names(
-            kind='name'))
-        for name in self.name_server_options:
-            combobox.append_text(name)
-            index += 1
-        index = 0
-        if len(self.name_server_options) > 0:
-            combobox.set_index(index)
-        combobox.set_tooltip("Choose the object name resolver")
-
         top.add_widget(fr, stretch=0)
 
         fr = Widgets.Frame("Image Download Info")
@@ -228,8 +241,6 @@ class FindImage(GingaPlugin.LocalPlugin):
 
         fr.set_widget(self.w.select_image_info)
         top.add_widget(fr, stretch=0)
-
-        top.add_widget(Widgets.Label(''), stretch=1)
 
         btns = Widgets.HBox()
         btns.set_border_width(4)
@@ -294,9 +305,6 @@ class FindImage(GingaPlugin.LocalPlugin):
         """
         pass
 
-    def select_source_cb(self, w, idx):
-        pass
-
     def set_size_cb(self, w, val):
         self.size = (val, val)
 
@@ -318,8 +326,9 @@ class FindImage(GingaPlugin.LocalPlugin):
             image_info_text = "Image download failed at: "+(
                                image_timestamp.strftime("%D %H:%M:%S"))
             self.w.select_image_info.set_text(image_info_text)
-            self.logger.error("failed to find image: {}"
-                              .format(e), exc_info=True)
+            errmsg = f"failed to find image: {e}"
+            self.logger.error(errmsg, exc_info=True)
+            self.fv.show_error(errmsg)
 
     def download_image(self):
         ra_deg, dec_deg = self.get_radec()
@@ -491,56 +500,40 @@ class FindImage(GingaPlugin.LocalPlugin):
         self.fitsimage.set_image(image)
 
     def get_radec(self):
-        ra_str = self.w.ra.get_text().strip()
-        dec_str = self.w.dec.get_text().strip()
+        try:
+            ra_str = self.w.ra.get_text().strip()
+            dec_str = self.w.dec.get_text().strip()
 
-        if ':' in ra_str:
-            from ginga.util import wcs
-            ra_deg = wcs.hmsStrToDeg(ra_str)
-            dec_deg = wcs.dmsStrToDeg(dec_str)
-        else:
-            from oscript.util import ope
-            ra_deg = ope.funkyHMStoDeg(ra_str)
-            dec_deg = ope.funkyDMStoDeg(dec_str)
+            if ':' in ra_str:
+                ra_deg = wcs.hmsStrToDeg(ra_str)
+                dec_deg = wcs.dmsStrToDeg(dec_str)
+            else:
+                from oscript.util import ope
+                ra_deg = ope.funkyHMStoDeg(ra_str)
+                dec_deg = ope.funkyDMStoDeg(dec_str)
+
+        except Exception as e:
+            self.fv.show_error("Error getting coordinate: please check selected target")
 
         return (ra_deg, dec_deg)
 
     def get_radec_list(self):
-        ra_str = self.w.ra.get_text().strip()
-        dec_str = self.w.dec.get_text().strip()
-
-        if ':' in ra_str:
-            ra_list = ra_str.split(':')
-            dec_list = dec_str.split(':')
-        else:
-            # SOSS format
-            ra_list = [ra_str[:2], ra_str[2:4], ra_str[4:]]
-            dec_list = [dec_str[:2], dec_str[2:4], dec_str[4:]]
-
-        return (ra_list, dec_list)
-
-    def getname_cb(self):
-        name = self.w.obj_name.get_text().strip()
-        server = self.w.server.get_text()
-
         try:
-            srvbank = self.fv.get_server_bank()
-            namesvc = srvbank.get_name_server(server)
-            self.logger.info("looking up name '{}' at {}".format(name, server))
+            ra_str = self.w.ra.get_text().strip()
+            dec_str = self.w.dec.get_text().strip()
 
-            ra_str, dec_str = namesvc.search(name)
-
-            # populate the image server UI coordinate
-            self.w.ra.set_text(ra_str)
-            self.w.dec.set_text(dec_str)
-            self.w.equinox.set_text('2000.0') # ??!!
-            self.w.obj_name.set_text(name)
+            if ':' in ra_str:
+                ra_list = ra_str.split(':')
+                dec_list = dec_str.split(':')
+            else:
+                # SOSS format
+                ra_list = [ra_str[:2], ra_str[2:4], ra_str[4:]]
+                dec_list = [dec_str[:2], dec_str[2:4], dec_str[4:]]
 
         except Exception as e:
-            errmsg = "Name service query exception: %s" % (str(e))
-            self.logger.error(errmsg, exc_info=True)
-            # pop up the error in the GUI under "Errors" tab
-            self.fv.gui_do(self.fv.show_error, errmsg)
+            self.fv.show_error("Error getting coordinate: please check selected target")
+
+        return (ra_list, dec_list)
 
     def target_selection_cb(self, cb, targets):
         if len(targets) == 0:
@@ -555,7 +548,6 @@ class FindImage(GingaPlugin.LocalPlugin):
             self.w.dec.set_text(wcs.dec_deg_to_str(tgt.dec))
             self.w.equinox.set_text(str(tgt.equinox))
             self.w.tgt_name.set_text(tgt.name)
-            self.w.obj_name.set_text(tgt.name)
 
     def update_info(self, status):
         self.fv.assert_gui_thread()

@@ -146,7 +146,7 @@ class Targets(GingaPlugin.LocalPlugin):
         self._mbody = None
 
 
-        self.columns = [('Sel', 'selected'),
+        self.columns = [('Selected', 'selected'),
                         ('Name', 'name'),
                         ('Az', 'az_deg'),
                         ('Alt', 'alt_deg'),
@@ -723,7 +723,7 @@ class Targets(GingaPlugin.LocalPlugin):
                                         row.atmos_disp_guiding)
                 calc_ad = max(ad_observe, ad_guide) - min(ad_observe, ad_guide)
                 dct[row['name']] = Bunch.Bunch(
-                    selected='*' if selected else '',
+                    selected=chr(0x2714) if selected else '',
                     name=row['name'],
                     ra=wcs.ra_deg_to_str(row.ra_deg),
                     dec=wcs.dec_deg_to_str(row.dec_deg),

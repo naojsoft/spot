@@ -17,26 +17,48 @@ from ginga.gw import Widgets
 from ginga import GingaPlugin
 from ginga.util import wcs
 
+from spot.util.target import normalize_ra_dec_equinox
+
 
 class TargetGenerator(GingaPlugin.LocalPlugin):
     """
     TargetGenerator
     ===============
-    TargetGenerator allows you to generate an RA/DEC target from an AZ/EL
-    location.
+    TargetGenerator allows you to generate a target dynamically in one of
+    several ways.  The target can then be added to the "Targets" table.
 
     .. note:: Make sure you have the "Targets" plugin also open, as it is
               used in conjunction with this plugin.
 
-    Generating a Target
-    -------------------
+    Generating a Target from Azimuth/Elevation
+    ------------------------------------------
     Simply type in an azimuth into the "Az:" box and an elevation into the
-    "El:" box.  If desired, type a name to distinguish the target into the
-    "Name:" box (otherwise a generic name will be used).
+    "El:" box.  Click "Gen Target" to have the AZ/EL coordinates converted
+    into RA/DEC coordinates using the set time of the Site.  This will
+    populate the "RA", "DEC", "Equinox" and "Name" boxes in the next section.
+    From there you can add the target as described in the next section.
 
-    Press "Gen Target" to generate a target.  It will show up in the targets
-    table in the "Targets" plugin.  Select it there to see it in the "PolarSky"
-    plot.
+    Generating a Target from Known Coordinates
+    ------------------------------------------
+    If RA/DEC coordinates are known, they can be typed into the boxes labeled
+    "RA", "DEC", "Equinox" and "Name".  The values can be given in sexigesimal
+    notation or degrees.
+
+    .. note:: "SOSS notation" can also be used if you have the "oscript"
+              package installed.
+
+    Click "Add Target" to add the target.  It will show up in the targets
+    table in the "Targets" plugin.  Select it there in the usual way to see
+    it in the "PolarSky" or "Visibility" plots.
+
+    Looking up a Target from a Name Server
+    --------------------------------------
+    A target can be looked up via a name server (NED or SIMBAD) using the
+    controls in the third area.  Simply select your name server from the
+    drop down box labeled "Server", type a name into the "Name" box and
+    click "Search name".  If the object is found it will populate the
+    boxes labeled "RA", "DEC", "Equinox" and "Name" in the second section.
+    From there you can add the target by clicking the "Add Target" button.
     """
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
@@ -74,13 +96,11 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
         top = Widgets.VBox()
         top.set_border_width(4)
 
-        fr = Widgets.Frame("Target Generator")
+        fr = Widgets.Frame("From Azimuth/Elevation")
 
         captions = (('Az:', 'label', 'az', 'entry', 'El:', 'label',
-                     'el', 'entry', "Name:", 'label',
-                     'choose_name', 'entry', "Gen Target", 'button'),
+                     'el', 'entry', "Gen Target", 'button'),
                     )
-
         w, b = Widgets.build_info(captions)
         self.w.update(b)
 
@@ -89,8 +109,53 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
 
         b.gen_target.set_tooltip("Generate a target from AZ/EL at given time")
         b.gen_target.add_callback('activated', self.azel_to_radec_cb)
-        b.gen_target.set_tooltip("Generate a target from AZ/EL at given time")
 
+        fr = Widgets.Frame("From RA/DEC Coordinate")
+
+        captions = (('RA:', 'label', 'ra', 'entry', 'DEC:', 'label',
+                     'dec', 'entry'),
+                    ('Equinox:', 'label', 'equinox', 'entry',
+                     'Name:', 'label', 'tgt_name', 'entry'),
+                    ('sp1', 'spacer', 'sp2', 'spacer', 'sp3', 'spacer',
+                     'Add Target', 'button'),
+                    )
+
+        w, b = Widgets.build_info(captions)
+        self.w.update(b)
+        b.add_target.add_callback('activated', self.add_target_cb)
+        b.add_target.set_tooltip("Add target to the target list")
+        fr.set_widget(w)
+        top.add_widget(fr, stretch=0)
+
+        # name resolver
+        vbox = Widgets.VBox()
+        fr = Widgets.Frame("From Name Server")
+        fr.set_widget(vbox)
+
+        captions = (('Server:', 'llabel', 'server', 'combobox',
+                     '_x1', 'spacer'),
+                    ('Name:', 'llabel', 'obj_name', 'entry',
+                     'Search name', 'button')
+                    )
+        w, b = Widgets.build_info(captions)
+        self.w.update(b)
+        b.search_name.add_callback('activated', lambda w: self.getname_cb())
+        b.search_name.set_tooltip("Lookup name and populate ra/dec coordinates")
+        vbox.add_widget(w, stretch=0)
+
+        combobox = b.server
+        index = 0
+        self.name_server_options = list(self.fv.imgsrv.get_server_names(
+            kind='name'))
+        for name in self.name_server_options:
+            combobox.append_text(name)
+            index += 1
+        index = 0
+        if len(self.name_server_options) > 0:
+            combobox.set_index(index)
+        combobox.set_tooltip("Choose the object name resolver")
+
+        top.add_widget(fr, stretch=0)
         btns = Widgets.HBox()
         btns.set_border_width(4)
         btns.set_spacing(3)
@@ -124,11 +189,50 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
         az_deg = self.adjust_az(az_deg)
         ra_deg, dec_deg = self.site.observer.radec_of(az_deg, el_deg,
                                                       date=self.dt_utc)
+        # TODO
         equinox = 2000.0
-        name = self.w.choose_name.get_text().strip()
+        self.w.ra.set_text(wcs.ra_deg_to_str(ra_deg))
+        self.w.dec.set_text(wcs.dec_deg_to_str(dec_deg))
+        self.w.equinox.set_text(str(equinox))
+        self.w.tgt_name.set_text(f"ra={ra_deg:.2f},dec={dec_deg:.2f}")
+
+    def getname_cb(self):
+        name = self.w.obj_name.get_text().strip()
+        server = self.w.server.get_text()
+
+        try:
+            srvbank = self.fv.get_server_bank()
+            namesvc = srvbank.get_name_server(server)
+            self.logger.info("looking up name '{}' at {}".format(name, server))
+
+            ra_str, dec_str = namesvc.search(name)
+
+            # populate the image server UI coordinate
+            self.w.ra.set_text(ra_str)
+            self.w.dec.set_text(dec_str)
+            self.w.equinox.set_text('2000.0') # ??!!
+            self.w.tgt_name.set_text(name)
+
+        except Exception as e:
+            errmsg = "Name service query exception: %s" % (str(e))
+            self.logger.error(errmsg, exc_info=True)
+            # pop up the error in the GUI under "Errors" tab
+            self.fv.gui_do(self.fv.show_error, errmsg)
+
+    def get_radec_eq(self):
+        ra_str = self.w.ra.get_text().strip()
+        dec_str = self.w.dec.get_text().strip()
+        eq_str = self.w.equinox.get_text().strip()
+
+        ra_deg, dec_deg, equinox = normalize_ra_dec_equinox(ra_str, dec_str,
+                                                            eq_str)
+        return (ra_deg, dec_deg, equinox)
+
+    def add_target_cb(self, w):
+        name = self.w.tgt_name.get_text().strip()
         if len(name) == 0:
             name = f"ra={ra_deg:.2f},dec={dec_deg:.2f}"
-
+        ra_deg, dec_deg, equinox = self.get_radec_eq()
         tgt_df = pd.DataFrame([(name, ra_deg, dec_deg, equinox)],
                               columns=["Name", "RA", "DEC", "Equinox"])
         obj = self.channel.opmon.get_plugin('Targets')

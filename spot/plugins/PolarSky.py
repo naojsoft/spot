@@ -418,7 +418,8 @@ class PolarSky(GingaPlugin.LocalPlugin):
         for r, t in _azinfo:
             ang = (t + base) % 360
             if self.settings['limit_az_180']:
-                ang = normalize_angle(ang, limit='half')
+                # NOTE: assume angles of interest are not fractional
+                ang = int(normalize_angle(ang, limit='half'))
             x, y = self.p2r(r, t)
             objs.append(self.dc.Text(x, y, "{}\u00b0".format(ang),
                                      fontscale=True, fontsize_min=12,
