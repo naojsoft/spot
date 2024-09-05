@@ -87,16 +87,9 @@ class PolarSky(GingaPlugin.LocalPlugin):
         site = self.site_obj.observer
         info = Bunch.Bunch()
 
-        # noon and midnight on the current date
-        noon = dt.replace(hour=12, minute=0, second=0, microsecond=0)
-        midnight = noon + timedelta(hours=12)
-        prev_noon = noon - timedelta(hours=24)
-        prev_midnight = noon - timedelta(hours=12)
-        sunrise_today = site.sunrise(prev_midnight)
-
-        if dt < sunrise_today:
-            # it's not yet daytime on this date
-            noon = prev_noon
+        # noon on the observation date
+        obj = self.channel.opmon.get_plugin('SiteSelector')
+        noon = obj.get_obsdate_noon()
 
         info.update(dict(
             # Sun rise/set info

@@ -392,11 +392,10 @@ class Targets(GingaPlugin.LocalPlugin):
         #self.table.show_selection(info.star)
         return True
 
-    def plot_targets(self, tgt_df, tag, start_time=None):
+    def plot_targets(self, tgt_df, tag):
         """Plot targets.
         """
-        if start_time is None:
-            start_time = self.get_datetime()
+        start_time = self.get_datetime()
         self.canvas.delete_object_by_tag(tag)
 
         # filter the subset desired to be seen
@@ -458,17 +457,16 @@ class Targets(GingaPlugin.LocalPlugin):
             if self.w.list_all_targets.get_state() or is_ref:
                 targets.append(tgt)
         obj = self.channel.opmon.get_plugin('Visibility')
-        self.fv.gui_do(obj.plot_targets, start_time, self.site, targets)
+        self.fv.gui_do(obj.plot_targets, targets)
 
-    def update_targets(self, tgt_df, tag, start_time=None):
+    def update_targets(self, tgt_df, tag):
         """Update targets already plotted with new positions.
         """
         self.canvas.delete_object_by_tag(tag)
         if not self.canvas.has_tag(tag):
-            self.plot_targets(tgt_df, tag, start_time=start_time)
+            self.plot_targets(tgt_df, tag)
             return
-        # if start_time is None:
-        #     start_time = self.get_datetime()
+        # start_time = self.get_datetime()
 
         # if tag != 'ss':
         #     # filter the subset desired to be seen
@@ -495,9 +493,7 @@ class Targets(GingaPlugin.LocalPlugin):
         #     return
         # targets = [res.tgt for res in tgt_info_lst]
         # obj = self.channel.opmon.get_plugin('Visibility')
-        # # obj.plot_targets(start_time, self.site, targets,
-        # #                  timezone=self.cur_tz)
-        # obj.plot_targets(start_time, self.site, targets)
+        # obj.plot_targets(targets)
 
     def _create_multicoord_body(self):
         self.full_tgt_list = list(self.target_dict.values())
@@ -522,9 +518,8 @@ class Targets(GingaPlugin.LocalPlugin):
                                   for tgt in self.full_tgt_list],
                                  dtype=bool)
 
-    def update_all(self, start_time=None, targets_changed=False):
-        if start_time is None:
-            start_time = self.get_datetime()
+    def update_all(self, targets_changed=False):
+        start_time = self.get_datetime()
         self._last_tgt_update_dt = start_time
         self.logger.info("update time: {}".format(start_time.strftime(
                          "%Y-%m-%d %H:%M:%S [%z]")))
@@ -557,7 +552,7 @@ class Targets(GingaPlugin.LocalPlugin):
                                             local_time.strftime("%H:%M:%S") +
                                             f" [{tzname}]")
 
-            self.update_targets(self.tgt_df, 'targets', start_time=start_time)
+            self.update_targets(self.tgt_df, 'targets')
 
         ss_df = pd.DataFrame(columns=['az_deg', 'alt_deg', 'name', 'color'])
         if self.plot_ss_objects:
@@ -570,7 +565,7 @@ class Targets(GingaPlugin.LocalPlugin):
                 ss_df.loc[len(ss_df)] = dct
             self.ss_df = ss_df
 
-        self.update_targets(ss_df, 'ss', start_time=start_time)
+        self.update_targets(ss_df, 'ss')
 
     def update_plots(self):
         """Just update plots, targets and info haven't changed."""

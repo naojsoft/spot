@@ -10,7 +10,7 @@ naojsoft packages
 """
 # stdlib
 import os.path
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil import tz, parser
 
 # ginga
@@ -279,6 +279,25 @@ class SiteSelector(GingaPlugin.LocalPlugin):
 
         self.logger.info("date/time set to: {}".format(self.dt_utc.strftime("%Y-%m-%d %H:%M:%S %z")))
         self.cb.make_callback('time-changed', self.dt_utc, self.cur_tz)
+
+    def get_obsdate_noon(self):
+        """A mostly internal procedure to get the date/time at noon
+        on the day of observation.
+        """
+        dt = self.dt_utc.astimezone(self.cur_tz)
+        site = self.site_obj.observer
+
+        # noon and midnight on the current date
+        noon = dt.replace(hour=12, minute=0, second=0, microsecond=0)
+        prev_noon = noon - timedelta(hours=24)
+        prev_midnight = noon - timedelta(hours=12)
+        sunrise_today = site.sunrise(prev_midnight)
+
+        if dt < sunrise_today:
+            # it's not yet daytime on this date
+            noon = prev_noon
+
+        return noon
 
     def __str__(self):
         return 'siteselector'

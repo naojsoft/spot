@@ -53,10 +53,11 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.settings.add_defaults(targets_update_interval=60.0)
         self.settings.load(onError='silent')
 
-        self._start_time = None
-        self._site = None
+        # these are set via callbacks from the SiteSelector plugin
+        self.site = None
+        self.dt_utc = None
+        self.cur_tz = None
         self._targets = None
-        self._timezone = None
         self.plot_moon_sep = False
         self.plot_legend = False
         self.gui_up = False
@@ -70,6 +71,12 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.time_range_current_mode = 10 # hours
 
     def build_gui(self, container):
+        # initialize site and date/time/tz
+        obj = self.channel.opmon.get_plugin('SiteSelector')
+        self.site = obj.get_site()
+        obj.cb.add_callback('site-changed', self.site_changed_cb)
+        self.dt_utc, self.cur_tz = obj.get_datetime()
+        obj.cb.add_callback('time-changed', self.time_changed_cb)
 
         top = Widgets.VBox()
         top.set_border_width(4)
@@ -132,11 +139,7 @@ class Visibility(GingaPlugin.LocalPlugin):
 
     def start(self):
         self.initialize_plot()
-
-        # update our own plot by pinging Targets plugin
-        obj = self.channel.opmon.get_plugin('Targets')
-        if obj.gui_up:
-            obj.update_plots()
+        self.replot()
 
     def stop(self):
         self.gui_up = False
@@ -150,26 +153,20 @@ class Visibility(GingaPlugin.LocalPlugin):
     def clear_plot(self):
         self.plot.clear()
 
-    def plot_targets(self, start_time, site, targets, timezone=None):
+    def plot_targets(self, targets):
         """Plot targets.
         """
+        # save parameters in case we need to replot
+        self._targets = targets
         if not self.gui_up:
             return
 
-        # save parameters in case we need to replot
-        self._start_time = start_time
-        self._site = site
-        self._targets = targets
-        self._timezone = timezone
-
         # TODO: work with site object directly, not observer
-        site = site.observer
+        site = self.site.observer
 
         # calc noon on the day of observation in desired time zone
-        if timezone is None:
-            timezone = site.timezone
-        ndate = start_time.astimezone(timezone).strftime("%Y-%m-%d") + " 12:00:00"
-        noon_time = site.get_date(ndate, timezone=timezone)
+        obj = self.channel.opmon.get_plugin('SiteSelector')
+        noon_time = obj.get_obsdate_noon()
 
         if self.time_axis_mode == 'night center':
             # plot period 15 minutes before sunset to 15 minutes after sunrise
@@ -181,26 +178,18 @@ class Visibility(GingaPlugin.LocalPlugin):
             midnight_before = noon_time - timedelta(hours=12)
             delta = timedelta(minutes=15)
             start_time = site.sunrise(midnight_before) - delta
-            print("day start", start_time)
             stop_time = site.sunset(noon_time) + delta
-            print("day end", stop_time)
         elif self.time_axis_mode == 'current':
             # Plot a time period and put the current time at 1/4 from
             # the left edge of the period.
             time_period_sec = 60 * 60 * self.time_range_current_mode
             start_offset_from_current_sec = time_period_sec / 4
-            start_time = start_time - timedelta(seconds=start_offset_from_current_sec)
-            stop_time = start_time + timedelta(seconds=time_period_sec)
+            start_time = self.dt_utc - timedelta(seconds=start_offset_from_current_sec)
+            stop_time = self.dt_utc + timedelta(seconds=time_period_sec)
 
         site.set_date(start_time)
         # create date array
-        dts = []
-        delta = timedelta(minutes=15)
-        time_t = start_time
-        while time_t < stop_time:
-            dts.append(time_t)
-            time_t = time_t + delta
-        dt_arr = np.array(dts)
+        dt_arr = np.arange(start_time, stop_time, timedelta(minutes=15))
 
         # make airmass plot
         num_tgts = len(targets)
@@ -236,30 +225,41 @@ class Visibility(GingaPlugin.LocalPlugin):
             #target_data = target_data[idx:idx+num_tgts]
 
             self.fv.error_wrap(self.plot.plot_altitude, site,
-                               target_data, timezone, current_time=self._start_time,
+                               target_data, self.cur_tz,
+                               current_time=self.dt_utc,
                                plot_moon_distance=self.plot_moon_sep,
                                show_target_legend=self.plot_legend)
         self.fv.error_wrap(self.plot.draw)
 
     def replot(self):
-        self.plot_targets(self._start_time, self._site, self._targets,
-                          timezone=self._timezone)
+        if self._targets is not None:
+            self.plot_targets(self._targets)
 
     def toggle_mon_sep_cb(self, w, tf):
         self.plot_moon_sep = tf
-        if self._start_time is not None:
-            self.replot()
+        self.replot()
 
     def toggle_show_legend_cb(self, w, tf):
         self.plot_legend = tf
-        if self._start_time is not None:
-            self.replot()
+        self.replot()
 
     def set_time_axis_mode_cb(self, w, index):
         self.time_axis_mode =  w.get_text().lower()
         self.logger.info(f'self.time_axis_mode set to {self.time_axis_mode}')
-        if self._start_time is not None:
-            self.replot()
+        self.replot()
+
+    def time_changed_cb(self, cb, time_utc, cur_tz):
+        old_dt_utc = self.dt_utc
+        self.dt_utc = time_utc
+        self.cur_tz = cur_tz
+        # we will be called from Targets to replot
+        #self.fv.gui_do(self.replot)
+
+    def site_changed_cb(self, cb, site_obj):
+        self.logger.debug("site has changed")
+        self.site = site_obj
+        # we will be called from Targets to replot
+        #self.fv.gui_do(self.replot)
 
     def __str__(self):
         return 'visibility'
