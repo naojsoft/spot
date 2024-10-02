@@ -45,14 +45,17 @@ class AltitudePlot(plots.Plot):
 
     def plot_altitude(self, site, tgt_data, tz, current_time=None,
                       plot_moon_distance=False,
-                      show_target_legend=False):
+                      show_target_legend=False,
+                      center_time=None):
         self._plot_altitude(self.fig, site, tgt_data, tz, current_time=current_time,
                             plot_moon_distance=plot_moon_distance,
-                            show_target_legend=show_target_legend)
+                            show_target_legend=show_target_legend,
+                            center_time=center_time)
 
     def _plot_altitude(self, figure, site, tgt_data, tz, current_time=None,
                        plot_moon_distance=False,
-                       show_target_legend=False):
+                       show_target_legend=False,
+                       center_time=None):
         """
         Plot into `figure` an altitude chart using target data from `info`
         with time plotted in timezone `tz` (a tzinfo instance).
@@ -83,8 +86,8 @@ class AltitudePlot(plots.Plot):
         # so that we can include it in the plot title.
         localdate_start = lt_data[0]
         localdate_end = lt_data[-1]
-        localdate_start_str = localdate_start.strftime('%Y-%b-%d %Hh')
-        localdate_end_str = localdate_end.strftime('%Y-%b-%d %Hh')
+        localdate_start_str = localdate_start.strftime('%Y-%b-%d %H:%M')
+        localdate_end_str = localdate_end.strftime('%Y-%b-%d %H:%M')
 
         min_interval = 4
         mt = lt_data[0:-1:min_interval]
@@ -117,14 +120,15 @@ class AltitudePlot(plots.Plot):
                 for x, y, v in zip(mt, alt_interval, moon_sep):
                     if y < 0:
                         continue
-                    ax1.text(x, y, '%.1f' %v, fontsize=7,  ha='center', va='bottom')
+                    ax1.text(x, y, '%.1f' %v, fontsize=7, ha='center',
+                             va='bottom', clip_on=True)
                     ax1.plot_date(x, y, 'ko', ms=3)
 
             # plot object label
             targname = info.target.name
             ax1.text(mpl_dt.date2num(lt_data[alt_data.argmax()]),
                      alt_data.max() + 4.0, targname, color=color,
-                     ha='center', va='center')
+                     ha='center', va='center', clip_on=True)
 
         # legend target list
         if show_target_legend:
@@ -157,7 +161,7 @@ class AltitudePlot(plots.Plot):
                       alpha=0.5, aa=True, tz=tz)
         ax1.text(mpl_dt.date2num(illum_time),
                  moon_data.max() + 4.0, moon_name, color=moon_color,
-                 ha='center', va='center')
+                 ha='center', va='center', clip_on=True)
 
         # Plot airmass scale
         altitude_ticks = numpy.array([20, 30, 40, 50, 60, 70, 80, 90])
@@ -201,8 +205,11 @@ class AltitudePlot(plots.Plot):
         if lt_data[0] < lo < lt_data[-1]:
             self._plot_current_time(ax1, lo, hi)
 
-        # drawing the line of middle of the night
-        self._middle_night(ax1, site, localdate_start)
+        # drawing the line of center_time
+        if center_time is not None:
+            ymin, ymax = ax1.get_ylim()
+            ax1.vlines(center_time, ymin, ymax, colors='blue',
+                       linestyles='dashed', label='Time Center')
 
         # plot moon's position at midnight
         #self._moon_position(ax1, site)
@@ -210,15 +217,6 @@ class AltitudePlot(plots.Plot):
         canvas = self.fig.canvas
         if canvas is not None:
             canvas.draw()
-
-    def _middle_night(self, ax, site, localdate):
-        # night center
-        middle_night = site.night_center(date=localdate)
-
-        ymin, ymax = ax.get_ylim()
-
-        ax.vlines(middle_night, ymin, ymax, colors='blue',
-                  linestyles='dashed', label='Night center')
 
     def _plot_twilight(self, ax, site, localdate, tz, show_legend=False):
         # plot sunset

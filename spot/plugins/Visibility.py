@@ -89,7 +89,7 @@ class Visibility(GingaPlugin.LocalPlugin):
 
         top.add_widget(plot_w, stretch=1)
 
-        captions = (('Plot moon sep', 'checkbox', 'Centered on:', 'label', 'mode', 'combobox'), #'Show Legend', 'checkbox'),
+        captions = (('Plot moon sep', 'checkbox', 'Time axis:', 'label', 'mode', 'combobox'), #'Show Legend', 'checkbox'),
                     )
 
         w, b = Widgets.build_info(captions)
@@ -173,12 +173,20 @@ class Visibility(GingaPlugin.LocalPlugin):
             delta = timedelta(minutes=15)
             start_time = site.sunset(noon_time) - delta
             stop_time = site.sunrise(start_time) + delta
+            center_time = start_time + \
+                timedelta(seconds=int((stop_time - start_time).total_seconds()
+                                      * 0.5))
+
         elif self.time_axis_mode == 'day center':
             # plot period 15 minutes before sunrise to 15 minutes after sunset
             midnight_before = noon_time - timedelta(hours=12)
             delta = timedelta(minutes=15)
             start_time = site.sunrise(midnight_before) - delta
             stop_time = site.sunset(noon_time) + delta
+            center_time = start_time + \
+                timedelta(seconds=int((stop_time - start_time).total_seconds()
+                                      * 0.5))
+
         elif self.time_axis_mode == 'current':
             # Plot a time period and put the current time at 1/4 from
             # the left edge of the period.
@@ -186,6 +194,7 @@ class Visibility(GingaPlugin.LocalPlugin):
             start_offset_from_current_sec = time_period_sec / 4
             start_time = self.dt_utc - timedelta(seconds=start_offset_from_current_sec)
             stop_time = self.dt_utc + timedelta(seconds=time_period_sec)
+            center_time = self.dt_utc
 
         site.set_date(start_time)
         # create date array
@@ -228,7 +237,8 @@ class Visibility(GingaPlugin.LocalPlugin):
                                target_data, self.cur_tz,
                                current_time=self.dt_utc,
                                plot_moon_distance=self.plot_moon_sep,
-                               show_target_legend=self.plot_legend)
+                               show_target_legend=self.plot_legend,
+                               center_time=center_time)
         self.fv.error_wrap(self.plot.draw)
 
     def replot(self):
