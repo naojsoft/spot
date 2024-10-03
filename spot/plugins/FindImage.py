@@ -22,6 +22,7 @@ from astropy import units as u
 from astropy.coordinates import SkyCoord
 from astroquery.skyview import SkyView
 from astroquery.sdss import SDSS
+from astropy.table import Table
 
 # ginga
 from ginga.gw import Widgets, GwHelp
@@ -70,13 +71,13 @@ image_sources = {
     'STScI: poss2ukstu_blue': dict(),
     'STScI: poss2ukstu_red': dict(),
     'STScI: poss2ukstu_ir': dict(),
-    'SDSS: 17': dict(),
+    #'SDSS: 17': dict(),
     }
 
 service_urls = {
     'ESO': """https://archive.eso.org/dss/dss?ra={ra}&dec={dec}&mime-type=application/x-fits&x={arcmin}&y={arcmin}&Sky-Survey={survey}&equinox={equinox}""",
-    'PanSTARRS-1':  """http://ps1images.stsci.edu/cgi-bin/ps1cutouts?pos={pos}&filter={filter}&filetypes=stack&auxiliary=data&size={size}&output_size=1024&verbose=0&autoscale=99.500000&catlist=""",
     'STScI': """https://archive.stsci.edu/cgi-bin/dss_search?v={survey}&r={ra_deg}&d={dec_deg}&e={equinox}&h={arcmin}&w={arcmin}&f=fits&c=none&fov=NONE&v3=""",
+    'PanSTARRS-1': """https://ps1images.stsci.edu/cgi-bin/fitscut.cgi?ra={ra}&dec={dec}&size={size}&format={format}&output_size=1024"""
 }
 
 # replaced with astroquery
@@ -435,22 +436,57 @@ class FindImage(GingaPlugin.LocalPlugin):
 
         elif service == "PANSTARRS-1":
             self.logger.debug('Panstarrs 1...')
-            ra_list, dec_list = self.get_radec_list()
+            ra_deg, dec_deg = self.get_radec()
+            panstarrs_filter = survey.strip()
 
-            if ra_list[0].startswith("+"):
-                ra_list[0] = ra_list[0][1:]
+            self.logger.debug(f'Panstarrs1 ra={ra_deg}, dec={dec_deg}, filter={panstarrs_filter}')
 
-            pos = f'{ra_list[0]}%3A{ra_list[1]}%3A{ra_list[2]}+{dec_list[0]}%3A{dec_list[1]}%3A{dec_list[2]}'
+            def get_image_table(ra, dec, filters):
+                service = "https://ps1images.stsci.edu/cgi-bin/ps1filenames.py"
+                url = f"{service}?ra={ra_deg}&dec={dec_deg}&filters={filters}"
+                self.logger.debug(f'table url={url}')
+                # Read the ASCII table returned by the url
+                table = Table.read(url, format='ascii')
+                return table
 
-            pixel_arcmin = 240  # 240 pixels/1 arcmin
-            size = arcmin * pixel_arcmin
-            params = {'filter': survey,
-                      'pos': pos,
-                      'size': size,
-                      }
+            def get_imurl(ra, dec):
 
-            service_url = service_urls[service_name]
-            service_url = service_url.format(**params)
+                pixel_arcmin = 240  # 240 pixels/1 arcmin
+                size = arcmin * pixel_arcmin
+                service_url = service_urls[service_name]
+                self.logger.debug(f'url w params={service_url}')
+
+                if panstarrs_filter == 'color':
+                    filters = "grizy"
+                else:
+                    filters = panstarrs_filter
+
+                table = get_image_table(ra, dec, filters)
+                self.logger.debug(f'table={table}')
+
+                if panstarrs_filter == 'color':
+                    if len(table) < 3:
+                        raise ValueError("at least three filters are required for an RGB color image")
+                    # If more than 3 filters, pick 3 filters from the availble results
+
+                    params = {'ra': ra, 'dec': dec, 'size': size, 'format': 'jpg'}
+                    service_url = service_url.format(**params)
+
+                    if len(table) > 3:
+                        table = table[[0,len(table)//2,len(table)-1]]
+                        # Create the red, green, and blue files for our image
+                    for i, param in enumerate(["red","green","blue"]):
+                        service_url = service_url + f"&{param}={table['filename'][i]}"
+                else:
+                    params = {'ra': ra, 'dec': dec, 'size': size, 'format': 'fits'}
+                    service_url = service_url.format(**params)
+                    service_url = service_url + "&red=" + table[0]['filename']
+
+                self.logger.debug(f'service_url={service_url}')
+                return service_url
+
+            service_url = get_imurl(ra_deg, dec_deg)
+
             self.logger.debug(f'Panstarrs1 url={service_url}')
             self.fv.open_uris([service_url], chname=self.channel.name)
 
