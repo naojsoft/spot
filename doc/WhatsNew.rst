@@ -12,6 +12,8 @@ Ver 0.3.2 (unreleased)
   drop-down menu in the Targets plugin.
 - Added "List All Targets" checkbox to Targets plugin so you can list
   only OPE file targets or list targets from both OPE and PRM files.
+- Fixed an issue with PAN-STARRS downloads in the FindImage plugin
+- Added more documentation to the manual
 
 Ver 0.3.1 (2024-05-22)
 ======================

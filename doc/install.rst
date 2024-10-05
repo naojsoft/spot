@@ -75,7 +75,7 @@ For most users, we recommend installing the
 
      pip install .
 
-#. (**ONLY for NAOJ features**) then use `this file <http://github.com/naojsoft/spot/blob/main/spot_pip_requirements.txt>`_ to install the remaining requirements via *pip*::
+#. (**ONLY for NAOJ features**) then use `this pip requirements file <http://github.com/naojsoft/spot/blob/main/spot_pip_requirements.txt>`_ to install the remaining requirements via *pip*::
 
     pip install -r spot_pip_requirements.txt
 

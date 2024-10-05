@@ -22,7 +22,7 @@ CPanel Plugin Selection
 =======================
 
 Right of the Operation menu is a set of green and grey icons which 
-control and show the focus status of the :doc:`secondarychannels`.
+control and show the focus status of the existing channels.
 
 .. image:: figures/Selectrow2.png
 
