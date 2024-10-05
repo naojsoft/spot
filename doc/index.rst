@@ -7,6 +7,11 @@ SPOT: Site Planning and Observation Tool
 .. toctree::
    :maxdepth: 2
 
+.. image:: screenshot-wd1200.png
+   :width: 1200px
+   :align: center
+
+
 ==========
 About SPOT
 ==========
