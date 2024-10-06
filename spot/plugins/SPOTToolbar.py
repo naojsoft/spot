@@ -12,16 +12,28 @@
 Hovering over an icon on the toolbar should provide you with usage tool tip.
 
 """
-from ginga.rv.plugins import Toolbar
+from ginga.rv.plugins.Toolbar import Toolbar, Toolbar_Ginga_Image
 
-__all__ = ['SPOTToolbar']
+__all__ = ['SPOTToolbar', 'SPOTToolbar_Ginga_Image']
 
 
-class SPOTToolbar(Toolbar.Toolbar):
+class SPOTToolbar(Toolbar):
 
     def __init__(self, fv):
         # superclass defines some variables for us, like logger
         super().__init__(fv)
+
+        self.opname_prefix = 'SPOTToolbar_'
+
+    def __str__(self):
+        return 'spottoolbar'
+
+
+class SPOTToolbar_Ginga_Image(Toolbar_Ginga_Image):
+
+    def __init__(self, fv, chviewer):
+        # superclass defines some variables for us, like logger
+        super().__init__(fv, chviewer)
 
         self.layout = [
             # (Name, type, icon, tooltip)
@@ -40,11 +52,6 @@ class SPOTToolbar(Toolbar.Toolbar):
              self.orient_rh_cb),
             ("OrientLH", 'button', 'orient_ne', "Orient image N=Up E=Left",
              self.orient_lh_cb),
-            ("---",),
-            ("Up", 'button', 'up', "Go to previous image in channel",
-             lambda w: self.fv.prev_img()),
-            ("Down", 'button', 'down', "Go to next image in channel",
-             lambda w: self.fv.next_img()),
             ("---",),
             ("Zoom In", 'button', 'zoom_in', "Zoom in",
              lambda w: self.fv.zoom_in()),
@@ -90,15 +97,15 @@ class SPOTToolbar(Toolbar.Toolbar):
              self.reset_contrast_cb),
             ("---",),
             ("Preferences", 'button', 'settings', "Set channel preferences (in focused channel)",
-             lambda w: self.start_plugin_cb('Preferences')),
+             lambda w: self.start_local_plugin('Preferences')),
             # ("FBrowser", 'button', 'folder_open', "Open file (in focused channel)",
-            #  lambda w: self.start_plugin_cb('FBrowser')),
+            #  lambda w: self.start_local_plugin('FBrowser')),
             # ("MultiDim", 'button', 'layers', "Select HDUs or cube slices (in focused channel)",
-            #  lambda w: self.start_plugin_cb('MultiDim')),
+            #  lambda w: self.start_local_plugin('MultiDim')),
             ("Header", 'button', 'tags', "View image metadata (Header plugin)",
-             lambda w: self.start_global_plugin_cb('Header')),
+             lambda w: self.start_global_plugin('Header')),
             ("ZoomPlugin", 'button', 'microscope', "Magnify detail (Zoom plugin)",
-             lambda w: self.start_global_plugin_cb('Zoom'))]
+             lambda w: self.start_global_plugin('Zoom'))]
 
     def __str__(self):
-        return 'spottoolbar'
+        return 'spottoolbar_ginga_image'

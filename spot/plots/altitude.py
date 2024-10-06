@@ -5,14 +5,10 @@
 #   Copyright (c) 2008 UCO/Lick Observatory.
 #
 from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta
 import numpy
 
 import matplotlib.dates as mpl_dt
-import matplotlib as mpl
-from matplotlib.ticker import FormatStrFormatter
 
-from ginga.misc import Bunch
 from ginga.util import plots
 
 
@@ -120,7 +116,7 @@ class AltitudePlot(plots.Plot):
                 for x, y, v in zip(mt, alt_interval, moon_sep):
                     if y < 0:
                         continue
-                    ax1.text(x, y, '%.1f' %v, fontsize=7, ha='center',
+                    ax1.text(x, y, '%.1f' % v, fontsize=7, ha='center',
                              va='bottom', clip_on=True)
                     ax1.plot_date(x, y, 'ko', ms=3)
 
@@ -156,7 +152,7 @@ class AltitudePlot(plots.Plot):
         illum_time = lt_data[moon_data.argmax()]
         moon_illum = site.moon_illumination(date=illum_time)
         moon_color = '#666666'
-        moon_name = "Moon (%.2f %%)" % (moon_illum*100)
+        moon_name = "Moon (%.2f %%)" % (moon_illum * 100)
         ax1.plot_date(lt_data, moon_data, moon_color, linewidth=2.0,
                       alpha=0.5, aa=True, tz=tz)
         ax1.text(mpl_dt.date2num(illum_time),
@@ -165,7 +161,7 @@ class AltitudePlot(plots.Plot):
 
         # Plot airmass scale
         altitude_ticks = numpy.array([20, 30, 40, 50, 60, 70, 80, 90])
-        airmass_ticks = 1.0/numpy.cos(numpy.radians(90 - altitude_ticks))
+        airmass_ticks = 1.0 / numpy.cos(numpy.radians(90 - altitude_ticks))
         airmass_ticks = ["%.3f" % n for n in airmass_ticks]
 
         ax2 = ax1.twinx()
@@ -189,7 +185,7 @@ class AltitudePlot(plots.Plot):
         self._plot_limits(ax1, min_alt, max_alt)
 
         # Add yesterday's and today's twilight to the plot.
-        self._plot_twilight(ax1, site, localdate_start-timedelta(1), tz,
+        self._plot_twilight(ax1, site, localdate_start - timedelta(1), tz,
                             show_legend=show_target_legend)
         self._plot_twilight(ax1, site, localdate_start, tz,
                             show_legend=show_target_legend)
@@ -265,7 +261,7 @@ class AltitudePlot(plots.Plot):
         ct = ax.axvspan(mt6, t2, facecolor='#FF6F00', lw=None, ec='none', alpha=0.35)
 
         sr = ax.vlines(t2, ymin, ymax, colors=['red'],
-                   linestyles=['dashed'], label='Sunrise')
+                       linestyles=['dashed'], label='Sunrise')
 
         if show_legend:
             sunrise = "Sunrise {}".format(t2.strftime("%H:%M:%S"))

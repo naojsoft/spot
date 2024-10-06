@@ -4,7 +4,6 @@ from collections import namedtuple
 
 import numpy as np
 from astropy.coordinates import SkyCoord, AltAz
-from astropy.time import Time
 import astropy.units as u
 
 
@@ -139,6 +138,7 @@ def load_pam_file(pam_path, tgt_dict=None, pad_sec=0):
 
     return tgt_dict
 
+
 def make_target_array_radec(recs):
     """Make an array of PAM targets, with coordinates in RA/DEC.
 
@@ -159,6 +159,7 @@ def make_target_array_radec(recs):
                      frame='icrs')
     return coord
 
+
 def make_target_array_azel(recs, time_t=None, site=None):
     """Make an array of PAM targets, with coordinates in AZ/EL.
 
@@ -177,6 +178,7 @@ def make_target_array_azel(recs, time_t=None, site=None):
     coord = AltAz(az=data.T[0] * u.degree, alt=data.T[1] * u.degree,
                   obstime=time_t, location=site)
     return coord
+
 
 def get_window_status(time_sse, windows):
     time_remaining = 0

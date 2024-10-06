@@ -45,10 +45,12 @@ horizon_18 = -18.0
 
 
 def alt2airmass(alt_deg):
-    xp = 1.0 / np.sin(np.radians(alt_deg + 244.0/(165.0 + 47*alt_deg**1.1)))
+    xp = 1.0 / np.sin(np.radians(alt_deg + 244.0 / (165.0 + 47 * alt_deg ** 1.1)))
     return xp
 
+
 am_inv = np.array([(alt2airmass(alt), alt) for alt in range(0, 91, 1)])
+
 
 def airmass2alt(am):
     # TODO: vectorize
@@ -182,7 +184,7 @@ class Observer(object):
         # NOTE: airmass available from frame with 'secz' attribute
 
         az_deg, el_deg = altaz.az.deg, altaz.alt.deg
-        return az_deg, alt_deg
+        return az_deg, el_deg
 
     def calc(self, body, time_start):
         return body.calc(self, time_start)
@@ -218,7 +220,7 @@ class Observer(object):
         """
         # set observer's horizon to elevation for el_min or to achieve
         # desired airmass
-        if airmass != None:
+        if airmass is not None:
             # compute desired altitude from airmass
             alt_deg = airmass2alt(airmass)
             min_alt_deg = max(alt_deg, el_min_deg)
@@ -269,7 +271,7 @@ class Observer(object):
             ## raise AssertionError("time rise (%s) < time start (%s)" % (
             ##         time_rise, time_start))
             print(("WARNING: time rise (%s) < time start (%s)" % (
-                    time_rise, time_start)))
+                time_rise, time_start)))
             time_rise = time_start
 
         # last observable time is setting or end of period,
@@ -403,7 +405,7 @@ class Observer(object):
 
         t, y = self._find_rising(ssbodies['sun'], date,
                                  date + timedelta(days=1, hours=0),
-                                 horizon_6) # - solar_radius_deg * 2)
+                                 horizon_6)  # - solar_radius_deg * 2)
         return t[0].astimezone(self.tz_local)
 
     def morning_twilight_12(self, date=None):
@@ -416,7 +418,7 @@ class Observer(object):
 
         t, y = self._find_rising(ssbodies['sun'], date,
                                  date + timedelta(days=1, hours=0),
-                                 horizon_12) # - solar_radius_deg * 2)
+                                 horizon_12)  # - solar_radius_deg * 2)
         return t[0].astimezone(self.tz_local)
 
     def morning_twilight_18(self, date=None):
@@ -429,7 +431,7 @@ class Observer(object):
 
         t, y = self._find_rising(ssbodies['sun'], date,
                                  date + timedelta(days=1, hours=0),
-                                 horizon_18) # - solar_radius_deg * 2)
+                                 horizon_18)  # - solar_radius_deg * 2)
         return t[0].astimezone(self.tz_local)
 
     def sun_set_rise_times(self, date=None):
@@ -494,12 +496,12 @@ class Observer(object):
         text = ''
         text += 'Almanac for the night of %s\n' % date_s.split()[0]
         text += '\nEvening\n'
-        text += '_'*30 + '\n'
+        text += '_' * 30 + '\n'
         rst = self.sun_set_rise_times(date=date)
         rst = [t.strftime('%H:%M') for t in rst]
         text += 'Sunset: %s\n12d: %s\n18d: %s\n' % (rst[0], rst[1], rst[2])
         text += '\nMorning\n'
-        text += '_'*30 + '\n'
+        text += '_' * 30 + '\n'
         text += '18d: %s\n12d: %s\nSunrise: %s\n' % (rst[3], rst[4], rst[5])
         return text
 
@@ -572,11 +574,6 @@ class Body(object):
                                  obstime=obstime)
 
         return coord
-
-    def _get_body(self):
-        xeph_line = "%s,f|A,%s,%s,0.0,%s" % (self.name[:20], self.ra, self.dec,
-                                             self.equinox)
-        return ephem.readdb(xeph_line)
 
     def calc(self, observer, date):
         return CalculationResult(self, observer, date)
@@ -768,10 +765,6 @@ class CalculationResult(object):
     def pang(self):
         """Return the parallactic angle of the target(s) in radians."""
         if self._pang is None:
-            # self._pang = self._calc_parallactic(self.dec,
-            #                                     self.ha,
-            #                                     self.observer.lat_deg,
-            #                                     self.az)
             self._pang = self._calc_parallactic(self.dec,
                                                 self.ha,
                                                 self.observer.lat_deg)
@@ -852,39 +845,6 @@ class CalculationResult(object):
         altaz = moon.transform_to(frame)
         self._moon_alt = altaz.alt.deg
 
-    # def _calc_parallactic(self, dec, ha, lat_deg, az):
-    #     """Compute parallactic angle(s)."""
-    #     lat = np.radians(lat_deg)
-    #     cos_dec = np.cos(dec)
-    #     if isinstance(cos_dec, np.ndarray):
-    #         # handle poles (cos_dec == 0) in vector form
-    #         # holds the result
-    #         pang_res = np.zeros((len(dec)), float)
-    #         pole = np.isclose(cos_dec, 0.0)
-    #         notpole = np.logical_not(pole)
-
-    #         sinp = -1.0 * np.sin(az[notpole]) * np.cos(lat) / cos_dec[notpole]
-    #         cosp = -1.0 * np.cos(az[notpole]) * np.cos(ha[notpole]) - \
-    #                           np.sin(az[notpole]) * np.sin(ha[notpole]) * np.sin(lat)
-    #         pang_res[notpole] = np.arctan2(sinp[notpole], cosp[notpole])
-    #         if lat > 0.0:
-    #             pang_res[pole] = np.pi
-    #         else:
-    #             pang_res[pole] = 0.
-    #     else:
-    #         # scalar calculation
-    #         if not np.isclose(cos_dec, 0.0):
-    #             sinp = -1.0 * np.sin(az) * np.cos(lat) / cos_dec
-    #             cosp = -1.0 * np.cos(az) * np.cos(ha) - \
-    #                               np.sin(az) * np.sin(ha) * np.sin(lat)
-    #             pang_res = np.arctan2(sinp, cosp)
-    #         else:
-    #             if lat > 0.0:
-    #                 pang_res = np.pi
-    #             else:
-    #                 parang = 0.
-    #     return pang_res
-
     def _calc_parallactic(self, dec_rad, ha_rad, lat_deg):
         """Compute parallactic angle(s)."""
         lat_rad = np.radians(lat_deg)
@@ -933,7 +893,7 @@ class CalculationResult(object):
             else:
                 wl_mm = wl * self.angstrom_to_mm
                 refa, refb = self._calc_atmos_refco(bar_press_mbar, temp_degc, rh_pct, wl_mm)
-                atmos_disp_rad  = (refa + refb * tzd * tzd) * tzd
+                atmos_disp_rad = (refa + refb * tzd * tzd) * tzd
             return atmos_disp_rad
 
     def get_dict(self, columns=None):

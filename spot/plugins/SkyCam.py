@@ -159,7 +159,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
                                            self.config.get('flip_y', False),
                                            False),
                           image_update_interval=self.config.get(
-                                                'update_interval', 120.0))
+                              'update_interval', 120.0))
 
         xc, yc = self.settings['image_center']
         r = self.settings['image_radius']
@@ -256,14 +256,6 @@ class SkyCam(GingaPlugin.LocalPlugin):
 
         # start the image update loop
         self.fv.nongui_do(self.image_update_loop, self.ev_quit)
-
-        self.resume()
-
-    def pause(self):
-        self.canvas.ui_set_active(False)
-
-    def resume(self):
-        self.canvas.ui_set_active(True, viewer=self.viewer)
 
     def stop(self):
         self.ev_quit.set()
@@ -384,15 +376,15 @@ class SkyCam(GingaPlugin.LocalPlugin):
             self.viewer.auto_levels()
             self.viewer.redraw(whence=0)
         image_timestamp = datetime.datetime.now()
-        image_info_text = "Image download complete, displayed at: "+(
-                          image_timestamp.strftime("%D %H:%M:%S"))
+        image_info_text = "Image download complete, displayed at: " + \
+            image_timestamp.strftime("%D %H:%M:%S")
         self.w.select_image_info.set_text(image_info_text)
 
     def download_sky_image(self):
         try:
             image_timestamp = datetime.datetime.now()
-            image_info_text = "Initiating image download at: "+(
-                              image_timestamp.strftime("%D %H:%M:%S"))
+            image_info_text = "Initiating image download at: " + \
+                image_timestamp.strftime("%D %H:%M:%S")
             self.w.select_image_info.set_text(image_info_text)
             start_time = time.time()
             url = self.settings['image_url']
@@ -412,8 +404,8 @@ class SkyCam(GingaPlugin.LocalPlugin):
 
         except Exception as e:
             image_timestamp = datetime.datetime.now()
-            image_info_text = "Image download failed at: "+(
-                               image_timestamp.strftime("%D %H:%M:%S"))
+            image_info_text = "Image download failed at: " + \
+                image_timestamp.strftime("%D %H:%M:%S")
             self.w.select_image_info.set_text(image_info_text)
             self.logger.error("failed to download/update sky image: {}"
                               .format(e), exc_info=True)
@@ -449,6 +441,8 @@ class SkyCam(GingaPlugin.LocalPlugin):
                 # Add our canvas layer
                 p_canvas.add(self.canvas)
                 p_canvas.lower_object(self.canvas)
+            # NOTE: Targets plugin canvas needs to be the active one
+            self.canvas.ui_set_active(False)
 
         else:
             if self.canvas in p_canvas:

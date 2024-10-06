@@ -26,7 +26,7 @@ import os
 import json
 
 # ginga
-from ginga.gw import Widgets, Plot
+from ginga.gw import Widgets
 from ginga import GingaPlugin
 from ginga.misc import Bunch
 from ginga.util.paths import ginga_home

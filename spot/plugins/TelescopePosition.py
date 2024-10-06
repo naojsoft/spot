@@ -57,9 +57,10 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         r = self.settings.get('tel_fov_deg') * 0.5 * scale
         objs.append(self.dc.Circle(0.0, 0.0, r, linewidth=1, color=color))
         off = 4 * scale
-        objs.append(self.dc.Line(r, r, r+off, r+off, linewidth=1,
+        objs.append(self.dc.Line(r, r, r + off, r + off, linewidth=1,
                                  arrow='start', color=color))
-        objs.append(self.dc.Text(r+off, r+off, text='Telescope', color=color,
+        objs.append(self.dc.Text(r + off, r + off, text='Telescope',
+                                 color=color,
                                  fontscale=True, fontsize_min=12,
                                  rot_deg=-45.0))
         objs.append(self.dc.Line(0.0, 0.0, 0.0, 0.0, color='slateblue',
@@ -167,6 +168,8 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         if self.canvas not in p_canvas:
             # Add our canvas
             p_canvas.add(self.canvas)
+        # NOTE: Targets plugin canvas needs to be the active one
+        self.canvas.ui_set_active(False)
 
         self.canvas.delete_all_objects()
 
@@ -174,14 +177,6 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         self.update_telescope_plot()
 
         self.update_tel_timer_cb(self.tmr)
-
-        self.resume()
-
-    def pause(self):
-        self.canvas.ui_set_active(False)
-
-    def resume(self):
-        self.canvas.ui_set_active(True, viewer=self.viewer)
 
     def stop(self):
         self.tmr.stop()

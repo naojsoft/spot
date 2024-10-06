@@ -14,16 +14,14 @@ Requires:
   * ginga (https://github.com/naojsoft/ginga.git)
   * naojutils (https://github.com/naojsoft/naojutils.git)
 """
-import os
 import numpy
-import tempfile
 
 from ginga import GingaPlugin
 from ginga.gw import Widgets
-from ginga.misc import Bunch, Future
 from ginga.util import wcs
 
 from naoj.hsc import ccd_info, sdo
+
 
 class HSCPlanner(GingaPlugin.LocalPlugin):
     """
@@ -253,7 +251,7 @@ class HSCPlanner(GingaPlugin.LocalPlugin):
         self.w.update(b)
 
         b.update_image.add_callback('activated',
-                                       lambda w: self.update_info_cb())
+                                    lambda w: self.update_info_cb())
         b.clear_overlays.add_callback('activated',
                                       lambda w: self.clear_overlays())
 
@@ -335,7 +333,7 @@ class HSCPlanner(GingaPlugin.LocalPlugin):
             self.w.lbl_dith1.set_text("RDITH:")
             self.w.lbl_dith2.set_text("TDITH:")
             self.w.skip.set_enabled(True)
-            self.w.skip.set_limits(0, N-1)
+            self.w.skip.set_limits(0, N - 1)
             self.w.skip.set_value(0)
             self.w.stop.set_enabled(True)
             self.w.stop.set_limits(1, N)
@@ -414,8 +412,8 @@ class HSCPlanner(GingaPlugin.LocalPlugin):
         tdith = float(self.w.dith2.get_text())
         ndith = float(self.dither_steps)
 
-        sin_res = numpy.sin(numpy.radians(n * 360.0/ndith + tdith))
-        cos_res = numpy.cos(numpy.radians(n * 360.0/ndith + tdith))
+        sin_res = numpy.sin(numpy.radians(n * 360.0 / ndith + tdith))
+        cos_res = numpy.cos(numpy.radians(n * 360.0 / ndith + tdith))
         self.logger.debug("sin=%f cos=%f" % (sin_res, cos_res))
 
         ctr_ra, ctr_dec = wcs.add_offset_radec(
@@ -440,17 +438,19 @@ class HSCPlanner(GingaPlugin.LocalPlugin):
         stop = self.w.stop.get_value()
 
         if dith_type == '1':
-            return 1, 1, [ self.calc_dither1(n) for n in range(1, 2) ]
+            return 1, 1, [self.calc_dither1(n) for n in range(1, 2)]
         elif dith_type == '5':
-            return skip+1, stop, [ self.calc_dither5(n) for n in range(skip+1, stop+1) ]
+            return skip + 1, stop, [self.calc_dither5(n)
+                                    for n in range(skip + 1, stop + 1)]
         elif dith_type == 'N':
             #N = self.dither_steps
-            return skip+1, stop, [ self.calc_ditherN(n) for n in range(skip+1, stop+1) ]
+            return skip + 1, stop, [self.calc_ditherN(n)
+                                    for n in range(skip + 1, stop + 1)]
 
     def set_dither_steps_cb(self, n):
         self.dither_steps = n
         ## self.w.show_step.set_limits(1, n)
-        self.w.skip.set_limits(0, n-1)
+        self.w.skip.set_limits(0, n - 1)
         self.w.skip.set_value(0)
         self.w.stop.set_limits(1, n)
         self.w.stop.set_value(n)
@@ -497,23 +497,14 @@ class HSCPlanner(GingaPlugin.LocalPlugin):
         except KeyError:
             # Add our layer
             p_canvas.add(self.canvas, tag=self.layertag)
-
-        self.resume()
-
-    def pause(self):
         self.canvas.ui_set_active(False)
 
-    def resume(self):
-        self.canvas.ui_set_active(True)
-        self.fv.show_status("")
-
     def stop(self):
-        self.pause()
         # remove the canvas from the image
         p_canvas = self.fitsimage.get_canvas()
         try:
             p_canvas.delete_object_by_tag(self.layertag)
-        except:
+        except Exception:
             pass
         self.fv.show_status("")
 
@@ -539,11 +530,10 @@ class HSCPlanner(GingaPlugin.LocalPlugin):
         keys = list(info.keys())
         keys.sort()
         for key in keys:
-            path = [ wcs.add_offset_radec(ctr_ra, ctr_dec, dra, ddec)
-                     for dra, ddec in info[key]['polygon'] ]
+            path = [wcs.add_offset_radec(ctr_ra, ctr_dec, dra, ddec)
+                    for dra, ddec in info[key]['polygon']]
             paths.append((key, path))
         return paths
-
 
     def draw_ccds(self, ctr_ra_deg, ctr_dec_deg):
         image = self.fitsimage.get_image()

@@ -107,11 +107,14 @@ def update_status(dct):
     global _external_status_dct
     _external_status_dct.update(dct)
 
+
 def get_site_names():
     return site_names
 
+
 def get_site(name):
     return site_dict[name]
+
 
 def configure_sites(yml_dct):
     global site_dict, site_names
@@ -125,6 +128,7 @@ def configure_sites(yml_dct):
         site_dict[name] = site
 
     site_names.sort()
+
 
 def configure_default_sites():
     with open(cfg_sites_yml, 'r') as in_f:

@@ -18,10 +18,15 @@ class Target(Body):
         self.category = category
         self.metadata = None
 
-    def set_metadata(self, **kwargs):
+    def set(self, **kwargs):
         if self.metadata is None:
             self.metadata = Bunch.Bunch()
         self.metadata.update(kwargs)
+
+    def get(self, key, default_val):
+        if self.metadata is None:
+            return default_val
+        return self.metadata.get(key, default_val)
 
     def import_record(self, rec):
         self.name = rec['Name']

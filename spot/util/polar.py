@@ -1,5 +1,6 @@
 import math
 
+
 def subaru_normalize_az(az_deg):
     az_deg = az_deg + 180.0
     #az_deg = az_deg % 360.0

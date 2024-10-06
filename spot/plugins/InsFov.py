@@ -12,7 +12,7 @@ naojsoft packages
 import numpy as np
 
 # ginga
-from ginga.gw import Widgets, GwHelp
+from ginga.gw import Widgets
 from ginga import GingaPlugin, trcalc
 from ginga.util import wcs
 from ginga.canvas.coordmap import BaseMapper
@@ -145,15 +145,9 @@ class InsFov(GingaPlugin.LocalPlugin):
         p_canvas = self.viewer.get_canvas()
         if self.canvas not in p_canvas:
             p_canvas.add(self.canvas)
-
-        self.resume()
-        self.redo()
-
-    def pause(self):
         self.canvas.ui_set_active(False)
 
-    def resume(self):
-        self.canvas.ui_set_active(True, viewer=self.viewer)
+        self.redo()
 
     def stop(self):
         self.gui_up = False
@@ -802,6 +796,7 @@ class PF_FOV(FOV):
 class HSC_FOV(PF_FOV):
     pass
 
+
 class PFS_FOV(PF_FOV):
     pass
 
@@ -833,7 +828,6 @@ class UnRotatedDataMapper(BaseMapper):
         xoff, yoff = np.transpose(offset)
         rot_x, rot_y = trcalc.rotate_pt(x, y, theta, xoff=xoff, yoff=yoff)
         return np.asarray((rot_x, rot_y)).T
-
 
 
 inst_fov = dict(AO188=AO188_FOV, IRCS=IRCS_FOV, IRD=IRD_FOV, COMICS=COMICS_FOV,

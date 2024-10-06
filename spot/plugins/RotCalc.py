@@ -13,7 +13,6 @@ from datetime import timedelta
 import os
 
 import numpy as np
-import pandas as pd
 
 # ginga
 from ginga.gw import Widgets, GwHelp
@@ -100,7 +99,7 @@ class RotCalc(GingaPlugin.LocalPlugin):
         obj.cb.add_callback('time-changed', self.time_changed_cb)
 
         targets = self.channel.opmon.get_plugin('Targets')
-        targets.cb.add_callback('selection-changed', self.target_selection_cb)
+        targets.cb.add_callback('tagged-changed', self.target_selection_cb)
 
         top = Widgets.VBox()
         top.set_border_width(4)
@@ -139,8 +138,8 @@ class RotCalc(GingaPlugin.LocalPlugin):
         fr = Widgets.Frame("Pointing")
 
         captions = (('RA:', 'label', 'ra', 'entry', 'DEC:', 'label',
-                     'dec', 'entry', #),
-                    #('Equinox:', 'label', 'equinox', 'entry',
+                     'dec', 'entry',  # ),
+                     #('Equinox:', 'label', 'equinox', 'entry',
                      'Name:', 'label', 'tgt_name', 'entry'),
                     ('__ph1', 'spacer', 'Setup', 'button',
                      '__ph2', 'spacer', 'Record', 'button',
@@ -246,7 +245,7 @@ class RotCalc(GingaPlugin.LocalPlugin):
             if res.rot1_start_deg < res.rot1_stop_deg:
                 tot1_deg = abs(self.rot_limits[1] - res.rot1_start_deg)
             else:
-                tot1_deg =  abs(self.rot_limits[0] - res.rot1_start_deg)
+                tot1_deg = abs(self.rot_limits[0] - res.rot1_start_deg)
 
         if not (self.rot_limits[0] <= res.rot2_start_deg <= self.rot_limits[1]):
             tot2_deg = -1
@@ -283,7 +282,7 @@ class RotCalc(GingaPlugin.LocalPlugin):
             if res2.az1_start_deg < res2.az1_stop_deg:
                 tot1_deg = abs(self.az_limits[1] - res2.az1_start_deg)
             else:
-                tot1_deg =  abs(self.az_limits[0] - res2.az1_start_deg)
+                tot1_deg = abs(self.az_limits[0] - res2.az1_start_deg)
 
         if not (self.az_limits[0] <= res2.az2_start_deg <= self.az_limits[1]):
             tot2_deg = -1
@@ -325,7 +324,7 @@ class RotCalc(GingaPlugin.LocalPlugin):
                                            min_az_move=("%.1f" % min_az_move),
                                            max_az_time=("%.1f" % max_az_time),
                                            az_chosen=("%.1f" % -9999),
-                                      )
+                                           )
         self.w.rot_tbl.set_tree(self.tbl_dct)
         self.w.setup.set_text("Cancel")
         self.w.record.set_enabled(True)
@@ -415,10 +414,10 @@ class RotCalc(GingaPlugin.LocalPlugin):
             self.w.cmd_rot.set_text("%.2f" % self.rot_cmd_deg)
 
     def normalize_az(self, res):
-        new_res = Bunch.Bunch(az1_start_deg = subaru_normalize_az(res.az1_start_deg),
-                              az1_stop_deg = subaru_normalize_az(res.az1_stop_deg),
-                              az2_start_deg = subaru_normalize_az(res.az2_start_deg),
-                              az2_stop_deg = subaru_normalize_az(res.az2_stop_deg))
+        new_res = Bunch.Bunch(az1_start_deg=subaru_normalize_az(res.az1_start_deg),
+                              az1_stop_deg=subaru_normalize_az(res.az1_stop_deg),
+                              az2_start_deg=subaru_normalize_az(res.az2_start_deg),
+                              az2_stop_deg=subaru_normalize_az(res.az2_stop_deg))
         return new_res
 
     def update_tel_timer_cb(self, timer):

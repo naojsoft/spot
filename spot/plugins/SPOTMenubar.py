@@ -9,7 +9,6 @@ The ``SPOTMenubar`` plugin provides a default menubar for SPOT.
 
 """
 from ginga.rv.plugins import Menubar
-from ginga.gw import Widgets
 
 __all__ = ['SPOTMenubar']
 

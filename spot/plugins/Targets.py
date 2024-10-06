@@ -25,12 +25,7 @@ naojsoft packages
 """
 # stdlib
 import os
-import time
-from datetime import datetime, timedelta
-from dateutil import tz, parser
-import math
 from collections import OrderedDict
-import csv
 
 # 3rd party
 import numpy as np
@@ -111,7 +106,6 @@ class Targets(GingaPlugin.LocalPlugin):
     hour angle, airmass, atmospheric dispersion, parallactic angle and moon
     separation.
 
-
     """
     def __init__(self, fv, fitsimage):
         super().__init__(fv, fitsimage)
@@ -131,22 +125,23 @@ class Targets(GingaPlugin.LocalPlugin):
         self.home = os.path.expanduser('~')
 
         self.cb = Callback.Callbacks()
-        for name in ['selection-changed']:
+        for name in ['tagged-changed']:
             self.cb.enable_callback(name)
 
         self.colors = ['red', 'blue', 'green', 'cyan', 'magenta', 'yellow']
         self.base_circ = None
         self.target_dict = {}
         self.full_tgt_list = []
-        self.plot_which = 'selected'
+        self.plot_which = 'tagged'
         self.plot_ss_objects = self.settings.get('plot_ss_objects', True)
+        self.tagged = set([])
         self.selected = set([])
         self.tgt_df = None
         self.ss_df = None
         self._mbody = None
+        self._updating_table_flag = False
 
-
-        self.columns = [('Selected', 'selected'),
+        self.columns = [('Tagged', 'tagged'),
                         ('Name', 'name'),
                         ('Az', 'az_deg'),
                         ('Alt', 'alt_deg'),
@@ -194,9 +189,10 @@ class Targets(GingaPlugin.LocalPlugin):
         self.viewer = self.fitsimage
         self.dc = fv.get_draw_classes()
         canvas = self.dc.DrawingCanvas()
+        canvas.enable_draw(False)
+        canvas.register_for_cursor_drawing(self.fitsimage)
         canvas.set_surface(self.fitsimage)
         canvas.set_draw_mode('pick')
-        canvas.register_for_cursor_drawing(self.fitsimage)
         self.canvas = canvas
 
         self.gui_up = False
@@ -238,11 +234,12 @@ class Targets(GingaPlugin.LocalPlugin):
         hbox.add_widget(self.w.update_time, stretch=0)
         hbox.add_widget(Widgets.Label(''), stretch=1)
         cbox = Widgets.CheckBox("Merge Targets")
+        cbox.set_tooltip("Put all targets under one category called 'Targets'")
         self.w.merge_targets = cbox
         cbox.set_state(False)
         hbox.add_widget(cbox, stretch=0)
-        cbox = Widgets.CheckBox("List All Targets")
-        cbox.set_tooltip("List only targets referenced in OPE file or list all targets in OPE and PRM files")
+        cbox = Widgets.CheckBox("List PRM Targets")
+        cbox.set_tooltip("Show unreferenced targets in .prm files")
         self.w.list_all_targets = cbox
         cbox.set_state(False)
         cbox.add_callback('activated', self.list_all_cb)
@@ -261,26 +258,26 @@ class Targets(GingaPlugin.LocalPlugin):
         self.w.tgt_tbl.add_callback('activated', self.target_single_cb)
 
         hbox = Widgets.HBox()
-        btn = Widgets.Button("Select")
-        btn.set_tooltip("Add highlighted items to selected targets")
-        btn.add_callback('activated', self.select_cb)
+        btn = Widgets.Button("Tag")
+        btn.set_tooltip("Add highlighted items to tagged targets")
+        btn.add_callback('activated', self.tag_cb)
         hbox.add_widget(btn, stretch=0)
-        self.w.btn_select = btn
-        btn = Widgets.Button("Unselect")
-        btn.set_tooltip("Remove highlighted items from selected targets")
-        btn.add_callback('activated', self.unselect_cb)
+        self.w.btn_tag = btn
+        btn = Widgets.Button("Untag")
+        btn.set_tooltip("Remove highlighted items from tagged targets")
+        btn.add_callback('activated', self.untag_cb)
         hbox.add_widget(btn, stretch=0)
-        self.w.btn_unselect = btn
-        btn = Widgets.Button("Select All")
-        btn.set_tooltip("Add all targets to selected targets")
-        btn.add_callback('activated', self.select_all_cb)
+        self.w.btn_untag = btn
+        btn = Widgets.Button("Tag All")
+        btn.set_tooltip("Add all targets to tagged targets")
+        btn.add_callback('activated', self.tag_all_cb)
         hbox.add_widget(btn, stretch=0)
-        self.w.btn_select_all = btn
-        btn = Widgets.Button("Unselect All")
-        btn.set_tooltip("Clear all targets from selected targets")
-        btn.add_callback('activated', self.unselect_all_cb)
+        self.w.btn_tag_all = btn
+        btn = Widgets.Button("Untag All")
+        btn.set_tooltip("Clear all targets from tagged targets")
+        btn.add_callback('activated', self.untag_all_cb)
         hbox.add_widget(btn, stretch=0)
-        self.w.btn_unselect_all = btn
+        self.w.btn_untag_all = btn
         btn = Widgets.Button("Delete")
         btn.set_tooltip("Delete selected target from targets")
         btn.add_callback('activated', self.delete_cb)
@@ -297,7 +294,7 @@ class Targets(GingaPlugin.LocalPlugin):
         hbox.add_widget(Widgets.Label('Plot:'), stretch=0)
         plot = Widgets.ComboBox()
         hbox.add_widget(plot, stretch=0)
-        for option in ['All', 'Selected']:
+        for option in ['All', 'Tagged']:
             plot.append_text(option)
         plot.set_index(1)
         plot.add_callback('activated', self.configure_plot_cb)
@@ -337,7 +334,7 @@ class Targets(GingaPlugin.LocalPlugin):
             'set', self.change_radius_cb)
 
         # insert canvas, if not already
-        p_canvas = self.fitsimage.get_canvas()
+        p_canvas = self.viewer.get_canvas()
         if self.canvas not in p_canvas:
             # Add our canvas
             p_canvas.add(self.canvas)
@@ -354,6 +351,7 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def resume(self):
         self.canvas.ui_set_active(True, viewer=self.viewer)
+        self.canvas.set_draw_mode('pick')
 
     def stop(self):
         self.gui_up = False
@@ -378,8 +376,8 @@ class Targets(GingaPlugin.LocalPlugin):
     def filter_targets(self, tgt_df):
         if self.plot_which == 'all':
             shown_tgt_lst = tgt_df
-        elif self.plot_which == 'selected':
-            shown_tgt_lst = tgt_df[tgt_df['selected'] == True]
+        elif self.plot_which == 'tagged':
+            shown_tgt_lst = tgt_df[tgt_df['tagged']]
 
         return shown_tgt_lst
 
@@ -389,7 +387,18 @@ class Targets(GingaPlugin.LocalPlugin):
             return
         idx = info.get('index')
         # TODO
-        #self.table.show_selection(info.star)
+        path = [info.get('category', None), info.get('name', None)]
+        if None in path or not self.gui_up:
+            return
+        if action == 'select':
+            self.w.tgt_tbl.clear_selection()
+            self.w.tgt_tbl.select_path(path)
+            # NOTE: Ginga TreeWidget doesn't call the callback for
+            # selection changed if it is done programatically.  So
+            # we need to manually call the callback here to get the
+            # same effect
+            sel_dct = self.w.tgt_tbl.get_selected()
+            self.target_selection_cb(self.w.tgt_tbl, sel_dct)
         return True
 
     def plot_targets(self, tgt_df, tag):
@@ -412,23 +421,30 @@ class Targets(GingaPlugin.LocalPlugin):
         self.logger.info("plotting {} targets tag {}".format(len(tgt_df), tag))
         objs = []
         for idx, row in tgt_df.iterrows():
+            category = row.get('category', None)
+            name = row.get('name', None)
+            tgt = self.target_dict.get((category, name), None)
             is_ref = row.get('is_ref', None)
             if tag == 'ss' or self.w.list_all_targets.get_state() or is_ref:
                 alpha = 1.0 if row['alt_deg'] > 0 else 0.0
+                if tgt is None:
+                    color = row['color']
+                else:
+                    color = self._get_target_color(tgt)
                 t, r = self.map_azalt(row['az_deg'], row['alt_deg'])
                 x, y = self.p2r(r, t)
                 point = self.dc.Point(x, y, radius=pt_radius, style='cross',
-                                      color=row['color'], fillcolor=row['color'],
+                                      color=color, fillcolor=color,
                                       linewidth=2, alpha=alpha,
                                       fill=True, fillalpha=alpha)
                 radius = radius_dct.get(row['name'], cl_radius)
-                circle = self.dc.Circle(x, y, radius, color=row['color'],
+                circle = self.dc.Circle(x, y, radius, color=color,
                                         linewidth=1, alpha=alpha,
-                                        fill=fill, fillcolor=row['color'],
+                                        fill=fill, fillcolor=color,
                                         fillalpha=alpha * 0.7)
                 text = self.dc.Text(x, y, row['name'],
-                                    color=row['color'], alpha=alpha,
-                                    fill=True, fillcolor=row['color'],
+                                    color=color, alpha=alpha,
+                                    fill=True, fillcolor=color,
                                     fillalpha=alpha, linewidth=0,
                                     font="Roboto condensed bold",
                                     fontscale=True,
@@ -436,10 +452,14 @@ class Targets(GingaPlugin.LocalPlugin):
                 star = self.dc.CompoundObject(point, circle, text)
                 star.opaque = True
                 star.pickable = True
-                star.set_data(tag=tag, index=idx)
+                star.set_data(tag=tag, index=idx, name=name,
+                              category=category)
                 star.add_callback('pick-up', self.select_star_cb, 'select')
                 #star.add_callback('pick-hover', self.select_star_cb, 'info')
                 objs.append(star)
+
+                if tag == 'targets':
+                    self.target_dict[(category, name)].set(plotted=star)
 
         o = self.dc.CompoundObject(*objs)
         self.canvas.add(o, tag=tag, redraw=False)
@@ -450,7 +470,7 @@ class Targets(GingaPlugin.LocalPlugin):
             # don't plot visibility of solar system objects in Visibility
             return
 
-        tgt_list = self.full_tgt_list if self.plot_which == 'all' else self.selected
+        tgt_list = self.full_tgt_list if self.plot_which == 'all' else self.tagged
         targets = []
         for tgt in tgt_list:
             is_ref = tgt.metadata.is_ref
@@ -505,19 +525,6 @@ class Targets(GingaPlugin.LocalPlugin):
                           for tgt in self.full_tgt_list]).T
         self._mbody = calcpos.Body(names, arr[0], arr[1], arr[2])
 
-    def _create_addl_tgt_cols(self):
-        # create columns for target color, selected and category
-        self._addl_tgt_cols = np.asarray([('green2' if tgt not in
-                                           self.selected else 'pink',
-                                           tgt.category)
-                                           for tgt in self.full_tgt_list]).T
-        self._col_selected = np.array([tgt in self.selected
-                                       for tgt in self.full_tgt_list],
-                                      dtype=bool)
-        self._is_ref =  np.array([tgt.metadata.is_ref
-                                  for tgt in self.full_tgt_list],
-                                 dtype=bool)
-
     def update_all(self, targets_changed=False):
         start_time = self.get_datetime()
         self._last_tgt_update_dt = start_time
@@ -529,15 +536,23 @@ class Targets(GingaPlugin.LocalPlugin):
             # create multi-coordinate body if not yet created
             if targets_changed or self._mbody is None:
                 self._create_multicoord_body()
-                self._create_addl_tgt_cols()
 
             # get full information about all targets at `start_time`
             cres = self._mbody.calc(self.site.observer, start_time)
             dct_all = cres.get_dict()
-            dct_all['color'] = self._addl_tgt_cols[0]
-            dct_all['category'] = self._addl_tgt_cols[1]
-            dct_all['selected'] = self._col_selected
-            dct_all['is_ref'] = self._is_ref
+
+            # add additional columns
+            _addl_str_cols = np.asarray([(tgt.get('color', 'green2'),
+                                          tgt.category)
+                                         for tgt in self.full_tgt_list]).T
+            _addl_bool_cols = np.array([(tgt in self.tagged,
+                                         tgt.metadata.get('is_ref', True))
+                                        for tgt in self.full_tgt_list],
+                                       dtype=bool).T
+            dct_all['color'] = _addl_str_cols[0]
+            dct_all['category'] = _addl_str_cols[1]
+            dct_all['tagged'] = _addl_bool_cols[0]
+            dct_all['is_ref'] = _addl_bool_cols[1]
 
             # make pandas dataframe from result
             self.tgt_df = pd.DataFrame.from_dict(dct_all, orient='columns')
@@ -639,7 +654,7 @@ class Targets(GingaPlugin.LocalPlugin):
                        equinox=eq,
                        comment=row.get('comment', ''),
                        category=category)
-            t.set_metadata(is_ref=row.get('IsRef', None))
+            t.set(is_ref=row.get('IsRef', None))
             new_targets.append(t)
 
         if not merge:
@@ -659,6 +674,7 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def process_csv_file_for_targets(self, csv_path):
         tgt_df = pd.read_csv(csv_path)
+        tgt_df['IsRef'] = [True for i in range(len(tgt_df))]
         merge = self.w.merge_targets.get_state()
         category = csv_path if not merge else "Targets"
         self.add_targets(category, tgt_df, merge=merge)
@@ -703,12 +719,13 @@ class Targets(GingaPlugin.LocalPlugin):
         self.add_targets(category, tgt_df, merge=merge)
 
     def targets_to_table(self, tgt_df):
+        print("targets to table")
         tree_dict = OrderedDict()
         for idx, row in tgt_df.iterrows():
             is_ref = row.get('is_ref', None)
             if self.w.list_all_targets.get_state() or is_ref:
                 dct = tree_dict.setdefault(row.category, dict())
-                selected = row['selected']
+                tagged = row['tagged']
                 # NOTE: AZ values are normalized to standard use
                 az_deg = self.site.norm_to_az(row.az_deg)
                 # find shorter of the two azimuth choices
@@ -719,7 +736,7 @@ class Targets(GingaPlugin.LocalPlugin):
                                         row.atmos_disp_guiding)
                 calc_ad = max(ad_observe, ad_guide) - min(ad_observe, ad_guide)
                 dct[row['name']] = Bunch.Bunch(
-                    selected=chr(0x2714) if selected else '',
+                    tagged=chr(0x2714) if tagged else '',
                     name=row['name'],
                     ra=wcs.ra_deg_to_str(row.ra_deg),
                     dec=wcs.dec_deg_to_str(row.dec_deg),
@@ -727,36 +744,75 @@ class Targets(GingaPlugin.LocalPlugin):
                     az_deg=("% 4d" % int(round(az_deg))),
                     alt_deg=("% 3d" % int(round(row.alt_deg))),
                     parang_deg=("% 3d" % int(row.pang_deg)),
-                    ha=("% 6.2f" % (np.degrees(row.ha)/15)),
+                    ha=("% 6.2f" % (np.degrees(row.ha) / 15)),
                     icon=self._get_dir_icon(row),
                     airmass=("% 5.2f" % row.airmass),
                     moon_sep=("% 3d" % int(round(row.moon_sep))),
                     # TODO
                     #comment=row.comment,
-                    ad=("% .1f" % (np.degrees(calc_ad)*3600)))
+                    ad=("% .1f" % (np.degrees(calc_ad) * 3600)))
 
         # save and restore selection after update
-        paths = self.w.tgt_tbl.get_selected_paths()
-        self.w.tgt_tbl.set_tree(tree_dict)
+        #paths = self.w.tgt_tbl.get_selected_paths()
+        # NOTE: calling set_tree() will trigger the target_selection_cb,
+        # clearing the selected targets, etc.  So we use this flag to
+        # prevent that from happening and restore the selections.
+        self._updating_table_flag = True
+        try:
+            self.w.tgt_tbl.set_tree(tree_dict)
+        finally:
+            self._updating_table_flag = False
+
+        paths = [[tgt.category, tgt.name] for tgt in self.selected]
         self.w.tgt_tbl.select_paths(paths)
 
-    def target_selection_update(self):
+    def target_tagged_update(self):
         self.clear_plot()
-        # change columns with selection info
-        self._create_addl_tgt_cols()
         self.update_all()
 
-        self.cb.make_callback('selection-changed', self.selected)
+        self.cb.make_callback('tagged-changed', self.tagged)
+
+    def _get_target_color(self, tgt):
+        if tgt in self.selected:
+            color = 'cyan'
+        elif tgt in self.tagged:
+            color = 'pink'
+        else:
+            color = 'green2'
+        return color
+
+    def _update_target_colors(self, targets):
+        for tgt in targets:
+            obj = tgt.get('plotted', None)
+            if obj is not None:
+                color = self._get_target_color(tgt)
+                point, circle, text = obj.objects[:3]
+                point.color = point.fillcolor = color
+                circle.color = color
+                text.color = text.fillcolor = color
+
+        self.fitsimage.redraw(whence=3)
 
     def target_selection_cb(self, w, sel_dct):
+        if self._updating_table_flag:
+            # see NOTE in targets_to_table()
+            return
+        new_highlighted = set([self.target_dict[(category, name)]
+                               for category, dct in sel_dct.items()
+                               for name in dct.keys()])
+        updated_tgts = (self.selected - new_highlighted).union(
+            new_highlighted - self.selected)
+        self.selected = new_highlighted
+        self._update_target_colors(updated_tgts)
+
         self._update_selection_buttons()
 
     def target_single_cb(self, w, sel_dct):
         selected = set([self.target_dict[(category, name)]
                         for category, dct in sel_dct.items()
                         for name in dct.keys()])
-        self.selected = selected
-        self.target_selection_update()
+        self.tagged = selected
+        self.target_tagged_update()
 
     def list_all_cb(self, w, arg1):
         if self.tgt_df is not None:
@@ -764,22 +820,22 @@ class Targets(GingaPlugin.LocalPlugin):
             self.update_targets(self.tgt_df, 'targets')
         self.update_targets(self.ss_df, 'ss')
 
-    def select_cb(self, w):
+    def tag_cb(self, w):
         sel_dct = self.w.tgt_tbl.get_selected()
         selected = set([self.target_dict[(category, name)]
                         for category, dct in sel_dct.items()
                         for name in dct.keys()])
-        self.selected = self.selected.union(selected)
-        self.target_selection_update()
+        self.tagged = self.tagged.union(selected)
+        self.target_tagged_update()
         self._update_selection_buttons()
 
-    def unselect_cb(self, w):
+    def untag_cb(self, w):
         sel_dct = self.w.tgt_tbl.get_selected()
         selected = set([self.target_dict[(category, name)]
                         for category, dct in sel_dct.items()
                         for name in dct.keys()])
-        self.selected = self.selected.difference(selected)
-        self.target_selection_update()
+        self.tagged = self.tagged.difference(selected)
+        self.target_tagged_update()
         self._update_selection_buttons()
 
     def delete_cb(self, w):
@@ -789,6 +845,7 @@ class Targets(GingaPlugin.LocalPlugin):
                         for name in dct.keys()])
         # TODO: have confirmation dialog
         # remove any items from selection that were deleted
+        self.tagged = self.tagged.difference(selected)
         self.selected = self.selected.difference(selected)
         # remove any items from target list that were deleted
         target_dict = {(tgt.category, tgt.name): tgt
@@ -796,17 +853,17 @@ class Targets(GingaPlugin.LocalPlugin):
                        if tgt not in selected}
         self.target_dict = target_dict
         self._mbody = None
-        self.target_selection_update()
+        self.target_tagged_update()
         self._update_selection_buttons()
 
-    def select_all_cb(self, w):
-        self.selected = set(self.target_dict.values())
-        self.target_selection_update()
+    def tag_all_cb(self, w):
+        self.tagged = set(self.target_dict.values())
+        self.target_tagged_update()
         self._update_selection_buttons()
 
-    def unselect_all_cb(self, w):
-        self.selected = set([])
-        self.target_selection_update()
+    def untag_all_cb(self, w):
+        self.tagged = set([])
+        self.target_tagged_update()
         self._update_selection_buttons()
 
     def _update_selection_buttons(self):
@@ -816,8 +873,8 @@ class Targets(GingaPlugin.LocalPlugin):
                         for category, dct in sel_dct.items()
                         for name in dct.keys()
                         if (category, name) in self.target_dict])
-        self.w.btn_select.set_enabled(len(selected - self.selected) > 0)
-        self.w.btn_unselect.set_enabled(len(selected & self.selected) > 0)
+        self.w.btn_tag.set_enabled(len(selected - self.tagged) > 0)
+        self.w.btn_untag.set_enabled(len(selected & self.tagged) > 0)
         self.w.btn_delete.set_enabled(len(selected) > 0)
 
     def plot_ss_cb(self, w, tf):
@@ -890,7 +947,3 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def __str__(self):
         return 'targets'
-
-
-def process_tgt_list(category, tgt_list):
-    return res

@@ -10,7 +10,6 @@ naojsoft packages
 """
 # 3rd party
 import numpy as np
-from datetime import timedelta
 
 # ginga
 from ginga.gw import Widgets
@@ -76,10 +75,10 @@ class PolarSky(GingaPlugin.LocalPlugin):
 
         # TODO: still need LST
         tzname = self.cur_tz.tzname(dt)
-        info.update(dict(date_current = dt.strftime("%Y-%m-%d"),
-                         local_current = dt.strftime("%H:%M:%S") + f" [{tzname}]",
-                         utc = self.dt_utc.strftime("%H:%M:%S [%m/%d]"),
-                         lst = self.site_obj.observer.get_last(dt).strftime("%H:%M")))
+        info.update(dict(date_current=dt.strftime("%Y-%m-%d"),
+                         local_current=dt.strftime("%H:%M:%S") + f" [{tzname}]",
+                         utc=self.dt_utc.strftime("%H:%M:%S [%m/%d]"),
+                         lst=self.site_obj.observer.get_last(dt).strftime("%H:%M")))
         return info
 
     def get_sunmoon_info(self):
@@ -93,31 +92,31 @@ class PolarSky(GingaPlugin.LocalPlugin):
 
         info.update(dict(
             # Sun rise/set info
-            sun_set = (site.sunset(noon)).strftime("%H:%M:%S [%m/%d]"),
-            civil_set = (site.evening_twilight_6(
+            sun_set=(site.sunset(noon)).strftime("%H:%M:%S [%m/%d]"),
+            civil_set=(site.evening_twilight_6(
                 noon)).strftime("%H:%M:%S [%m/%d]"),
-            nautical_set = (site.evening_twilight_12(
+            nautical_set=(site.evening_twilight_12(
                 noon)).strftime("%H:%M:%S [%m/%d]"),
-            astronomical_set = (site.evening_twilight_18(
+            astronomical_set=(site.evening_twilight_18(
                 noon)).strftime("%H:%M:%S [%m/%d]"),
-            astronomical_rise = (site.morning_twilight_18(
+            astronomical_rise=(site.morning_twilight_18(
                 noon)).strftime("%H:%M:%S [%m/%d]"),
-            nautical_rise = (site.morning_twilight_12(
+            nautical_rise=(site.morning_twilight_12(
                 noon)).strftime("%H:%M:%S [%m/%d]"),
-            civil_rise = (site.morning_twilight_6(
+            civil_rise=(site.morning_twilight_6(
                 noon)).strftime("%H:%M:%S [%m/%d]"),
-            sun_rise = (site.sunrise(noon)).strftime("%H:%M:%S [%m/%d]"),
-            night_center = (site.night_center(noon)).strftime("%H:%M:%S [%m/%d]")))
+            sun_rise=(site.sunrise(noon)).strftime("%H:%M:%S [%m/%d]"),
+            night_center=(site.night_center(noon)).strftime("%H:%M:%S [%m/%d]")))
 
         moon_data = calcpos.Moon.calc(site, dt)
         info.update(dict(
             # Moon info here
-            moon_rise = (site.moon_rise(dt)).strftime("%H:%M:%S [%m/%d]"),
-            moon_set = (site.moon_set(dt)).strftime("%H:%M:%S [%m/%d]"),
-            moon_illum = str("%.2f%%" % (moon_data.moon_pct * 100)),
-            moon_alt = "%.1f deg" % moon_data.alt_deg,
-            moon_ra = ra_deg_to_str(moon_data.ra_deg),
-            moon_dec = dec_deg_to_str(moon_data.dec_deg)))
+            moon_rise=(site.moon_rise(dt)).strftime("%H:%M:%S [%m/%d]"),
+            moon_set=(site.moon_set(dt)).strftime("%H:%M:%S [%m/%d]"),
+            moon_illum=str("%.2f%%" % (moon_data.moon_pct * 100)),
+            moon_alt="%.1f deg" % moon_data.alt_deg,
+            moon_ra=ra_deg_to_str(moon_data.ra_deg),
+            moon_dec=dec_deg_to_str(moon_data.dec_deg)))
 
         return info
 
@@ -259,25 +258,20 @@ class PolarSky(GingaPlugin.LocalPlugin):
         skycam.settings.share_settings(self.settings,
                                        keylist=['image_radius'])
         self.settings.get_setting('image_radius').add_callback(
-                                  'set', self.change_radius_cb)
+            'set', self.change_radius_cb)
 
         # insert canvas, if not already
-        p_canvas = self.fitsimage.get_canvas()
+        p_canvas = self.viewer.get_canvas()
         if self.canvas not in p_canvas:
             # Add our canvas
             p_canvas.add(self.canvas)
 
+        # NOTE: Targets plugin canvas needs to be the active one
+        self.canvas.ui_set_active(False)
+
         self.canvas.delete_all_objects()
 
         self.initialize_plot()
-
-        self.resume()
-
-    def pause(self):
-        self.canvas.ui_set_active(False)
-
-    def resume(self):
-        self.canvas.ui_set_active(True, viewer=self.viewer)
 
     def stop(self):
         self.viewer.set_bg(*self.orig_bg)
@@ -285,7 +279,7 @@ class PolarSky(GingaPlugin.LocalPlugin):
 
         self.gui_up = False
         # remove the canvas from the image
-        p_canvas = self.fitsimage.get_canvas()
+        p_canvas = self.viewer.get_canvas()
         if self.canvas in p_canvas:
             p_canvas.delete_object(self.canvas)
 

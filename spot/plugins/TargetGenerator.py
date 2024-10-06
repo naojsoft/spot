@@ -210,7 +210,7 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
             # populate the image server UI coordinate
             self.w.ra.set_text(ra_str)
             self.w.dec.set_text(dec_str)
-            self.w.equinox.set_text('2000.0') # ??!!
+            self.w.equinox.set_text('2000.0')  # ??!!
             self.w.tgt_name.set_text(name)
 
         except Exception as e:
@@ -230,9 +230,9 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
 
     def add_target_cb(self, w):
         name = self.w.tgt_name.get_text().strip()
+        ra_deg, dec_deg, equinox = self.get_radec_eq()
         if len(name) == 0:
             name = f"ra={ra_deg:.2f},dec={dec_deg:.2f}"
-        ra_deg, dec_deg, equinox = self.get_radec_eq()
         tgt_df = pd.DataFrame([(name, ra_deg, dec_deg, equinox)],
                               columns=["Name", "RA", "DEC", "Equinox"])
         obj = self.channel.opmon.get_plugin('Targets')

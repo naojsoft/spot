@@ -38,7 +38,6 @@ from ginga.misc import Bunch
 from ginga import GingaPlugin
 
 from spot.plots.altitude import AltitudePlot
-from spot.util import calcpos
 
 
 class Visibility(GingaPlugin.LocalPlugin):
@@ -68,7 +67,7 @@ class Visibility(GingaPlugin.LocalPlugin):
 
         # When time_axis_mode is "Current", x-axis range will be
         # time_range_current_mode hours.
-        self.time_range_current_mode = 10 # hours
+        self.time_range_current_mode = 10  # hours
 
     def build_gui(self, container):
         # initialize site and date/time/tz
@@ -89,7 +88,7 @@ class Visibility(GingaPlugin.LocalPlugin):
 
         top.add_widget(plot_w, stretch=1)
 
-        captions = (('Plot moon sep', 'checkbox', 'Time axis:', 'label', 'mode', 'combobox'), #'Show Legend', 'checkbox'),
+        captions = (('Plot moon sep', 'checkbox', 'Time axis:', 'label', 'mode', 'combobox'),  # 'Show Legend', 'checkbox'),
                     )
 
         w, b = Widgets.build_info(captions)
@@ -174,8 +173,7 @@ class Visibility(GingaPlugin.LocalPlugin):
             start_time = site.sunset(noon_time) - delta
             stop_time = site.sunrise(start_time) + delta
             center_time = start_time + \
-                timedelta(seconds=int((stop_time - start_time).total_seconds()
-                                      * 0.5))
+                timedelta(seconds=int((stop_time - start_time).total_seconds() * 0.5))
 
         elif self.time_axis_mode == 'day center':
             # plot period 15 minutes before sunrise to 15 minutes after sunset
@@ -184,8 +182,7 @@ class Visibility(GingaPlugin.LocalPlugin):
             start_time = site.sunrise(midnight_before) - delta
             stop_time = site.sunset(noon_time) + delta
             center_time = start_time + \
-                timedelta(seconds=int((stop_time - start_time).total_seconds()
-                                      * 0.5))
+                timedelta(seconds=int((stop_time - start_time).total_seconds() * 0.5))
 
         elif self.time_axis_mode == 'current':
             # Plot a time period and put the current time at 1/4 from
@@ -254,7 +251,7 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.replot()
 
     def set_time_axis_mode_cb(self, w, index):
-        self.time_axis_mode =  w.get_text().lower()
+        self.time_axis_mode = w.get_text().lower()
         self.logger.info(f'self.time_axis_mode set to {self.time_axis_mode}')
         self.replot()
 
