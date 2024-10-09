@@ -837,8 +837,8 @@ class CalculationResult(object):
         # calculate moon separation from target(s)
         moon = get_body('moon', self.obstime, location=self.observer.location)
         # NOTE: needs to be moon.separation(coord) NOT coord.separation(moon)
-        # apparently
-        sep = moon.separation(coord)
+        # apparently (see https://docs.astropy.org/en/stable/coordinates/common_errors.html#object-separation)
+        sep = moon.separation(coord, origin_mismatch='ignore')
         self._moon_sep = sep.deg
 
         # calculate moon altitude
