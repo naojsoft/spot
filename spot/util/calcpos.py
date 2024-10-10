@@ -17,6 +17,7 @@ if not os.path.isdir(datadir):
 
 import erfa
 from astropy import units as u
+from astropy.utils import minversion
 from astropy.time import Time
 from astropy.coordinates import (EarthLocation, Longitude, Latitude,
                                  SkyCoord, AltAz, ICRS, get_body,
@@ -24,6 +25,8 @@ from astropy.coordinates import (EarthLocation, Longitude, Latitude,
 from astropy.config import set_temp_cache
 set_temp_cache(path=datadir)
 solar_system_ephemeris.set("jpl")
+
+ASTROPY_LT_6_0_0 = not minversion("astropy", "6.0.0")
 
 from skyfield import almanac
 from skyfield.api import Loader, wgs84
@@ -838,7 +841,11 @@ class CalculationResult(object):
         moon = get_body('moon', self.obstime, location=self.observer.location)
         # NOTE: needs to be moon.separation(coord) NOT coord.separation(moon)
         # apparently (see https://docs.astropy.org/en/stable/coordinates/common_errors.html#object-separation)
-        sep = moon.separation(coord, origin_mismatch='ignore')
+        if ASTROPY_LT_6_0_0:
+            # doesn't have/support use of "origin_mismatch" keyword
+            sep = moon.separation(coord)
+        else:
+            sep = moon.separation(coord, origin_mismatch='ignore')
         self._moon_sep = sep.deg
 
         # calculate moon altitude
