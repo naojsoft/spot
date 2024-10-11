@@ -26,11 +26,12 @@ naojsoft packages
 - qplan
 """
 # stdlib
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 # 3rd party
 import numpy as np
 import pandas as pd
+from dateutil import tz
 
 # ginga
 from ginga.gw import Widgets, Plot
@@ -195,7 +196,10 @@ class Visibility(GingaPlugin.LocalPlugin):
 
         site.set_date(start_time)
         # create date array
-        dt_arr = np.arange(start_time, stop_time, timedelta(minutes=15))
+        #dt_arr = np.arange(start_time, stop_time, timedelta(minutes=15))
+        dt_arr = np.arange(start_time.astimezone(tz.UTC),
+                           stop_time.astimezone(tz.UTC),
+                           timedelta(minutes=15))
 
         # make airmass plot
         num_tgts = len(targets)

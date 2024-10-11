@@ -114,6 +114,9 @@ class Targets(GingaPlugin.LocalPlugin):
         prefs = self.fv.get_preferences()
         self.settings = prefs.create_category('plugin_Targets')
         self.settings.add_defaults(targets_update_interval=60.0,
+                                   color_selected='deepskyblue1',
+                                   color_tagged='orangered1',
+                                   color_normal='green2',
                                    plot_ss_objects=True)
         self.settings.load(onError='silent')
 
@@ -419,6 +422,7 @@ class Targets(GingaPlugin.LocalPlugin):
             fill = True
 
         self.logger.info("plotting {} targets tag {}".format(len(tgt_df), tag))
+        to_be_raised = []
         objs = []
         for idx, row in tgt_df.iterrows():
             category = row.get('category', None)
@@ -442,10 +446,13 @@ class Targets(GingaPlugin.LocalPlugin):
                                         linewidth=1, alpha=alpha,
                                         fill=fill, fillcolor=color,
                                         fillalpha=alpha * 0.7)
+                selected = (color == self.settings['color_selected'])
+                #fillcolor = 'floralwhite' if selected else color
+                fillcolor = color
                 text = self.dc.Text(x, y, row['name'],
                                     color=color, alpha=alpha,
-                                    fill=True, fillcolor=color,
-                                    fillalpha=alpha, linewidth=0,
+                                    fill=True, fillcolor=fillcolor,
+                                    fillalpha=alpha, linewidth=1,
                                     font="Roboto condensed bold",
                                     fontscale=True,
                                     fontsize=None, fontsize_min=12)
@@ -458,10 +465,15 @@ class Targets(GingaPlugin.LocalPlugin):
                 #star.add_callback('pick-hover', self.select_star_cb, 'info')
                 objs.append(star)
 
+                if selected:
+                    to_be_raised.append(star)
+
                 if tag == 'targets':
                     self.target_dict[(category, name)].set(plotted=star)
 
         o = self.dc.CompoundObject(*objs)
+        for obj in to_be_raised:
+            o.raise_object(obj)
         self.canvas.add(o, tag=tag, redraw=False)
 
         self.canvas.update_canvas(whence=3)
@@ -542,7 +554,7 @@ class Targets(GingaPlugin.LocalPlugin):
             dct_all = cres.get_dict()
 
             # add additional columns
-            _addl_str_cols = np.asarray([(tgt.get('color', 'green2'),
+            _addl_str_cols = np.asarray([(tgt.get('color', self.settings['color_normal']),
                                           tgt.category)
                                          for tgt in self.full_tgt_list]).T
             _addl_bool_cols = np.array([(tgt in self.tagged,
@@ -719,7 +731,6 @@ class Targets(GingaPlugin.LocalPlugin):
         self.add_targets(category, tgt_df, merge=merge)
 
     def targets_to_table(self, tgt_df):
-        print("targets to table")
         tree_dict = OrderedDict()
         for idx, row in tgt_df.iterrows():
             is_ref = row.get('is_ref', None)
@@ -774,14 +785,15 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def _get_target_color(self, tgt):
         if tgt in self.selected:
-            color = 'cyan'
+            color = self.settings['color_selected']
         elif tgt in self.tagged:
-            color = 'pink'
+            color = self.settings['color_tagged']
         else:
-            color = 'green2'
+            color = self.settings['color_normal']
         return color
 
     def _update_target_colors(self, targets):
+        tgt_obj = self.canvas.get_object_by_tag('targets')
         for tgt in targets:
             obj = tgt.get('plotted', None)
             if obj is not None:
@@ -789,7 +801,14 @@ class Targets(GingaPlugin.LocalPlugin):
                 point, circle, text = obj.objects[:3]
                 point.color = point.fillcolor = color
                 circle.color = color
-                text.color = text.fillcolor = color
+                text.color = color
+                if color == self.settings['color_selected']:
+                    # object selected
+                    #text.fillcolor = 'floralwhite'
+                    text.fillcolor = color
+                    tgt_obj.raise_object(obj)
+                else:
+                    text.fillcolor = color
 
         self.fitsimage.redraw(whence=3)
 
