@@ -115,7 +115,7 @@ class Targets(GingaPlugin.LocalPlugin):
         self.settings = prefs.create_category('plugin_Targets')
         self.settings.add_defaults(targets_update_interval=60.0,
                                    color_selected='deepskyblue1',
-                                   color_tagged='orangered1',
+                                   color_tagged='pink',
                                    color_normal='green2',
                                    plot_ss_objects=True)
         self.settings.load(onError='silent')
@@ -297,7 +297,7 @@ class Targets(GingaPlugin.LocalPlugin):
         hbox.add_widget(Widgets.Label('Plot:'), stretch=0)
         plot = Widgets.ComboBox()
         hbox.add_widget(plot, stretch=0)
-        for option in ['All', 'Tagged']:
+        for option in ['All', 'Tagged', 'Selected']:
             plot.append_text(option)
         plot.set_index(1)
         plot.add_callback('activated', self.configure_plot_cb)
@@ -381,6 +381,10 @@ class Targets(GingaPlugin.LocalPlugin):
             shown_tgt_lst = tgt_df
         elif self.plot_which == 'tagged':
             shown_tgt_lst = tgt_df[tgt_df['tagged']]
+        elif self.plot_which == 'selected':
+            selected = np.array([tgt in self.selected
+                                 for tgt in self.full_tgt_list], dtype=bool)
+            shown_tgt_lst = tgt_df[selected]
 
         return shown_tgt_lst
 
@@ -396,6 +400,7 @@ class Targets(GingaPlugin.LocalPlugin):
         if action == 'select':
             self.w.tgt_tbl.clear_selection()
             self.w.tgt_tbl.select_path(path)
+            self.w.tgt_tbl.scroll_to_path(path)
             # NOTE: Ginga TreeWidget doesn't call the callback for
             # selection changed if it is done programatically.  So
             # we need to manually call the callback here to get the
@@ -435,6 +440,7 @@ class Targets(GingaPlugin.LocalPlugin):
                     color = row['color']
                 else:
                     color = self._get_target_color(tgt)
+                selected = tgt in self.selected
                 t, r = self.map_azalt(row['az_deg'], row['alt_deg'])
                 x, y = self.p2r(r, t)
                 point = self.dc.Point(x, y, radius=pt_radius, style='cross',
@@ -446,16 +452,17 @@ class Targets(GingaPlugin.LocalPlugin):
                                         linewidth=1, alpha=alpha,
                                         fill=fill, fillcolor=color,
                                         fillalpha=alpha * 0.7)
-                selected = (color == self.settings['color_selected'])
-                #fillcolor = 'floralwhite' if selected else color
-                fillcolor = color
+                bg_alpha = alpha if selected else 0.0
                 text = self.dc.Text(x, y, row['name'],
                                     color=color, alpha=alpha,
-                                    fill=True, fillcolor=fillcolor,
-                                    fillalpha=alpha, linewidth=1,
+                                    fill=True, fillcolor=color,
+                                    fillalpha=alpha, linewidth=0,
                                     font="Roboto condensed bold",
                                     fontscale=True,
-                                    fontsize=None, fontsize_min=12)
+                                    fontsize=None, fontsize_min=12,
+                                    bgcolor='floralwhite', bgalpha=bg_alpha,
+                                    bordercolor='orangered1', borderlinewidth=2,
+                                    borderalpha=bg_alpha)
                 star = self.dc.CompoundObject(point, circle, text)
                 star.opaque = True
                 star.pickable = True
@@ -764,7 +771,6 @@ class Targets(GingaPlugin.LocalPlugin):
                     ad=("% .1f" % (np.degrees(calc_ad) * 3600)))
 
         # save and restore selection after update
-        #paths = self.w.tgt_tbl.get_selected_paths()
         # NOTE: calling set_tree() will trigger the target_selection_cb,
         # clearing the selected targets, etc.  So we use this flag to
         # prevent that from happening and restore the selections.
@@ -776,6 +782,8 @@ class Targets(GingaPlugin.LocalPlugin):
 
         paths = [[tgt.category, tgt.name] for tgt in self.selected]
         self.w.tgt_tbl.select_paths(paths)
+
+        self._update_selection_buttons()
 
     def target_tagged_update(self):
         self.clear_plot()
@@ -802,13 +810,15 @@ class Targets(GingaPlugin.LocalPlugin):
                 point.color = point.fillcolor = color
                 circle.color = color
                 text.color = color
-                if color == self.settings['color_selected']:
+                if tgt in self.selected:
                     # object selected
-                    #text.fillcolor = 'floralwhite'
                     text.fillcolor = color
-                    tgt_obj.raise_object(obj)
+                    text.bgalpha = text.borderalpha = text.alpha
+                    if obj in tgt_obj:
+                        tgt_obj.raise_object(obj)
                 else:
                     text.fillcolor = color
+                    text.bgalpha = text.borderalpha = 0.0
 
         self.fitsimage.redraw(whence=3)
 
@@ -822,7 +832,10 @@ class Targets(GingaPlugin.LocalPlugin):
         updated_tgts = (self.selected - new_highlighted).union(
             new_highlighted - self.selected)
         self.selected = new_highlighted
-        self._update_target_colors(updated_tgts)
+        if self.plot_which == 'selected':
+            self.update_all(targets_changed=False)
+        else:
+            self._update_target_colors(updated_tgts)
 
         self._update_selection_buttons()
 

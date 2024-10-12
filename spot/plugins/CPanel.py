@@ -209,7 +209,7 @@ class CPanel(GingaPlugin.GlobalPlugin):
 
         vbox = Widgets.VBox()
         vbox.set_spacing(2)
-        plugins = self.fv.get_plugins()
+        # plugins = self.fv.get_plugins()
         # for spec in plugins:
         #     if 'ch_sfx' in spec and spec.get('enabled', True):
         #         name = spec.menu

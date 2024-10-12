@@ -140,7 +140,7 @@ if __name__ == "__main__":
     ]:
         viewer.add_plugin_spec(spec)
 
-    argprs = ArgumentParser(description="Subaru Planning and Observation Tools")
+    argprs = ArgumentParser(description="Site Planning and Observation Tools")
     viewer.add_default_options(argprs)
 
     (options, args) = argprs.parse_known_args(sys.argv[1:])

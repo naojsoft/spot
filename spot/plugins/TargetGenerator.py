@@ -233,8 +233,8 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
         ra_deg, dec_deg, equinox = self.get_radec_eq()
         if len(name) == 0:
             name = f"ra={ra_deg:.2f},dec={dec_deg:.2f}"
-        tgt_df = pd.DataFrame([(name, ra_deg, dec_deg, equinox)],
-                              columns=["Name", "RA", "DEC", "Equinox"])
+        tgt_df = pd.DataFrame([(name, ra_deg, dec_deg, equinox, True)],
+                              columns=["Name", "RA", "DEC", "Equinox", "IsRef"])
         obj = self.channel.opmon.get_plugin('Targets')
         obj.add_targets("Targets", tgt_df, merge=True)
 
