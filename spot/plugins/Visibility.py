@@ -26,7 +26,7 @@ naojsoft packages
 - qplan
 """
 # stdlib
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 # 3rd party
 import numpy as np
