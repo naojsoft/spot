@@ -23,10 +23,19 @@ class Target(Body):
             self.metadata = Bunch.Bunch()
         self.metadata.update(kwargs)
 
-    def get(self, key, default_val):
-        if self.metadata is None:
-            return default_val
-        return self.metadata.get(key, default_val)
+    def get(self, *args):
+        if len(args) == 1:
+            key = args[0]
+            if self.metadata is None:
+                raise KeyError(key)
+            return self.metadata[key]
+        elif len(args) == 2:
+            key, default_val = args
+            if self.metadata is None:
+                return default_val
+            return self.metadata.get(key, default_val)
+        else:
+            raise RuntimeError("Invalid number of parameters to get()")
 
     def import_record(self, rec):
         self.name = rec['Name']

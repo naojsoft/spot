@@ -73,8 +73,8 @@ class AltitudePlot(plots.Plot):
             figure.set_tight_layout(False)
             figure.subplots_adjust(left=0.05, right=0.65, bottom=0.12, top=0.95)
 
-        #lstyle = 'o'
         lstyle = '-'
+        #lstyle = 'solid'
         # convert to desired time zone for plot
         lt_data = [t.astimezone(tz) for t in tgt_data[0].history['ut']]
 
@@ -94,13 +94,13 @@ class AltitudePlot(plots.Plot):
             alt_data = info.history['alt_deg']
             alt_min = numpy.argmin(alt_data)
             alt_data_dots = alt_data
-            color = self.colors[i % len(self.colors)]
-            lc = color + lstyle
-            # ax1.plot_date(lt_data, alt_data, lc, linewidth=1.0, alpha=0.3, aa=True, tz=tz)
-            lg = ax1.plot_date(lt_data, alt_data_dots, lc, linewidth=2.0,
-                               aa=True, tz=tz)
-            #xs, ys = mpl.mlab.poly_between(lt_data, 2.02, alt_data)
-            #ax1.fill(xs, ys, facecolor=self.colors[i], alpha=0.2)
+            color = info.get('color', self.colors[i % len(self.colors)])
+            alpha = info.get('alpha', 1.0)
+            zorder = info.get('zorder', 1.0)
+            textbg = info.get('textbg', None)
+            lg = ax1.plot(lt_data, alt_data_dots, color=color,
+                          alpha=alpha, linewidth=2.0, linestyle=lstyle,
+                          marker=None, zorder=zorder, aa=True)
             legend.extend(lg)
 
             targets.append("{0} {1} {2}".format(info.target.name,
@@ -118,12 +118,13 @@ class AltitudePlot(plots.Plot):
                         continue
                     ax1.text(x, y, '%.1f' % v, fontsize=7, ha='center',
                              va='bottom', clip_on=True)
-                    ax1.plot_date(x, y, 'ko', ms=3)
+                    ax1.plot(x, y, 'ko', ms=3)
 
             # plot object label
             targname = info.target.name
             ax1.text(mpl_dt.date2num(lt_data[alt_data.argmax()]),
                      alt_data.max() + 4.0, targname, color=color,
+                     alpha=alpha, zorder=zorder, backgroundcolor=textbg,
                      ha='center', va='center', clip_on=True)
 
         # legend target list
@@ -151,12 +152,12 @@ class AltitudePlot(plots.Plot):
         moon_data = tgt_data[0].history['moon_alt']
         illum_time = lt_data[moon_data.argmax()]
         moon_illum = site.moon_illumination(date=illum_time)
-        moon_color = '#666666'
+        moon_color = '#CDBE70'
         moon_name = "Moon (%.2f %%)" % (moon_illum * 100)
-        ax1.plot_date(lt_data, moon_data, moon_color, linewidth=2.0,
-                      alpha=0.5, aa=True, tz=tz)
+        ax1.plot(lt_data, moon_data, moon_color, linewidth=3.0,
+                 alpha=0.9, aa=True)
         ax1.text(mpl_dt.date2num(illum_time),
-                 moon_data.max() + 4.0, moon_name, color=moon_color,
+                 moon_data.max() + 4.0, moon_name, color='#CDBE70',
                  ha='center', va='center', clip_on=True)
 
         # Plot airmass scale

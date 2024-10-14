@@ -114,9 +114,9 @@ class Targets(GingaPlugin.LocalPlugin):
         prefs = self.fv.get_preferences()
         self.settings = prefs.create_category('plugin_Targets')
         self.settings.add_defaults(targets_update_interval=60.0,
-                                   color_selected='deepskyblue1',
-                                   color_tagged='pink',
-                                   color_normal='green2',
+                                   color_selected='royalblue',
+                                   color_tagged='mediumorchid1',
+                                   color_normal='seagreen2',
                                    plot_ss_objects=True)
         self.settings.load(onError='silent')
 
@@ -128,14 +128,14 @@ class Targets(GingaPlugin.LocalPlugin):
         self.home = os.path.expanduser('~')
 
         self.cb = Callback.Callbacks()
-        for name in ['tagged-changed']:
+        for name in ['targets-changed', 'tagged-changed', 'selection-changed']:
             self.cb.enable_callback(name)
 
         self.colors = ['red', 'blue', 'green', 'cyan', 'magenta', 'yellow']
         self.base_circ = None
         self.target_dict = {}
         self.full_tgt_list = []
-        self.plot_which = 'tagged'
+        self.plot_which = 'all'
         self.plot_ss_objects = self.settings.get('plot_ss_objects', True)
         self.tagged = set([])
         self.selected = set([])
@@ -297,9 +297,9 @@ class Targets(GingaPlugin.LocalPlugin):
         hbox.add_widget(Widgets.Label('Plot:'), stretch=0)
         plot = Widgets.ComboBox()
         hbox.add_widget(plot, stretch=0)
-        for option in ['All', 'Tagged', 'Selected']:
+        for option in ['All', 'Tagged+selected', 'Selected']:
             plot.append_text(option)
-        plot.set_index(1)
+        plot.set_text(self.plot_which.capitalize())
         plot.add_callback('activated', self.configure_plot_cb)
         plot.set_tooltip("Choose what is plotted")
 
@@ -379,12 +379,14 @@ class Targets(GingaPlugin.LocalPlugin):
     def filter_targets(self, tgt_df):
         if self.plot_which == 'all':
             shown_tgt_lst = tgt_df
-        elif self.plot_which == 'tagged':
-            shown_tgt_lst = tgt_df[tgt_df['tagged']]
+        elif self.plot_which == 'tagged+selected':
+            mask = np.array([tgt in self.selected.union(self.tagged)
+                             for tgt in self.full_tgt_list], dtype=bool)
+            shown_tgt_lst = tgt_df[mask]
         elif self.plot_which == 'selected':
-            selected = np.array([tgt in self.selected
-                                 for tgt in self.full_tgt_list], dtype=bool)
-            shown_tgt_lst = tgt_df[selected]
+            mask = np.array([tgt in self.selected
+                             for tgt in self.full_tgt_list], dtype=bool)
+            shown_tgt_lst = tgt_df[mask]
 
         return shown_tgt_lst
 
@@ -485,57 +487,14 @@ class Targets(GingaPlugin.LocalPlugin):
 
         self.canvas.update_canvas(whence=3)
 
-        if tag == 'ss':
-            # don't plot visibility of solar system objects in Visibility
-            return
-
-        tgt_list = self.full_tgt_list if self.plot_which == 'all' else self.tagged
-        targets = []
-        for tgt in tgt_list:
-            is_ref = tgt.metadata.is_ref
-            if self.w.list_all_targets.get_state() or is_ref:
-                targets.append(tgt)
-        obj = self.channel.opmon.get_plugin('Visibility')
-        self.fv.gui_do(obj.plot_targets, targets)
-
     def update_targets(self, tgt_df, tag):
         """Update targets already plotted with new positions.
         """
         self.canvas.delete_object_by_tag(tag)
         if not self.canvas.has_tag(tag):
             self.plot_targets(tgt_df, tag)
-            return
-        # start_time = self.get_datetime()
-
-        # if tag != 'ss':
-        #     # filter the subset desired to be seen
-        #     tgt_info_lst = self.filter_targets(tgt_info_lst)
-
-        # self.logger.info("updating {} targets".format(len(tgt_info_lst)))
-        # obj = self.canvas.get_object_by_tag(tag)
-        # objs = obj.objects
-        # i = 0
-        # for res in tgt_info_lst:
-        #     alpha = 1.0 if res.info.alt_deg > 0 else 0.0
-        #     t, r = self.map_azalt(res.info.az_deg, res.info.alt_deg)
-        #     x, y = self.p2r(r, t)
-        #     point, text = objs[i], objs[i + i]
-        #     point.x, point.y, point.alpha, point.fillalpha = x, y, alpha, alpha
-        #     text.x, text.y, text.alpha = x, y, alpha
-        #     point.color = text.color = res.color
-        #     i += 2
-
-        # self.canvas.update_canvas(whence=3)
-
-        # if tag == 'ss':
-        #     # don't plot visibility of solar system objects in Visibility
-        #     return
-        # targets = [res.tgt for res in tgt_info_lst]
-        # obj = self.channel.opmon.get_plugin('Visibility')
-        # obj.plot_targets(targets)
 
     def _create_multicoord_body(self):
-        self.full_tgt_list = list(self.target_dict.values())
         if len(self.full_tgt_list) == 0:
             self._mbody = None
             return
@@ -579,6 +538,8 @@ class Targets(GingaPlugin.LocalPlugin):
             # update the target table
             if self.gui_up:
                 self.targets_to_table(self.tgt_df)
+                # NOTE: this could get annoying
+                self.w.tgt_tbl.set_optimal_column_widths()
 
                 local_time = (self._last_tgt_update_dt.astimezone(self.cur_tz))
                 tzname = self.cur_tz.tzname(local_time)
@@ -688,8 +649,11 @@ class Targets(GingaPlugin.LocalPlugin):
                             for tgt in new_targets})
         self.target_dict = target_dict
 
-        # update GUIs
-        self.update_all(targets_changed=True)
+        self.full_tgt_list = list(self.target_dict.values())
+        # update PolarSky plot
+        self.fv.gui_do(self.update_all, targets_changed=True)
+
+        self.cb.make_callback('targets-changed', self.full_tgt_list)
 
     def process_csv_file_for_targets(self, csv_path):
         tgt_df = pd.read_csv(csv_path)
@@ -839,6 +803,8 @@ class Targets(GingaPlugin.LocalPlugin):
 
         self._update_selection_buttons()
 
+        self.cb.make_callback('selection-changed', self.selected)
+
     def target_single_cb(self, w, sel_dct):
         selected = set([self.target_dict[(category, name)]
                         for category, dct in sel_dct.items()
@@ -876,8 +842,10 @@ class Targets(GingaPlugin.LocalPlugin):
                         for category, dct in sel_dct.items()
                         for name in dct.keys()])
         # TODO: have confirmation dialog
-        # remove any items from selection that were deleted
+        # remove any items from tagged that were deleted
         self.tagged = self.tagged.difference(selected)
+        # remove any items from selection that were deleted
+        _selected = self.selected
         self.selected = self.selected.difference(selected)
         # remove any items from target list that were deleted
         target_dict = {(tgt.category, tgt.name): tgt
@@ -885,8 +853,15 @@ class Targets(GingaPlugin.LocalPlugin):
                        if tgt not in selected}
         self.target_dict = target_dict
         self._mbody = None
+        self.full_tgt_list = list(self.target_dict.values())
+
+        self.cb.make_callback('targets-changed', self.full_tgt_list)
+
         self.target_tagged_update()
         self._update_selection_buttons()
+
+        if _selected != self.selected:
+            self.cb.make_callback('selection-changed', self.selected)
 
     def tag_all_cb(self, w):
         self.tagged = set(self.target_dict.values())
