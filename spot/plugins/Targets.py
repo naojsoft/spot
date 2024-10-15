@@ -34,7 +34,7 @@ import pandas as pd
 # ginga
 from ginga.gw import Widgets, GwHelp
 from ginga import GingaPlugin
-from ginga.util.paths import ginga_home
+from ginga.util.paths import ginga_home, home as user_home
 from ginga.util import wcs
 from ginga.misc import Bunch, Callback
 
@@ -117,7 +117,8 @@ class Targets(GingaPlugin.LocalPlugin):
                                    color_selected='royalblue',
                                    color_tagged='mediumorchid1',
                                    color_normal='seagreen2',
-                                   plot_ss_objects=True)
+                                   plot_ss_objects=True,
+                                   load_directory=user_home)
         self.settings.load(onError='silent')
 
         # these are set via callbacks from the SiteSelector plugin
@@ -125,7 +126,7 @@ class Targets(GingaPlugin.LocalPlugin):
         self.dt_utc = None
         self.cur_tz = None
         self._last_tgt_update_dt = None
-        self.home = os.path.expanduser('~')
+        self.home = self.settings.get('load_directory', user_home)
 
         self.cb = Callback.Callbacks()
         for name in ['targets-changed', 'tagged-changed', 'selection-changed']:
@@ -219,10 +220,9 @@ class Targets(GingaPlugin.LocalPlugin):
         self.w = b
 
         b.load_file.set_text("File")
-        self.fileselect = GwHelp.FileSelection(container.get_widget(),
-                                               all_at_once=True)
-        self.proc_dir_path = os.path.join(self.home, 'Procedure')
-        b.file_path.set_text(self.proc_dir_path)
+        self.w.fileselect = GwHelp.FileSelection(container.get_widget(),
+                                                 all_at_once=True)
+        b.file_path.set_text(self.home)
 
         top.add_widget(w, stretch=0)
         b.load_file.add_callback('activated', self.load_file_cb)
@@ -538,8 +538,6 @@ class Targets(GingaPlugin.LocalPlugin):
             # update the target table
             if self.gui_up:
                 self.targets_to_table(self.tgt_df)
-                # NOTE: this could get annoying
-                self.w.tgt_tbl.set_optimal_column_widths()
 
                 local_time = (self._last_tgt_update_dt.astimezone(self.cur_tz))
                 tzname = self.cur_tz.tzname(local_time)
@@ -586,8 +584,7 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def load_file_cb(self, w):
         # Needs to be updated for multiple selections
-        proc_dir = os.path.join(self.home, 'Procedure')
-        self.fileselect.popup("Load File", self.file_select_cb, proc_dir)
+        self.w.fileselect.popup("Load File", self.file_select_cb, self.home)
 
     def file_setpath_cb(self, w):
         file_path = w.get_text().strip()
@@ -661,12 +658,15 @@ class Targets(GingaPlugin.LocalPlugin):
         merge = self.w.merge_targets.get_state()
         category = csv_path if not merge else "Targets"
         self.add_targets(category, tgt_df, merge=merge)
+        #self.w.tgt_tbl.set_optimal_column_widths()
 
     def process_ope_file_for_targets(self, ope_file):
         if not have_oscript:
             self.fv.show_error("Please install the 'oscript' module to use this feature")
 
         proc_home = os.path.join(self.home, 'Procedure')
+        if not os.path.isdir(proc_home):
+            proc_home = self.home
         prm_dirs = [proc_home, os.path.join(proc_home, 'COMMON'),
                     os.path.join(proc_home, 'COMMON', 'prm'),
                     os.path.join(ginga_home, 'prm')]
@@ -700,6 +700,7 @@ class Targets(GingaPlugin.LocalPlugin):
         merge = self.w.merge_targets.get_state()
         category = ope_file if not merge else "Targets"
         self.add_targets(category, tgt_df, merge=merge)
+        #self.w.tgt_tbl.set_optimal_column_widths()
 
     def targets_to_table(self, tgt_df):
         tree_dict = OrderedDict()

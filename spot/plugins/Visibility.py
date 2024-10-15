@@ -80,6 +80,10 @@ class Visibility(GingaPlugin.LocalPlugin):
         # time_range_current_mode hours.
         self.time_range_current_mode = 10  # hours
 
+        self.tmr_replot = self.fv.make_timer()
+        self.tmr_replot.add_callback('expired', lambda tmr: self.replot())
+        self.replot_after_sec = 1.0
+
     def build_gui(self, container):
         # initialize site and date/time/tz
         obj = self.channel.opmon.get_plugin('SiteSelector')
@@ -381,7 +385,7 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.selected = selected
 
         self._set_target_subset()
-        self.fv.gui_do(self.replot)
+        self.tmr_replot.set(self.replot_after_sec)
 
     def time_changed_cb(self, cb, time_utc, cur_tz):
         old_dt_utc = self.dt_utc
