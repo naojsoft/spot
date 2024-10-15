@@ -76,7 +76,7 @@ class Observer(object):
             timezone = tz.UTC
         self.tz_local = timezone
         if isinstance(longitude, str):
-            self.lon_deg = Longitude(longitude, unit=u.deg).deg
+            self.lon_deg = Longitude(longitude, unit=u.deg, wrap_angle=180 * u.deg).deg
         else:
             self.lon_deg = longitude
         if isinstance(latitude, str):
@@ -154,7 +154,7 @@ class Observer(object):
         apparent = self.location.at(obstime).from_altaz(alt_degrees=alt_deg,
                                                         az_degrees=az_deg)
         ra, dec, distance = apparent.radec()
-        ra_deg, dec_deg = ra.degrees, dec.degrees
+        ra_deg, dec_deg = ra._degrees, dec._degrees
         return ra_deg, dec_deg
 
     def azalt_of(self, ra_deg, dec_deg, date=None):
@@ -543,12 +543,13 @@ class Body(object):
             else:
                 ra_deg, dec_deg = self.ra.astype(float), self.dec.astype(float)
 
-            #epoch = np.array([2000.0] * len(ra_deg))
+            #epoch = self.equinox
+            epoch = np.array([2000.0] * len(ra_deg))
             import pandas as pd
             df = pd.DataFrame(dict(names=self.name, ra_degrees=ra_deg,
                                    ra_hours=ra_deg / 15.0,
                                    dec_degrees=dec_deg,
-                                   epoch_year=self.equinox))
+                                   epoch_year=epoch))
             coord = Star.from_dataframe(df)
         else:
             if isinstance(self.ra, str):
@@ -558,8 +559,9 @@ class Body(object):
                 ra_deg, dec_deg = coord.ra.degree, coord.dec.degree
             else:
                 ra_deg, dec_deg = float(self.ra), float(self.dec)
-            coord = Star(ra_hours=ra_deg / 15.0, dec_degrees=dec_deg,
-                         epoch=self.equinox)
+            #coord = Star(ra_hours=ra_deg / 15.0, dec_degrees=dec_deg,
+            #             epoch=self.equinox)
+            coord = Star(ra_hours=ra_deg / 15.0, dec_degrees=dec_deg)
 
         return coord
 
@@ -734,16 +736,16 @@ class CalculationResult(object):
     def lmst(self):
         """Return Local Mean Sidereal Time in radians."""
         if self._lmst is None:
-            self._lmst = self.gmst + \
-                np.radians(np.fmod(self.observer.lon_deg + 360., 360.))
+            # NOTE:obstime.gmst is in hours
+            self._lmst = np.radians(self.obstime.gmst * 15.0 + self.observer.lon_deg)
         return self._lmst
 
     @property
     def last(self):
         """Return Local Apparent Sidereal Time in radians."""
         if self._last is None:
-            self._last = self.gast + \
-                np.radians(np.fmod(self.observer.lon_deg + 360., 360.))
+            # NOTE:obstime.gast is in hours
+            self._last = np.radians(self.obstime.gast * 15.0 + self.observer.lon_deg)
         return self._last
 
     @property
@@ -890,9 +892,6 @@ class CalculationResult(object):
         alt, az, distance = apparent.altaz(temperature_C=self.observer.temp_C,
                                            pressure_mbar=self.observer.pressure_mbar)
         self._az, self._alt = az, alt
-
-        # get hour angle
-        #self._ha, _dec, _dist = apparent.hadec()
 
         # calculate moon separation from target(s)
         # TODO: don't we need to specify a time here somehow?

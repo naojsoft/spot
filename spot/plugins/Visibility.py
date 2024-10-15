@@ -306,9 +306,9 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.clear_plot()
 
         if num_tgts == 0:
-            self.logger.info("no targets for plotting airmass")
+            self.logger.debug("no targets for plotting airmass")
         else:
-            self.logger.info("plotting altitude/airmass")
+            self.logger.debug("plotting altitude/airmass")
             self.fv.error_wrap(self.plot.plot_altitude, site,
                                target_data, self.cur_tz,
                                current_time=self.dt_utc,

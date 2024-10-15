@@ -243,9 +243,9 @@ class Targets(GingaPlugin.LocalPlugin):
         hbox.add_widget(cbox, stretch=0)
         cbox = Widgets.CheckBox("List PRM Targets")
         cbox.set_tooltip("Show unreferenced targets in .prm files")
-        self.w.list_all_targets = cbox
+        self.w.list_prm_targets = cbox
         cbox.set_state(False)
-        cbox.add_callback('activated', self.list_all_cb)
+        cbox.add_callback('activated', self.list_prm_cb)
         hbox.add_widget(cbox, stretch=0)
         top.add_widget(hbox, stretch=0)
 
@@ -344,7 +344,6 @@ class Targets(GingaPlugin.LocalPlugin):
 
         self.canvas.delete_all_objects()
 
-        self.initialize_plot()
         self.update_all()
 
         self.resume()
@@ -364,12 +363,6 @@ class Targets(GingaPlugin.LocalPlugin):
             p_canvas.delete_object(self.canvas)
 
     def redo(self):
-        pass
-
-    def replot_all(self):
-        self.initialize_plot()
-
-    def initialize_plot(self):
         pass
 
     def clear_plot(self):
@@ -436,7 +429,7 @@ class Targets(GingaPlugin.LocalPlugin):
             name = row.get('name', None)
             tgt = self.target_dict.get((category, name), None)
             is_ref = row.get('is_ref', None)
-            if tag == 'ss' or self.w.list_all_targets.get_state() or is_ref:
+            if tag == 'ss' or self.w.list_prm_targets.get_state() or is_ref:
                 alpha = 1.0 if row['alt_deg'] > 0 else 0.0
                 if tgt is None:
                     color = row['color']
@@ -648,7 +641,7 @@ class Targets(GingaPlugin.LocalPlugin):
 
         self.full_tgt_list = list(self.target_dict.values())
         # update PolarSky plot
-        self.fv.gui_do(self.update_all, targets_changed=True)
+        self.fv.gui_call(self.update_all, targets_changed=True)
 
         self.cb.make_callback('targets-changed', self.full_tgt_list)
 
@@ -658,7 +651,7 @@ class Targets(GingaPlugin.LocalPlugin):
         merge = self.w.merge_targets.get_state()
         category = csv_path if not merge else "Targets"
         self.add_targets(category, tgt_df, merge=merge)
-        #self.w.tgt_tbl.set_optimal_column_widths()
+        self.w.tgt_tbl.set_optimal_column_widths()
 
     def process_ope_file_for_targets(self, ope_file):
         if not have_oscript:
@@ -700,13 +693,13 @@ class Targets(GingaPlugin.LocalPlugin):
         merge = self.w.merge_targets.get_state()
         category = ope_file if not merge else "Targets"
         self.add_targets(category, tgt_df, merge=merge)
-        #self.w.tgt_tbl.set_optimal_column_widths()
+        self.w.tgt_tbl.set_optimal_column_widths()
 
     def targets_to_table(self, tgt_df):
         tree_dict = OrderedDict()
         for idx, row in tgt_df.iterrows():
             is_ref = row.get('is_ref', None)
-            if self.w.list_all_targets.get_state() or is_ref:
+            if self.w.list_prm_targets.get_state() or is_ref:
                 dct = tree_dict.setdefault(row.category, dict())
                 tagged = row['tagged']
                 # NOTE: AZ values are normalized to standard use
@@ -813,7 +806,7 @@ class Targets(GingaPlugin.LocalPlugin):
         self.tagged = selected
         self.target_tagged_update()
 
-    def list_all_cb(self, w, arg1):
+    def list_prm_cb(self, w, arg1):
         if self.tgt_df is not None:
             self.targets_to_table(self.tgt_df)
             self.update_targets(self.tgt_df, 'targets')
