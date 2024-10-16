@@ -158,8 +158,8 @@ class Targets(GingaPlugin.LocalPlugin):
                         ('Moon Sep', 'moon_sep'),
                         ('RA', 'ra'),
                         ('DEC', 'dec'),
-                        #('Eq', 'equinox'),
-                        #('Comment', 'comment'),
+                        ('Eq', 'equinox'),
+                        ('Comment', 'comment'),
                         ]
 
         # the solar system objects
@@ -514,7 +514,7 @@ class Targets(GingaPlugin.LocalPlugin):
 
             # add additional columns
             _addl_str_cols = np.asarray([(tgt.get('color', self.settings['color_normal']),
-                                          tgt.category)
+                                          tgt.category, tgt.get('comment', ''))
                                          for tgt in self.full_tgt_list]).T
             _addl_bool_cols = np.array([(tgt in self.tagged,
                                          tgt.metadata.get('is_ref', True))
@@ -522,6 +522,7 @@ class Targets(GingaPlugin.LocalPlugin):
                                        dtype=bool).T
             dct_all['color'] = _addl_str_cols[0]
             dct_all['category'] = _addl_str_cols[1]
+            dct_all['comment'] = _addl_str_cols[2]
             dct_all['tagged'] = _addl_bool_cols[0]
             dct_all['is_ref'] = _addl_bool_cols[1]
 
@@ -624,7 +625,7 @@ class Targets(GingaPlugin.LocalPlugin):
                        equinox=eq,
                        comment=row.get('comment', ''),
                        category=category)
-            t.set(is_ref=row.get('IsRef', None))
+            t.set(is_ref=row.get('IsRef', True))
             new_targets.append(t)
 
         if not merge:
@@ -647,7 +648,13 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def process_csv_file_for_targets(self, csv_path):
         tgt_df = pd.read_csv(csv_path)
-        tgt_df['IsRef'] = [True for i in range(len(tgt_df))]
+        if 'Equinox' not in tgt_df:
+            tgt_df['Equinox'] = [2000.0] * len(tgt_df)
+        if 'IsRef' not in tgt_df:
+            tgt_df['IsRef'] = [True] * len(tgt_df)
+        if 'Comment' not in tgt_df:
+            tgt_df['Comment'] = [os.path.basename(csv_path)] * len(tgt_df)
+
         merge = self.w.merge_targets.get_state()
         category = csv_path if not merge else "Targets"
         self.add_targets(category, tgt_df, merge=merge)
@@ -680,16 +687,17 @@ class Targets(GingaPlugin.LocalPlugin):
 
         # process into Target object list
         new_targets = []
+        comment = os.path.basename(ope_file)
         for tgt_info in tgt_res.tgt_list_info:
             objname = tgt_info.objname
             ra_str = tgt_info.ra
             dec_str = tgt_info.dec
             eq_str = tgt_info.eq
             is_ref = tgt_info.is_referenced
-            new_targets.append((objname, ra_str, dec_str, eq_str, is_ref))
+            new_targets.append((objname, ra_str, dec_str, eq_str, comment, is_ref))
 
         tgt_df = pd.DataFrame(new_targets,
-                              columns=["Name", "RA", "DEC", "Equinox", "IsRef"])
+                              columns=["Name", "RA", "DEC", "Equinox", "Comment", "IsRef"])
         merge = self.w.merge_targets.get_state()
         category = ope_file if not merge else "Targets"
         self.add_targets(category, tgt_df, merge=merge)
@@ -698,7 +706,7 @@ class Targets(GingaPlugin.LocalPlugin):
     def targets_to_table(self, tgt_df):
         tree_dict = OrderedDict()
         for idx, row in tgt_df.iterrows():
-            is_ref = row.get('is_ref', None)
+            is_ref = row.get('is_ref', True)
             if self.w.list_prm_targets.get_state() or is_ref:
                 dct = tree_dict.setdefault(row.category, dict())
                 tagged = row['tagged']
@@ -716,17 +724,16 @@ class Targets(GingaPlugin.LocalPlugin):
                     name=row['name'],
                     ra=wcs.ra_deg_to_str(row.ra_deg),
                     dec=wcs.dec_deg_to_str(row.dec_deg),
-                    #equinox=("%6.1f" % row.equinox),
-                    az_deg=("% 4d" % int(round(az_deg))),
-                    alt_deg=("% 3d" % int(round(row.alt_deg))),
-                    parang_deg=("% 3d" % int(row.pang_deg)),
-                    ha=("% 6.2f" % (np.degrees(row.ha) / 15)),
+                    equinox="{:>6.1f}".format(row.equinox),
+                    az_deg="{:>+4d}".format(int(round(az_deg))),
+                    alt_deg="{:>3d}".format(int(round(row.alt_deg))),
+                    parang_deg="{:>3d}".format(int(row.pang_deg)),
+                    ha="{:>+6.2f}".format(np.degrees(row.ha) / 15),
+                    ad="{:>3.1f}".format(np.degrees(calc_ad) * 3600),
                     icon=self._get_dir_icon(row),
-                    airmass=("% 5.2f" % row.airmass),
-                    moon_sep=("% 3d" % int(round(row.moon_sep))),
-                    # TODO
-                    #comment=row.comment,
-                    ad=("% .1f" % (np.degrees(calc_ad) * 3600)))
+                    airmass="{:>5.2f}".format(row.airmass),
+                    moon_sep="{:>3d}".format(int(round(row.moon_sep))),
+                    comment=row.comment)
 
         # save and restore selection after update
         # NOTE: calling set_tree() will trigger the target_selection_cb,

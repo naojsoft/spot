@@ -8,6 +8,7 @@ import numpy as np
 from datetime import datetime, time, timedelta
 from dateutil import tz
 import dateutil.parser
+import pandas as pd
 
 # set up download directory for files
 from ginga.util.paths import ginga_home
@@ -16,7 +17,7 @@ if not os.path.isdir(datadir):
     os.mkdir(datadir)
 
 import erfa
-from astropy.coordinates import SkyCoord, Latitude, Longitude
+from astropy.coordinates import SkyCoord, Latitude, Longitude, Angle
 from astropy.time import Time
 from astropy import units as u
 from astropy.config import set_temp_cache
@@ -532,6 +533,12 @@ class Body(object):
         self.equinox = equinox
         self.comment = comment
 
+    def _get_epoch(self, eq):
+        if isinstance(eq, str):
+            if eq.startswith('J'):
+                eq = eq[1:]
+        return float(eq)
+
     def _get_coord(self):   # noqa
         # vector construction, if the value passed is an array
         if isinstance(self.ra, np.ndarray):
@@ -543,9 +550,8 @@ class Body(object):
             else:
                 ra_deg, dec_deg = self.ra.astype(float), self.dec.astype(float)
 
-            #epoch = self.equinox
-            epoch = np.array([2000.0] * len(ra_deg))
-            import pandas as pd
+            #epoch = np.array([self._get_epoch(eq) for eq in self.equinox])
+            epoch = [2000.0] * len(self.ra)
             df = pd.DataFrame(dict(names=self.name, ra_degrees=ra_deg,
                                    ra_hours=ra_deg / 15.0,
                                    dec_degrees=dec_deg,
@@ -559,8 +565,7 @@ class Body(object):
                 ra_deg, dec_deg = coord.ra.degree, coord.dec.degree
             else:
                 ra_deg, dec_deg = float(self.ra), float(self.dec)
-            #coord = Star(ra_hours=ra_deg / 15.0, dec_degrees=dec_deg,
-            #             epoch=self.equinox)
+            # TODO: equinox
             coord = Star(ra_hours=ra_deg / 15.0, dec_degrees=dec_deg)
 
         return coord
@@ -615,6 +620,7 @@ class CalculationResult(object):
         self._last = None
         self._ra = None
         self._dec = None
+        self._eq = None
         self._alt = None
         self._az = None
         self._ha = None
@@ -658,7 +664,9 @@ class CalculationResult(object):
 
     @property
     def equinox(self):
-        return self.body.equinox
+        if self._eq is None:
+            self._calc_radec()
+        return self._eq
 
     @property
     def alt(self):
@@ -721,39 +729,46 @@ class CalculationResult(object):
         """Return Greenwich Mean Sidereal Time in radians."""
         if self._gmst is None:
             # NOTE:obstime.gmst is in hours
-            self._gmst = np.radians(self.obstime.gmst * 15.0)
-        return self._gmst
+            self._gmst = self.obstime.gmst
+        return np.radians(self._gmst * 15.0)
 
     @property
     def gast(self):
         """Return Greenwich Apparent Sidereal Time in radians."""
         if self._gast is None:
             # NOTE:obstime.gast is in hours
-            self._gast = np.radians(self.obstime.gast * 15.0)
-        return self._gast
+            self._gast = self.obstime.gast
+        return np.radians(self._gast * 15.0)
 
     @property
     def lmst(self):
         """Return Local Mean Sidereal Time in radians."""
         if self._lmst is None:
             # NOTE:obstime.gmst is in hours
-            self._lmst = np.radians(self.obstime.gmst * 15.0 + self.observer.lon_deg)
-        return self._lmst
+            _lmst = self.obstime.gmst + self.observer.lon_deg / 15.0
+            # normalize to 24 hour time
+            self._lmst = np.fmod(_lmst + 24.0, 24.0)
+        return np.radians(self._lmst * 15)
 
     @property
     def last(self):
         """Return Local Apparent Sidereal Time in radians."""
         if self._last is None:
             # NOTE:obstime.gast is in hours
-            self._last = np.radians(self.obstime.gast * 15.0 + self.observer.lon_deg)
+            _last = self.obstime.gast + self.observer.lon_deg / 15.0
+            # normalize to 24 hour time
+            self._last = np.fmod(_last + 24.0, 24.0)
         return self._last
 
     @property
     def ha(self):
         """Return the Hour Angle in radians."""
         if self._ha is None:
-            self._ha = self.lmst - self.ra
-        return self._ha
+            lmst = self.lmst     # force calculation of self._lmst
+            _ha = Angle(self._lmst - self.ra_deg / 15.0, unit=u.hour)
+            _ha.wrap_at(12 * u.hour, inplace=True)
+            self._ha = _ha
+        return self._ha.rad
 
     @property
     def pang(self):
@@ -876,6 +891,8 @@ class CalculationResult(object):
         if hasattr(coord, 'ra'):
             self._ra, self._dec = coord.ra, coord.dec
             self._ra_deg, self._dec_deg = coord.ra.hours * 15.0, coord.dec.degrees
+            # TODO
+            self._eq = 2000.0
         else:
             # moons, planets, etc.
             # Need to calculate the apparent ra/dec from the azalt
@@ -884,6 +901,8 @@ class CalculationResult(object):
                                                                           az_degrees=self.az_deg)
             self._ra, self._dec, distance = apparent.radec()
             self._ra_deg, self._dec_deg = self._ra.hours * 15.0, self._dec.degrees
+            # TODO
+            self._eq = 2000.0
 
     def _calc_altaz(self):
         coord = self.body._get_coord()
@@ -905,6 +924,7 @@ class CalculationResult(object):
         if columns is None:
             return dict(name=self.name, ra=self.ra, ra_deg=self.ra_deg,
                         dec=self.dec, dec_deg=self.dec_deg, az=self.az,
+                        equinox=self.equinox,
                         az_deg=self.az_deg, alt=self.alt, alt_deg=self.alt_deg,
                         lt=self.lt, ut=self.ut, jd=self.jd, mjd=self.mjd,
                         gast=self.gast, gmst=self.gmst, last=self.last,
