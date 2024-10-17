@@ -829,7 +829,9 @@ class CalculationResult(object):
         return self._atmos_disp
 
     def _calc_parallactic(self, dec_rad, ha_rad, lat_deg):
-        """Compute parallactic angle(s)."""
+        """Compute parallactic angle(s).
+        From Meeus, J. [Astronomical Algorithms, p. 98]
+        """
         lat_rad = np.radians(lat_deg)
         pang_rad = np.arctan2(np.sin(ha_rad),
                               np.tan(lat_rad) * np.cos(dec_rad) -

@@ -619,13 +619,15 @@ class Targets(GingaPlugin.LocalPlugin):
                 self.fv.show_error(errmsg)
                 continue
 
+            comment = row.get('Comment', '')
+
             t = Target(name=name,
                        ra=ra_deg,
                        dec=dec_deg,
                        equinox=eq,
-                       comment=row.get('comment', ''),
+                       comment=comment,
                        category=category)
-            t.set(is_ref=row.get('IsRef', True))
+            t.set(is_ref=row.get('IsRef', True), comment=comment)
             new_targets.append(t)
 
         if not merge:
