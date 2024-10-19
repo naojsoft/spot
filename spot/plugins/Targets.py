@@ -118,7 +118,8 @@ class Targets(GingaPlugin.LocalPlugin):
                                    color_tagged='mediumorchid1',
                                    color_normal='seagreen2',
                                    plot_ss_objects=True,
-                                   load_directory=user_home)
+                                   load_directory=user_home,
+                                   merge_targets=False)
         self.settings.load(onError='silent')
 
         # these are set via callbacks from the SiteSelector plugin
@@ -231,22 +232,29 @@ class Targets(GingaPlugin.LocalPlugin):
 
         plot_update_text = "Please select file for list display"
 
+        m = Widgets.Menu()
+        self.w.menu_config = m
+        action = m.add_name("Merge Targets", checkable=True)
+        action.set_tooltip("Put all targets under one category called 'Targets'")
+        action.set_state(self.settings.get('merge_targets', False))
+        #action.add_callback('activated', self.merge_targets_cb)
+        self.w.merge_targets = action
+        action = m.add_name("List PRM Targets", checkable=True)
+        action.set_tooltip("Show unreferenced targets in .prm files")
+        action.set_state(False)
+        action.add_callback('activated', self.list_prm_cb)
+        self.w.list_prm_targets = action
+
+        btn = Widgets.Button("Settings")
+        btn.set_tooltip("Configure some settings for this plugin")
+        btn.add_callback('activated', lambda wid: m.popup(widget=wid))
+
         hbox = Widgets.HBox()
         hbox.set_spacing(5)
         self.w.update_time = Widgets.Label(plot_update_text)
         hbox.add_widget(self.w.update_time, stretch=0)
         hbox.add_widget(Widgets.Label(''), stretch=1)
-        cbox = Widgets.CheckBox("Merge Targets")
-        cbox.set_tooltip("Put all targets under one category called 'Targets'")
-        self.w.merge_targets = cbox
-        cbox.set_state(False)
-        hbox.add_widget(cbox, stretch=0)
-        cbox = Widgets.CheckBox("List PRM Targets")
-        cbox.set_tooltip("Show unreferenced targets in .prm files")
-        self.w.list_prm_targets = cbox
-        cbox.set_state(False)
-        cbox.add_callback('activated', self.list_prm_cb)
-        hbox.add_widget(cbox, stretch=0)
+        hbox.add_widget(btn, stretch=0)
         top.add_widget(hbox, stretch=0)
 
         self.w.tgt_tbl = Widgets.TreeView(auto_expand=True,
