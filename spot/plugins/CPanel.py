@@ -95,6 +95,7 @@ class CPanel(GingaPlugin.GlobalPlugin):
 
         self.ws_dct = dict()
         self.count = 1
+        self.fv.add_callback('delete-workspace', self.delete_workspace_cb)
         self.gui_up = False
 
     def build_gui(self, container):
@@ -235,10 +236,18 @@ class CPanel(GingaPlugin.GlobalPlugin):
                 cb.add_callback('activated', self.activate_plugin_cb,
                                 wsname, plname, chname)
 
+        hbox = Widgets.HBox()
+        hbox.set_border_width(4)
+        hbox.set_spacing(4)
         btn = Widgets.Button(f"Save {wsname} layout")
         btn.add_callback('activated', self.save_ws_layout_cb, wsname)
         btn.set_tooltip("Save the size and position of workspace windows")
-        vbox.add_widget(btn, stretch=0)
+        hbox.add_widget(btn, stretch=1)
+        btn = Widgets.Button(f"Close workspace {wsname}")
+        btn.add_callback('activated', self.close_ws_cb, wsname)
+        btn.set_tooltip("Close this workspace")
+        hbox.add_widget(btn, stretch=1)
+        vbox.add_widget(hbox, stretch=0)
 
         self.w.stk.add_widget(vbox)
         self.ws_dct[wsname] = Bunch.Bunch(ws=ws, workspace=wsname,
@@ -248,12 +257,28 @@ class CPanel(GingaPlugin.GlobalPlugin):
         self.w.sel_ws.set_text(wsname)
         index = self.w.stk.index_of(vbox)
         self.w.stk.set_index(index)
+        self.fv.ds.raise_tab(wsname)
 
     def select_workspace_cb(self, w, idx):
         wsname = w.get_text()
         info = self.ws_dct[wsname]
         index = self.w.stk.index_of(info.child)
         self.w.stk.set_index(index)
+        self.fv.ds.raise_tab(wsname)
+
+    def delete_workspace_cb(self, fv, ws):
+        wsname = ws.name
+        if wsname in self.ws_dct:
+            info = self.ws_dct[wsname]
+            del self.ws_dct[wsname]
+            if self.gui_up:
+                self.w.stk.remove(info.child)
+                self.w.sel_ws.clear()
+                wsnames = list(self.ws_dct.keys())
+                for name in wsnames:
+                    self.w.sel_ws.append_text(name)
+                if len(wsnames) > 0:
+                    self.select_workspace_cb(self.w.sel_ws, 0)
 
     def activate_plugin_cb(self, w, tf, wsname, plname, chname):
         info = self.ws_dct[wsname]
@@ -288,6 +313,10 @@ class CPanel(GingaPlugin.GlobalPlugin):
         path = os.path.join(ginga_home, wsname + '.json')
         with open(path, 'w') as out_f:
             out_f.write(json.dumps(cfg_d, indent=4))
+
+    def close_ws_cb(self, w, wsname):
+        ws = self.fv.ds.get_ws(wsname)
+        self.fv.workspace_closed_cb(ws)
 
     def __str__(self):
         return 'cpanel'
