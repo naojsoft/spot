@@ -6,13 +6,11 @@ General Operation and Channels
 Startup
 =======
 
-To start SPOT, activate your instillation environment 
+To start SPOT, activate your installation environment 
 and then activate SPOT with the 
 command "spot". When the program starts it will look like this:
 
 .. image:: figures/ProgramStart.*
-
-.. note:: Options for the spot command are ....
 
 If it has not been selected by default, switch to the ``CPanel``
 tab on the right side of the SPOT program. Switching to CPanel 
@@ -20,27 +18,29 @@ opens the SPOT Control Panel.
 On the right side underneath CPanel, you can press ``New Workspace`` 
 to create a blank workspace. If you would like to give the 
 workspace a name, you will need to type a name next to the 
-``New Workspace`` button in the fillable area. 
+``New Workspace`` button in the fillable area. Otherwise, 
+the name will default to "WS1", "WS2", etc.
 
 .. image:: figures/NewWorkspace.*
 
 When a new workspace is created two channels will appear, 
-"wsname"_TGTS and "wsname"_FIND. The Targets channel
-TGTS channel is used to display a map of the sky. 
+"wsname"_TGTS and "wsname"_FIND. The TGTS channel (Targets Channel) 
+is used to display a map of the sky. 
 Initially it will be blank, so in the CPanel window press 
-``Site Selector``, ``Polar Sky``, and ``Target List``. 
+:doc:`siteselect`, :doc:`polarsky`, and :doc:`targetlist`. 
 In the Site Selector window select a site from the drop down menu, 
 then go to the Targets window and press "File" to browse for a file 
 with your target list. Once you have selected your target file, 
-you will see your targets appear on the TGTS channel. If they do not 
-appear, try pressing the ``List All Targets`` switch on the 
-Targets window. 
+you will see your targets appear on the TGTS channel. 
 
 The FIND channel is used for viewing FITS files. The window will be 
-blank initially, 
-Details about these plugins can be found in the following chapters.
+blank initially, details about the plugins can be found in the 
+following chapters.
 
 .. image:: figures/SampleWorkspace2.*
+
+Image contains data from the WISE 3.4 :math:`\mu`\ m survey. 
+(`Wright et al (2010)`_, `Mainzer et al (2011)`_)
 
 Your layout can be saved using the ``Save "workspacename" layout`` 
 button, which will save the position and size of the channel and 
@@ -49,17 +49,16 @@ Whenever you make a new workspace with the same name as
 a saved workspace, the saved layout will be loaded.
 
 
-
+.. _TargetsChannel:
     
 ============
 TGTS Channel
 ============
 
 .. image:: figures/TGTSchannel2.png
-.. image goes here, take image during night shift
 
 The Targets (TGTS) Channel is the main window for tracking the sky position of selected 
-targets. The following plugins are all dependent on the Targets channel.
+targets. The following plugins are primarily used with the Targets channel.
 
 .. toctree::
    :maxdepth: 1
@@ -72,15 +71,19 @@ targets. The following plugins are all dependent on the Targets channel.
    telescopepos
    telgen
 
+.. _FindChannel:
+
 ============
 FIND Channel
 ============
 
-.. image:: figures/findchannel.png
+.. image:: figures/findchannel2.png
+
+Image contains data from the WISE 3.4 :math:`\mu`\ m survey. 
+(`Wright et al (2010)`_, `Mainzer et al (2011)`_)
 
 The FIND channel is used to plan individual or sets of observations. The 
-following plugins are all 
-dependent on the FIND channel.
+following plugins are primarily used with the FIND channel.
 
 .. toctree::
    :maxdepth: 1
@@ -92,8 +95,8 @@ Loading a FITS image file
 -------------------------
 
 The FIND window can be used to display local FITS files. 
-First, open the ``Operation`` menu and select ``Utils`` and then select 
-``FBrowser``. Search for the FITS file, and then either left-drag and 
+First, open the :ref:`operation` and select :doc:`utils` and then select 
+:ref:`fbrowser`. Search for the FITS file, and then either left-drag and 
 drop into the FIND channel or highlight the file and press "load".
 Alternatively, you may use file explorer to find your FITS file and then 
 left-drag the file from the file explorer to the FIND window.
@@ -115,7 +118,7 @@ be loaded. The name does not have a character limit, but only the first
 15 characters are saved and the name of the workspace cannot be changed 
 once it is created. You can swap to another open workspace by opening the 
 drop down menu next to "Select Workspace" and pressing one of the options. 
-Pressing the ``Save workspace_name layout`` button will save the current 
+Pressing the "Save workspace_name layout" button will save the current 
 size and position of the plugin and channel windows. 
 
 Installed plugins are shown in a list, and each can be activated and 
@@ -140,8 +143,8 @@ about each plugin can be found in the links below.
 Keyboard and Mouse
 ==================
 
-..
-    Duplicated from Ginga manual with minor changes.
+This portion of the manual has been duplicated from the "Keyboard and 
+mouse operations" section of the `Ginga Manual`_ with minor changes. 
 
 In this manual we will use the following terms to describe the 
 operations performed with the mouse:
@@ -185,6 +188,25 @@ used to adjust the channels.
 .. image:: figures/Tools.png
 
 (Mouse wheel can frequently be used as a proxy for the mouse scroll)
+
+Image Navigation
+----------------
+
+|up| Go to previous image in channel:
+    If you have opened more than 1 image in the FIND channel, pressing this
+    button will go to the previous image. Otherwise, this option will be 
+    greyed out.
+
+.. |up| image:: figures/up.png
+    :scale: 16%
+
+|down| Go to next image in channel:
+    If you have opened more than 1 image in the FIND channel, pressing this
+    button will go to the next image (images are in a loop). Otherwise, this 
+    option will be greyed out.
+
+.. |down| image:: figures/down.png
+    :scale: 16%
 
 Image Axes Transformations
 --------------------------
@@ -234,25 +256,6 @@ Image Rotation controls
     Orients the image so North is up and East is to the left.
 
 .. |orientne| image:: figures/orient_ne.png
-    :scale: 16%
-
-Image Navigation
-----------------
-
-|up| Go to previous image in channel:
-    If you have opened more than 1 image in the FIND channel, pressing this
-    button will go to the previous image. Otherwise, this option will be 
-    greyed out.
-
-.. |up| image:: figures/up.png
-    :scale: 16%
-
-|down| Go to next image in channel:
-    If you have opened more than 1 image in the FIND channel, pressing this
-    button will go to the next image (images are in a loop). Otherwise, this 
-    option will be greyed out.
-
-.. |down| image:: figures/down.png
     :scale: 16%
 
 Zoom controls
@@ -372,7 +375,7 @@ Image Reset Functions
     :scale: 16%
  
 |autocut| Auto cut levels:
-    Automatically sets the high and low cut levels. (How is it set)
+    Automatically sets the high and low cut levels. 
 
 .. |autocut| image:: figures/auto_cuts.png
     :scale: 16%
@@ -389,7 +392,8 @@ Side Panel Functions
 |setting| Set channel preferences (in focused channel):
     Opens the preferences window for the selected channels. All of the channel 
     settings can be adjusted from this window with more control than if they 
-    were accessed using the icons at the bottom bar. 
+    were accessed using the icons at the bottom bar. See :ref:`UtilsPreferences` 
+    for more information.
 
 .. |setting| image:: figures/settings.png
     :scale: 16%
@@ -412,3 +416,9 @@ Side Panel Functions
 
 .. |microscope| image:: figures/microscope.png
     :scale: 16%
+
+.. _Ginga Manual: https://ginga.readthedocs.io/en/stable/manual/operation.html
+
+.. _Wright et al (2010): https://ui.adsabs.harvard.edu/abs/2010AJ....140.1868W/abstract
+
+.. _Mainzer et al (2011): https://ui.adsabs.harvard.edu/abs/2011ApJ...731...53M/abstract

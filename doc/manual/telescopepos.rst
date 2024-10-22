@@ -29,5 +29,4 @@ top of the screen.
 Setting up the Plugin
 =====================
 
-Write how to set up the plugin for other 
-telescopes here.
+To be continued.

@@ -2,9 +2,9 @@
 Sky Cams
 ++++++++
 
-The SkyCam plugin is used to place a camera image on the background of 
-the Targets channel to monitor sky conditions. There is a drop-down menu 
-with several sites to choose from.
+The SkyCam plugin is used to place an all sky camera image on the background 
+of the Targets channel to assist with monitoring sky conditions. There is a 
+drop-down menu with several sites to choose from.
 
 .. image:: figures/skycam2.*
 
@@ -28,4 +28,4 @@ channel server by selecting the checkbox next to "Show Differential Image".
 Adding new cameras
 ==================
 
-If the camera you want to use is not on this list....
+To be continued.

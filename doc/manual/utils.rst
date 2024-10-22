@@ -5,7 +5,10 @@ Utils
 =========
 Downloads
 =========
-Not sure what this does.
+
+To be continued.
+
+.. _fbrowser:
 
 ========
 Fbrowser
@@ -124,9 +127,12 @@ is your HOME directory:
    # Maximum number of rows that will turn off auto column resizing (for speed)
    max_rows_for_col_resize = 5000
 
+.. _UtilsPreferences:
+
 ===========
 Preferences    
 ===========
+
 Make changes to channel settings graphically in the UI.
 
 **Plugin Type: Local**

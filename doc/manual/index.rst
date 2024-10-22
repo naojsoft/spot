@@ -25,3 +25,4 @@ for tracking the elevation of targets over time.
    operation
    channelselection
    subaru
+   acknowledgements
