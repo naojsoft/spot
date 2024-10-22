@@ -25,7 +25,7 @@ If you have the SPOT source code checked out, you can find the file
 "sites.yml" in .../spot/spot/config/.  Copy this file to $HOME/.spot
 and edit it to add your own site.  Be sure to set all of the keywords
 for your site (latitude, longitude, elevation, etc).  Restart spot and
-you should be able to see your new location.
+you should be able to pick your new location from the list.
 
 ===============================
 Setting the time of observation

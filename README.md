@@ -34,5 +34,8 @@ things it can do:
 
 See the [quick installation instructions](INSTALL.md).
 
+## Documentation
+
+See the [SPOT documentation at RTD](https://spot-nik.readthedocs.io/en/latest/).
 
 

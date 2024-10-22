@@ -4,7 +4,7 @@ Finding Chart
 
 The finding chart plugin is used to view a survey image of a requested 
 region of the sky. This plugin is used in conjunction with 
-:doc:`targetlist` and/or :doc:`telescopepos`.
+:doc:`targetlist`, :doc:`intfov` and/or :doc:`telescopepos`.
 
 .. image:: figures/FindingChart.*
 
@@ -17,8 +17,8 @@ Display an image of a specified region
 
 The center coordinates of the image can be set either from a target from 
 the :doc:`targetlist` or from the telescope position. To set the coordinates 
-from the target list, select and then double left-click a target from the 
-list and the coordinates under "Pointing" will be automatically filled out. 
+from the target list, double left-click a target from the list and the
+coordinates under "Pointing" will be automatically filled out. 
 Alternatively, the coordinates can be set from the current telescope pointing 
 by checking the checkbox by "Follow telescope" (requires the 
 :doc:`telescopepos` plugin). Checking the "Lock Target" checkbox will prevent 

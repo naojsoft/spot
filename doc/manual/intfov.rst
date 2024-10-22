@@ -29,7 +29,9 @@ can also be adjusted manually by entering in the coordinates. The
 RA and DEC can be specified as decimal values or sexigesimal notation.
 
 To center the image on the current telescope pointing, check the box 
-next to "Follow telescope" in the :doc:`findchart` window.
+next to "Follow telescope" in the :doc:`findchart` window.  This can allow
+you to watch a dither happening on an area of the sky if the world
+coordinate system is reasonably accurate in the finding image.
 
 ===================
 Custom Instruments 

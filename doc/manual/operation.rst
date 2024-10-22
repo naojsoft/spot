@@ -24,14 +24,17 @@ the name will default to "WS1", "WS2", etc.
 .. image:: figures/NewWorkspace.*
 
 When a new workspace is created two channels will appear, 
-"wsname"_TGTS and "wsname"_FIND. The TGTS channel (Targets Channel) 
-is used to display a map of the sky. 
+"wsname"_TGTS and "wsname"_FIND. You will normally want to resize
+these channel windows to be larger than the default size.
+The TGTS channel (Targets Channel) is used to display a map of the sky. 
 Initially it will be blank, so in the CPanel window press 
 :doc:`siteselect`, :doc:`polarsky`, and :doc:`targetlist`. 
 In the Site Selector window select a site from the drop down menu, 
 then go to the Targets window and press "File" to browse for a file 
 with your target list. Once you have selected your target file, 
-you will see your targets appear on the TGTS channel. 
+you will see your targets appear on the TGTS channel (see the
+link below for the "Target List" plugin for information on the supported file
+formats for targets).
 
 The FIND channel is used for viewing FITS files. The window will be 
 blank initially, details about the plugins can be found in the 
@@ -47,6 +50,9 @@ button, which will save the position and size of the channel and
 plugin windows. 
 Whenever you make a new workspace with the same name as 
 a saved workspace, the saved layout will be loaded.
+
+You can delete a workspace by clicking the ``Close "workspacename"``
+button.  Note that this will delete everything in the workspace.
 
 
 .. _TargetsChannel:

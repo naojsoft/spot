@@ -28,4 +28,14 @@ channel server by selecting the checkbox next to "Show Differential Image".
 Adding new cameras
 ==================
 
-To be continued.
+You can easily add your own all-sky camera images if you have a suitable
+feed of images that can be fetched via web protocols.
+If you have the SPOT source code checked out, you can find the file
+"skycams.yml" in .../spot/spot/config/.  Copy this file to $HOME/.spot
+and edit it to add your own camera.  You will need to provide a URL
+for downloading images, a title, a center pixel (X and Y coords) in the
+image representing the zenith, the radius of the circle to the horizon
+in pixels, a rotation to be applied, whether to flip the image in X or
+Y dimensions, and an update interval measured in seconds.
+
+Restart spot and you should be able to pick your new camera from the list.

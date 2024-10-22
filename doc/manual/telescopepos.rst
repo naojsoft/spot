@@ -2,12 +2,17 @@
 Telescope Position
 ++++++++++++++++++
 
-The telescope position plugin displays the telescope and 
-target positions. 
+The telescope position plugin displays live telescope and 
+target positions.
+
+.. note:: In order to successfully use this plugin, it is necessary
+          to write a custom companion plugin to provide the status
+          necessary to draw these positions.  If you didn't create such
+          a plugin, it will look as though the telescope is parked.
 
 .. image:: figures/telpos2.*
 
-The telescope and target positions are shown in both 
+The telescope and target positions are shown in both
 Right Ascension/Declination and Azimuth/Elevation.
 RA and DEC are displayed in sexigesimal notation as 
 HH:MM:SS.SSS for RA, and DD:MM:SS.SS for DEC. 
@@ -25,8 +30,12 @@ The "Rotate view to azimuth" button will orient the Targets
 window so the telescope azimuth is always facing towards the 
 top of the screen.
 
-=====================
-Setting up the Plugin
-=====================
+==========================
+Writing a Companion Plugin
+==========================
 
-To be continued.
+Download the SPOT source code and look in the "spot/examples" folder
+for a plugin template called "TelescopePosition_Companion".  Modify
+as described in the template.
+
+

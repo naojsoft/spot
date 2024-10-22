@@ -108,6 +108,9 @@ class SkyCam(GingaPlugin.LocalPlugin):
         # superclass defines some variables for us, like logger
         super().__init__(fv, fitsimage)
 
+        if not self.chname.endswith('_TGTS'):
+            return
+
         # get SkyCam preferences
         prefs = self.fv.get_preferences()
         self.settings = prefs.create_category('plugin_SkyCam')
@@ -167,6 +170,9 @@ class SkyCam(GingaPlugin.LocalPlugin):
         self.crop_circ.crdmap = self.viewer.get_coordmap('data')
 
     def build_gui(self, container):
+
+        if not self.chname.endswith('_TGTS'):
+            raise Exception(f"This plugin is not designed to run in channel {self.chname}")
 
         top = Widgets.VBox()
         top.set_border_width(4)

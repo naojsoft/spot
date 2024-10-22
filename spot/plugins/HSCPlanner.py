@@ -136,6 +136,9 @@ class HSCPlanner(GingaPlugin.LocalPlugin):
         # superclass defines some variables for us, like logger
         super(HSCPlanner, self).__init__(fv, fitsimage)
 
+        if not self.chname.endswith('_FIND'):
+            return
+
         self.layertag = 'hscplanner-canvas'
         self.dither_types = ['1', '5', 'N']
         self.dither_type = '1'
@@ -172,6 +175,10 @@ class HSCPlanner(GingaPlugin.LocalPlugin):
         self.canvas = canvas
 
     def build_gui(self, container):
+
+        if not self.chname.endswith('_FIND'):
+            raise Exception(f"This plugin is not designed to run in channel {self.chname}")
+
         top = Widgets.VBox()
         top.set_border_width(4)
 

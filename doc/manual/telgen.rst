@@ -59,10 +59,3 @@ enter the new coordinates into the target generator and add
 the name of the target to be edited in the "Name" field, then 
 press "Add Target". 
 
-Requirements
-============
-
-naojsoft packages
------------------
-- g2cam
-- ginga

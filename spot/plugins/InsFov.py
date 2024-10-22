@@ -27,6 +27,9 @@ class InsFov(GingaPlugin.LocalPlugin):
         # superclass defines some variables for us, like logger
         super().__init__(fv, fitsimage)
 
+        if not self.chname.endswith('_FIND'):
+            return
+
         # get FOV preferences
         prefs = self.fv.get_preferences()
         self.settings = prefs.create_category('plugin_InsFov')
@@ -59,6 +62,9 @@ class InsFov(GingaPlugin.LocalPlugin):
         self.gui_up = False
 
     def build_gui(self, container):
+
+        if not self.chname.endswith('_FIND'):
+            raise Exception(f"This plugin is not designed to run in channel {self.chname}")
 
         top = Widgets.VBox()
         top.set_border_width(4)

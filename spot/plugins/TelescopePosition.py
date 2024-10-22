@@ -29,6 +29,9 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
     def __init__(self, fv, fitsimage):
         super().__init__(fv, fitsimage)
 
+        if not self.chname.endswith('_TGTS'):
+            return
+
         # get TelescopePosition preferences
         prefs = self.fv.get_preferences()
         self.settings = prefs.create_category('plugin_TelescopePosition')
@@ -85,6 +88,9 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         self.gui_up = False
 
     def build_gui(self, container):
+
+        if not self.chname.endswith('_TGTS'):
+            raise Exception(f"This plugin is not designed to run in channel {self.chname}")
 
         # initialize site
         obj = self.channel.opmon.get_plugin('SiteSelector')

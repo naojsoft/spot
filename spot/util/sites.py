@@ -7,6 +7,7 @@ NOTES:
 # stdlib
 import os.path
 from dateutil import tz
+import threading
 
 # 3rd party
 import yaml
@@ -23,8 +24,7 @@ from spot.util.calcpos import Observer
 from spot import __file__
 cfg_sites_yml = os.path.join(os.path.dirname(__file__), "config", "sites.yml")
 
-_external_status_dct = {}
-site_dict = Bunch(caseless=True)
+site_dict = dict()
 site_names = []
 
 
@@ -34,6 +34,7 @@ class Site:
 
         self.name = name
         self.observer = None
+        self.lock = threading.RLock()
         self.status_dict = dict(
             fullname='Unnamed site',
             longitude_deg=0.0,
@@ -43,21 +44,21 @@ class Site:
             temperature_c=0.0,        # temperature at site
             timezone_name='UTC',      # name of time zone at site
             timezone_offset_min=0,    # minute offset of time zone at site
-            azimuth_start_direction='N',
+            azimuth_start_direction='N',  # where is 0 deg azimuth (N/S)
             fov_deg=1.0,              # telescope FOV in deg
-            az_deg=0.0,               # cur tel azimuth in deg
-            az_cmd_deg=0.0,           # target azimuth in deg
+            az_deg=0.0,               # current telescope azimuth in deg
+            az_cmd_deg=0.0,           # current target azimuth in deg
             # az_norm_deg=0.0,          #
             # az_cmd_norm_deg=0.0,      #
             az_diff_deg=0.0,          # diff between target az and cmd az
-            alt_deg=90.0,             # cur tel elevation in deg
-            alt_cmd_deg=90.0,         # target elevation in deg
+            alt_deg=90.0,             # current telescope elevation in deg
+            alt_cmd_deg=90.0,         # current target elevation in deg
             alt_diff_deg=0.0,         # diff between target el and cmd el
-            ra_deg=0.0,               # cur tel RA in deg
-            ra_cmd_deg=0.0,           # target RA in deg
+            ra_deg=0.0,               # current telescope RA in deg
+            ra_cmd_deg=0.0,           # current target RA in deg
             equinox=2000.0,           # ref equinox for telescope coords
-            dec_deg=0.0,              # cur tel DEC in deg
-            dec_cmd_deg=0.0,          # target DEC in deg
+            dec_deg=0.0,              # current telescope DEC in deg
+            dec_cmd_deg=0.0,          # current target DEC in deg
             cmd_equinox=2000.0,       # ref equinox for target coords
             slew_time_sec=0.0,        # slew time in sec to target
             rot_deg=0.0,              # current rotator position in deg
@@ -68,12 +69,12 @@ class Site:
         )
 
     def get_status(self):
-        return Bunch(self.status_dict)
+        with self.lock:
+            return Bunch(self.status_dict)
 
-    def fetch_status(self):
-        global _external_status_dct
-        self.status_dict.update(_external_status_dct)
-        return self.get_status()
+    def update_status(self, status_dct):
+        with self.lock:
+            self.status_dict.update(status_dct)
 
     def initialize(self):
         status = Bunch(self.get_status())
@@ -103,29 +104,24 @@ class Site:
         return self.status_dict.get('fullname', self.name)
 
 
-def update_status(dct):
-    global _external_status_dct
-    _external_status_dct.update(dct)
-
-
 def get_site_names():
     return site_names
 
 
 def get_site(name):
-    return site_dict[name]
+    return site_dict[name.lower()]
 
 
 def configure_sites(yml_dct):
     global site_dict, site_names
 
-    site_dict = Bunch(caseless=True)
-    site_names = []
+    site_dict.clear()
+    site_names.clear()
     for name, dct in yml_dct.items():
         site_names.append(name)
         site = Site(name)
         site.status_dict.update(dct)
-        site_dict[name] = site
+        site_dict[name.lower()] = site
 
     site_names.sort()
 

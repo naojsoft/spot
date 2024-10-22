@@ -82,6 +82,9 @@ class SiteSelector(GingaPlugin.LocalPlugin):
     def __init__(self, fv, fitsimage):
         super().__init__(fv, fitsimage)
 
+        if not self.chname.endswith('_TGTS'):
+            return
+
         # get SiteSelector preferences
         prefs = self.fv.get_preferences()
         self.settings = prefs.create_category('plugin_SiteSelector')
@@ -113,13 +116,14 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         default_site = self.settings.get('default_site', None)
         if default_site is None:
             default_site = site_names[0]
+            print(f"setting site to {default_site}")
         self.site_obj = sites.get_site(default_site)
         self.site_obj.initialize()
-        self.status = self.site_obj.get_status()
+        status = self.site_obj.get_status()
 
         self.time_mode = 'now'
-        self.cur_tz = tz.tzoffset(self.status.timezone_name,
-                                  self.status.timezone_offset_min * 60)
+        self.cur_tz = tz.tzoffset(status.timezone_name,
+                                  status.timezone_offset_min * 60)
         self.dt_utc = datetime.now(tz=tz.UTC)
 
         self.tmr = GwHelp.Timer(duration=self.settings['timer_update_interval'])
@@ -128,6 +132,11 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         self.gui_up = False
 
     def build_gui(self, container):
+
+        if not self.chname.endswith('_TGTS'):
+            raise Exception(f"This plugin is not designed to run in channel {self.chname}")
+
+        status = self.site_obj.get_status()
 
         top = Widgets.VBox()
         top.set_border_width(4)
@@ -170,7 +179,7 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         b.datetime.set_tooltip("Set date time for visibility calculations")
         b.datetime.add_callback('activated', self.set_datetime_cb)
         b.datetime.set_enabled(False)
-        b.timeoff.set_text(str(self.status.timezone_offset_min))
+        b.timeoff.set_text(str(status.timezone_offset_min))
         b.timeoff.set_tooltip("UTC offset for setting fixed time")
         b.timeoff.set_enabled(False)
         b.timeoff.add_callback('activated', self.set_timeoff_cb)
@@ -217,7 +226,7 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         return self.site_obj
 
     def get_status(self):
-        return self.status
+        return self.site_obj.get_status()
 
     def get_datetime(self):
         return (self.dt_utc, self.cur_tz)
@@ -227,21 +236,18 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         site_name = self.site_dict[full_name]
         self.site_obj = sites.get_site(site_name)
         self.site_obj.initialize()
-        self.status = self.site_obj.get_status()
+        status = self.site_obj.get_status()
 
         # change time zone to be that of the site
-        zone_off_min = self.status.timezone_offset_min
+        zone_off_min = status.timezone_offset_min
         self.w.timeoff.set_text(str(zone_off_min))
-        self.cur_tz = tz.tzoffset(self.status.timezone_name,
+        self.cur_tz = tz.tzoffset(status.timezone_name,
                                   zone_off_min * 60)
         self._set_datetime()
         self.cb.make_callback('site-changed', self.site_obj)
 
     def update_timer_cb(self, timer):
         timer.start()
-
-        # get any updated status from the site
-        self.status.update(self.site_obj.fetch_status())
 
         if self.time_mode == 'now':
             self.dt_utc = datetime.now(tz=tz.UTC)

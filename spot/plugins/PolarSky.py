@@ -40,6 +40,9 @@ class PolarSky(GingaPlugin.LocalPlugin):
         # superclass defines some variables for us, like logger
         super().__init__(fv, fitsimage)
 
+        if not self.chname.endswith('_TGTS'):
+            return
+
         # get PolarSky preferences
         prefs = self.fv.get_preferences()
         self.settings = prefs.create_category('plugin_PolarSky')
@@ -121,6 +124,10 @@ class PolarSky(GingaPlugin.LocalPlugin):
         return info
 
     def build_gui(self, container):
+
+        if not self.chname.endswith('_TGTS'):
+            raise Exception(f"This plugin is not designed to run in channel {self.chname}")
+
         obj = self.channel.opmon.get_plugin('SiteSelector')
         self.site_obj = obj.get_site()
         self.dt_utc, self.cur_tz = obj.get_datetime()
