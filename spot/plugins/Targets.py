@@ -144,6 +144,7 @@ class Targets(GingaPlugin.LocalPlugin):
         self.plot_ss_objects = self.settings.get('plot_ss_objects', True)
         self.tagged = set([])
         self.selected = set([])
+        self.show_unref_tgts = False
         self.tgt_df = None
         self.ss_df = None
         self._mbody = None
@@ -247,7 +248,7 @@ class Targets(GingaPlugin.LocalPlugin):
         self.w.merge_targets = action
         action = m.add_name("List PRM Targets", checkable=True)
         action.set_tooltip("Show unreferenced targets in .prm files")
-        action.set_state(False)
+        action.set_state(self.show_unref_tgts)
         action.add_callback('activated', self.list_prm_cb)
         self.w.list_prm_targets = action
 
@@ -443,7 +444,7 @@ class Targets(GingaPlugin.LocalPlugin):
             name = row.get('name', None)
             tgt = self.target_dict.get((category, name), None)
             is_ref = row.get('is_ref', None)
-            if tag == 'ss' or self.w.list_prm_targets.get_state() or is_ref:
+            if tag == 'ss' or self.show_unref_tgts or is_ref:
                 alpha = 1.0 if row['alt_deg'] > 0 else 0.0
                 if tgt is None:
                     color = row['color']
@@ -660,7 +661,7 @@ class Targets(GingaPlugin.LocalPlugin):
         # update PolarSky plot
         self.fv.gui_call(self.update_all, targets_changed=True)
 
-        self.cb.make_callback('targets-changed', self.full_tgt_list)
+        self.issue_targets_changed()
 
     def process_csv_file_for_targets(self, csv_path):
         tgt_df = pd.read_csv(csv_path)
@@ -723,7 +724,7 @@ class Targets(GingaPlugin.LocalPlugin):
         tree_dict = OrderedDict()
         for idx, row in tgt_df.iterrows():
             is_ref = row.get('is_ref', True)
-            if self.w.list_prm_targets.get_state() or is_ref:
+            if self.show_unref_tgts or is_ref:
                 dct = tree_dict.setdefault(row.category, dict())
                 tagged = row['tagged']
                 # NOTE: AZ values are normalized to standard use
@@ -829,11 +830,22 @@ class Targets(GingaPlugin.LocalPlugin):
         self.tagged = selected
         self.target_tagged_update()
 
-    def list_prm_cb(self, w, arg1):
+    def list_prm_cb(self, w, tf):
+        self.show_unref_tgts = tf
         if self.tgt_df is not None:
             self.targets_to_table(self.tgt_df)
             self.update_targets(self.tgt_df, 'targets')
         self.update_targets(self.ss_df, 'ss')
+
+        self.issue_targets_changed()
+
+    def issue_targets_changed(self):
+        if self.show_unref_tgts:
+            targets = self.full_tgt_list
+        else:
+            targets = [tgt for tgt in self.full_tgt_list
+                       if tgt.get('is_ref', True)]
+        self.cb.make_callback('targets-changed', targets)
 
     def tag_cb(self, w):
         sel_dct = self.w.tgt_tbl.get_selected()
@@ -872,7 +884,7 @@ class Targets(GingaPlugin.LocalPlugin):
         self._mbody = None
         self.full_tgt_list = list(self.target_dict.values())
 
-        self.cb.make_callback('targets-changed', self.full_tgt_list)
+        self.issue_targets_changed()
 
         self.target_tagged_update()
         self._update_selection_buttons()
