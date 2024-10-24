@@ -869,13 +869,22 @@ class Targets(GingaPlugin.LocalPlugin):
 
         self.issue_targets_changed()
 
-    def issue_targets_changed(self):
+    def get_targets(self):
         if self.show_unref_tgts:
             targets = self.full_tgt_list
         else:
             targets = [tgt for tgt in self.full_tgt_list
                        if tgt.get('is_ref', True)]
-        self.cb.make_callback('targets-changed', targets)
+        return targets
+
+    def get_tagged_targets(self):
+        return self.tagged
+
+    def get_selected_targets(self):
+        return self.selected
+
+    def issue_targets_changed(self):
+        self.cb.make_callback('targets-changed', self.get_targets())
 
     def tag_cb(self, w):
         sel_dct = self.w.tgt_tbl.get_selected()

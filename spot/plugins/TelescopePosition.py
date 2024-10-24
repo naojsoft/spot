@@ -68,6 +68,9 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         self.settings = prefs.create_category('plugin_TelescopePosition')
         self.settings.add_defaults(rotate_view_to_az=False,
                                    tel_fov_deg=1.5,
+                                   color_telescope='skyblue1',
+                                   color_slew='thistle1',
+                                   color_target='tan1',
                                    slew_distance_threshold=0.05,
                                    telescope_update_interval=3.0)
         self.settings.load(onError='silent')
@@ -86,29 +89,34 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
 
         # create telescope object
         objs = []
-        color = 'sienna'
+        color_tel = self.settings.get('color_telescope', 'skyblue1')
         scale = self.get_scale()
         r = self.settings.get('tel_fov_deg') * 0.5 * scale
-        objs.append(self.dc.Circle(0.0, 0.0, r, linewidth=1, color=color))
+        objs.append(self.dc.Circle(0.0, 0.0, r, linewidth=3, color=color_tel))
         off = 4 * scale
-        objs.append(self.dc.Line(r, r, r + off, r + off, linewidth=1,
-                                 arrow='start', color=color))
+        objs.append(self.dc.Line(r, r, r + off, r + off, linewidth=3,
+                                 arrow='start', color=color_tel))
         objs.append(self.dc.Text(r + off, r + off, text='Telescope',
-                                 color=color,
+                                 color=color_tel,
+                                 bgcolor='black', bgalpha=0.7,
                                  fontscale=True, fontsize_min=12,
                                  rot_deg=-45.0))
-        objs.append(self.dc.Line(0.0, 0.0, 0.0, 0.0, color='slateblue',
+        color_slew = self.settings.get('color_slew', 'thistle1')
+        objs.append(self.dc.Line(0.0, 0.0, 0.0, 0.0, color=color_slew,
                                  linewidth=2, linestyle='solid', arrow='none',
                                  alpha=0.0))
         objs.append(self.dc.Path([(0, 0), (0, 0)],
-                                 color='slateblue',
+                                 color=color_slew,
                                  linewidth=2, linestyle='solid', arrow='end',
                                  alpha=0.0))
-        objs.append(self.dc.Circle(0.0, 0.0, r, linewidth=1, color='red',
+        color_tgt = self.settings.get('color_target', 'tan1')
+        objs.append(self.dc.Circle(0.0, 0.0, r, linewidth=3, color=color_tgt,
                                    linestyle='dash', alpha=1.0))
-        objs.append(self.dc.Line(0.0, 0.0, 0.0, 0.0, linewidth=1,
-                                 arrow='start', color='red'))
-        objs.append(self.dc.Text(0.0, 0.0, text='Target', color='red',
+        objs.append(self.dc.Line(0.0, 0.0, 0.0, 0.0, linewidth=3,
+                                 arrow='start', color=color_tgt))
+        objs.append(self.dc.Text(0.0, 0.0, text='Target',
+                                 color=color_tgt,
+                                 bgcolor='black', bgalpha=0.7,
                                  fontscale=True, fontsize_min=12,
                                  rot_deg=-45.0))
         self.tel_obj = self.dc.CompoundObject(*objs)

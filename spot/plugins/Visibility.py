@@ -149,8 +149,11 @@ class Visibility(GingaPlugin.LocalPlugin):
         obj.cb.add_callback('time-changed', self.time_changed_cb)
 
         obj = self.channel.opmon.get_plugin('Targets')
+        self.full_tgt_list = obj.get_targets()
         obj.cb.add_callback('targets-changed', self.targets_changed_cb)
+        self.tagged = set(obj.get_tagged_targets())
         obj.cb.add_callback('tagged-changed', self.tagged_changed_cb)
+        self.selected = set(obj.get_selected_targets())
         obj.cb.add_callback('selection-changed', self.selection_changed_cb)
 
         top = Widgets.VBox()
