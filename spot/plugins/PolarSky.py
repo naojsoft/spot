@@ -51,7 +51,7 @@ class PolarSky(GingaPlugin.LocalPlugin):
                                    danger_elevations=[10],
                                    warning_elevations=[30, 85],
                                    limit_az_180=True,
-                                   times_update_interval=1.0)
+                                   times_update_interval=60.0)
         self.settings.load(onError='silent')
 
         self.base_circ = None
@@ -311,7 +311,10 @@ class PolarSky(GingaPlugin.LocalPlugin):
         self.cur_tz = cur_tz
 
         self.update_times()
-        self.update_sunmoon()
+        elapsed = abs((self.dt_utc - old_dt_utc).total_seconds())
+        if elapsed >= self.settings.get('times_update_interval', 60.0):
+            self.logger.info("updating targets")
+            self.update_sunmoon()
 
     def replot_all(self):
         self.initialize_plot()
