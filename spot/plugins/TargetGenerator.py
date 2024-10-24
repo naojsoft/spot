@@ -6,7 +6,6 @@ Requirements
 
 naojsoft packages
 -----------------
-- g2cam
 - ginga
 """
 import numpy as np
@@ -22,16 +21,20 @@ from spot.util.target import normalize_ra_dec_equinox
 
 class TargetGenerator(GingaPlugin.LocalPlugin):
     """
-    TargetGenerator
-    ===============
+    ++++++++++++++++
+    Target Generator
+    ++++++++++++++++
+
     TargetGenerator allows you to generate a target dynamically in one of
-    several ways.  The target can then be added to the "Targets" table.
+    several ways.  The target can then be added to the "Targets" plugin
+    table.
 
     .. note:: Make sure you have the "Targets" plugin also open, as it is
               used in conjunction with this plugin.
 
     Generating a Target from Azimuth/Elevation
-    ------------------------------------------
+    ==========================================
+
     Simply type in an azimuth into the "Az:" box and an elevation into the
     "El:" box.  Click "Gen Target" to have the AZ/EL coordinates converted
     into RA/DEC coordinates using the set time of the Site.  This will
@@ -39,7 +42,8 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
     From there you can add the target as described in the next section.
 
     Generating a Target from Known Coordinates
-    ------------------------------------------
+    ==========================================
+
     If RA/DEC coordinates are known, they can be typed into the boxes labeled
     "RA", "DEC", "Equinox" and "Name".  The values can be given in sexigesimal
     notation or degrees.
@@ -52,7 +56,8 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
     it in the "PolarSky" or "Visibility" plots.
 
     Looking up a Target from a Name Server
-    --------------------------------------
+    ======================================
+
     A target can be looked up via a name server (NED or SIMBAD) using the
     controls in the third area.  Simply select your name server from the
     drop down box labeled "Server", type a name into the "Name" box and
@@ -182,6 +187,10 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
     def close(self):
         self.fv.stop_local_plugin(self.chname, str(self))
         return True
+
+    def help(self):
+        name = str(self).capitalize()
+        self.fv.help_text(name, self.__doc__, trim_pfx=4)
 
     def start(self):
         pass

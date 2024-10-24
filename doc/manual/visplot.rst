@@ -7,7 +7,7 @@ selected targets in your target list.
 
 .. image:: figures/Visibility2.*
 
-.. .. note:: This window will be blank if there are no targets selected. 
+.. note:: This window will be blank if there are no targets selected.
 
 ===================
 Highlighted regions

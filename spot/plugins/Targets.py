@@ -57,16 +57,18 @@ icondir = os.path.join(os.path.dirname(__file__), 'icons')
 
 class Targets(GingaPlugin.LocalPlugin):
     """
-    Targets
-    =======
-    ``Targets`` is normally used in conjunction with the plugins ``PolarSky``,
-    and ``Visibility`` to show information about celestial objects that could
-    be observed.  It allows you to load one or more files of targets and then
-    plot them on the "<wsname>_TGTS" window, or show their visibility in the
-    ``Visibility`` plugin UI.
+    +++++++++++
+    Target List
+    +++++++++++
+
+    The Targets plugin is normally used in conjunction with the
+    plugins ``PolarSky`` and ``Visibility`` plugins to show information about
+    celestial objects that could be observed.  It allows you to load one or
+    more files of targets and then plot them on the "<wsname>_TGTS" window,
+    or show their visibility in the ``Visibility`` plugin UI.
 
     Loading targets from a CSV file
-    -------------------------------
+    ===============================
     Targets can be loaded from a CSV file that contains a column header
     containing the column titles "Name", "RA", "DEC", and "Equinox" (they
     do not need to be in that order).  Other columns may be present but will
@@ -86,7 +88,7 @@ class Targets(GingaPlugin.LocalPlugin):
     The targets should populate the table.
 
     Loading targets from an OPE file
-    --------------------------------
+    ================================
     An OPE file is a special format of file used by Subaru Telescope.
     Targets in this kind of file are specified in "SOSS notation"
     (HHMMSS.SSS for RA, +|-DDMMSS.SS for DEC, NNNN.0 for Equinox).
@@ -99,13 +101,41 @@ class Targets(GingaPlugin.LocalPlugin):
                (pip install git+https://github.com/naojsoft/oscript).
 
     Table information
-    -----------------
+    =================
     The target table summarizes information about targets. There are columns
     for static information like target name, RA, DEC, as well as dynamically
     updating information for azimuth, altitude, a color-coded rise/set icon,
     hour angle, airmass, atmospheric dispersion, parallactic angle and moon
     separation.
 
+    Operation
+    =========
+    To "tag" a target, select a target on the list by left-clicking on it
+    and press "Tag". A checkmark will appear on the left side under the
+    "Tagged" column to show which targets have been tagged. To untag a target,
+    select a tagged target on the list and press "Untag". To tag only
+    the selected target and untag all other targets, select a target from the
+    list and then double left-click on the target row.
+
+    On the `<wsname>_TGTS` window and the ``Visibility`` UI untagged targets
+    will appear in green and tagged targets will appear in magenta. If a target
+    is selected it will appear in blue, and the name will have a white
+    background with a red border on the `<wsname>_TGTS` window.
+
+    The "Tag All" button will set all of the targets to "Tagged", and the
+    "Untag All" button will set all of the targets to "Untagged". Selecting
+    a target and pressing "Delete" will remove the target from the list. If
+    the target was added from a file, reloading the file by pressing "Set"
+    will restore all of the deleted targets.
+
+    Checking the box next to "Plot SS" will plot the Sun, the Planets, and
+    Pluto on the `<wsname>_TGTS` window.
+
+    The drop down menu next to "Plot:" changes which targets are plotted on
+    the `<wsname>_TGTS` window. Selecting "All" will show all of the targets,
+    selecting "Tagged+Selected" will show all of the targets which have been
+    tagged or are selected, and selecting "Selected" will show only the
+    target which is selected.
     """
     def __init__(self, fv, fitsimage):
         super().__init__(fv, fitsimage)
