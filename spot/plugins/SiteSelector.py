@@ -16,6 +16,7 @@ from dateutil import tz, parser
 # ginga
 from ginga.gw import Widgets, GwHelp
 from ginga import GingaPlugin
+from ginga.misc import Bunch
 from ginga.misc.Callback import Callbacks
 from ginga.util.paths import ginga_home
 
@@ -116,7 +117,8 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         default_site = self.settings.get('default_site', None)
         if default_site is None:
             default_site = site_names[0]
-            print(f"setting site to {default_site}")
+            self.logger.info(f"setting site to {default_site}")
+
         self.site_obj = sites.get_site(default_site)
         self.site_obj.initialize()
         status = self.site_obj.get_status()
@@ -125,6 +127,8 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         self.cur_tz = tz.tzoffset(status.timezone_name,
                                   status.timezone_offset_min * 60)
         self.dt_utc = datetime.now(tz=tz.UTC)
+        self.almanac = None
+        self._update_almanac()
 
         self.tmr = GwHelp.Timer(duration=self.settings['timer_update_interval'])
         self.tmr.add_callback('expired', self.update_timer_cb)
@@ -249,13 +253,18 @@ class SiteSelector(GingaPlugin.LocalPlugin):
     def update_timer_cb(self, timer):
         timer.start()
 
-        if self.time_mode == 'now':
-            self.dt_utc = datetime.now(tz=tz.UTC)
-            dt = self.dt_utc.astimezone(self.cur_tz)
-            if self.gui_up:
-                self.w.datetime.set_text(dt.strftime("%Y-%m-%d %H:%M:%S"))
+        if self.time_mode != 'now':
+            return
 
-            self.cb.make_callback('time-changed', self.dt_utc, self.cur_tz)
+        self.dt_utc = datetime.now(tz=tz.UTC)
+        dt = self.dt_utc.astimezone(self.cur_tz)
+        if self.gui_up:
+            self.w.datetime.set_text(dt.strftime("%Y-%m-%d %H:%M:%S"))
+
+        if self.almanac is not None and dt > self.almanac.sun_rise:
+            self._update_almanac()
+
+        self.cb.make_callback('time-changed', self.dt_utc, self.cur_tz)
 
     def set_timeoff_cb(self, w):
         zone_off_min = int(w.get_text().strip())
@@ -282,6 +291,7 @@ class SiteSelector(GingaPlugin.LocalPlugin):
             self.dt_utc = dt.astimezone(tz.UTC)
 
         #self.site_obj.observer.set_date(self.dt_utc)
+        self._update_almanac()
 
         self.logger.info("date/time set to: {}".format(self.dt_utc.strftime("%Y-%m-%d %H:%M:%S %z")))
         self.cb.make_callback('time-changed', self.dt_utc, self.cur_tz)
@@ -289,6 +299,8 @@ class SiteSelector(GingaPlugin.LocalPlugin):
     def get_obsdate_noon(self):
         """A mostly internal procedure to get the date/time at noon
         on the day of observation.
+        NOTE: this is the noon of the DAY that observation begins at
+        sunset. So, for example, at 3:00 (AM) it is noon on the day BEFORE
         """
         dt = self.dt_utc.astimezone(self.cur_tz)
         site = self.site_obj.observer
@@ -304,6 +316,35 @@ class SiteSelector(GingaPlugin.LocalPlugin):
             noon = prev_noon
 
         return noon
+
+    def _update_almanac(self):
+        dt = self.dt_utc.astimezone(self.cur_tz)
+        site = self.site_obj.observer
+        info = Bunch.Bunch()
+
+        # noon on the observation date
+        noon = self.get_obsdate_noon()
+        prev_midnight = noon - timedelta(hours=12)
+
+        info.update(dict(
+            noon=noon,
+            prev_midnight=prev_midnight,
+            prev_sun_rise=site.sunrise(prev_midnight),
+            # Sun rise/set info
+            sun_set=site.sunset(noon),
+            civil_set=site.evening_twilight_6(noon),
+            nautical_set=site.evening_twilight_12(noon),
+            astronomical_set=site.evening_twilight_18(noon),
+            astronomical_rise=site.morning_twilight_18(noon),
+            nautical_rise=site.morning_twilight_12(noon),
+            civil_rise=site.morning_twilight_6(noon),
+            sun_rise=site.sunrise(noon),
+            night_center=site.night_center(noon)))
+
+        self.almanac = info
+
+    def get_sun_info(self):
+        return self.almanac
 
     def __str__(self):
         return 'siteselector'

@@ -105,7 +105,7 @@ class Visibility(GingaPlugin.LocalPlugin):
                                    color_selected='blue',
                                    color_tagged='mediumorchid1',
                                    color_normal='mediumseagreen',
-                                   plot_interval=10)
+                                   plot_interval_min=10)
         self.settings.load(onError='silent')
 
         # these are set via callbacks from the SiteSelector plugin
@@ -134,7 +134,7 @@ class Visibility(GingaPlugin.LocalPlugin):
 
         self.tmr_replot = self.fv.make_timer()
         self.tmr_replot.add_callback('expired', lambda tmr: self.replot())
-        self.replot_after_sec = 1.0
+        self.replot_after_sec = 0.2
 
     def build_gui(self, container):
 
@@ -254,24 +254,23 @@ class Visibility(GingaPlugin.LocalPlugin):
         # TODO: work with site object directly, not observer
         site = self.site.observer
 
-        # calc noon on the day of observation in desired time zone
+        # get times of sun to figure out dates to plot
         obj = self.channel.opmon.get_plugin('SiteSelector')
-        noon_time = obj.get_obsdate_noon()
+        sun_info = obj.get_sun_info()
 
         if self.time_axis_mode == 'night center':
             # plot period 15 minutes before sunset to 15 minutes after sunrise
             delta = timedelta(minutes=15)
-            start_time = site.sunset(noon_time) - delta
-            stop_time = site.sunrise(start_time) + delta
+            start_time = sun_info.sun_set - delta
+            stop_time = sun_info.sun_rise + delta
             center_time = start_time + \
                 timedelta(seconds=int((stop_time - start_time).total_seconds() * 0.5))
 
         elif self.time_axis_mode == 'day center':
             # plot period 15 minutes before sunrise to 15 minutes after sunset
-            midnight_before = noon_time - timedelta(hours=12)
             delta = timedelta(minutes=15)
-            start_time = site.sunrise(midnight_before) - delta
-            stop_time = site.sunset(noon_time) + delta
+            start_time = sun_info.prev_sun_rise - delta
+            stop_time = sun_info.sun_set + delta
             center_time = start_time + \
                 timedelta(seconds=int((stop_time - start_time).total_seconds() * 0.5))
 
@@ -285,7 +284,7 @@ class Visibility(GingaPlugin.LocalPlugin):
             center_time = self.dt_utc
 
         # round start time to every interval minutes
-        interval = self.settings.get('plot_interval', 15)
+        interval = self.settings.get('plot_interval_min', 15)
         start_minute = start_time.minute // interval * interval
         start_time = start_time.replace(minute=start_minute,
                                         second=0, microsecond=0)
@@ -420,7 +419,8 @@ class Visibility(GingaPlugin.LocalPlugin):
         elif self.plot_which == 'selected':
             self._targets = list(self.selected)
 
-        self.fv.gui_do(self.replot)
+        #self.fv.gui_do(self.replot)
+        self.tmr_replot.set(self.replot_after_sec)
 
     def configure_plot_cb(self, w, idx):
         option = w.get_text()
@@ -432,13 +432,13 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.full_tgt_list = targets
 
         self._set_target_subset()
-        self.fv.gui_do(self.replot)
+        #self.fv.gui_do(self.replot)
 
     def tagged_changed_cb(self, cb, tagged):
         self.tagged = tagged
 
         self._set_target_subset()
-        self.fv.gui_do(self.replot)
+        #self.fv.gui_do(self.replot)
 
     def selection_changed_cb(self, cb, selected):
         self.selected = selected

@@ -85,32 +85,27 @@ class PolarSky(GingaPlugin.LocalPlugin):
         return info
 
     def get_sunmoon_info(self):
-        dt = self.dt_utc.astimezone(self.cur_tz)
-        site = self.site_obj.observer
+        obj = self.channel.opmon.get_plugin('SiteSelector')
+        sun_info = obj.get_sun_info()
         info = Bunch.Bunch()
 
-        # noon on the observation date
-        obj = self.channel.opmon.get_plugin('SiteSelector')
-        noon = obj.get_obsdate_noon()
+        dt = self.dt_utc.astimezone(self.cur_tz)
+        site = self.site_obj.observer
 
+        # format sun info
         info.update(dict(
             # Sun rise/set info
-            sun_set=(site.sunset(noon)).strftime("%H:%M:%S [%m/%d]"),
-            civil_set=(site.evening_twilight_6(
-                noon)).strftime("%H:%M:%S [%m/%d]"),
-            nautical_set=(site.evening_twilight_12(
-                noon)).strftime("%H:%M:%S [%m/%d]"),
-            astronomical_set=(site.evening_twilight_18(
-                noon)).strftime("%H:%M:%S [%m/%d]"),
-            astronomical_rise=(site.morning_twilight_18(
-                noon)).strftime("%H:%M:%S [%m/%d]"),
-            nautical_rise=(site.morning_twilight_12(
-                noon)).strftime("%H:%M:%S [%m/%d]"),
-            civil_rise=(site.morning_twilight_6(
-                noon)).strftime("%H:%M:%S [%m/%d]"),
-            sun_rise=(site.sunrise(noon)).strftime("%H:%M:%S [%m/%d]"),
-            night_center=(site.night_center(noon)).strftime("%H:%M:%S [%m/%d]")))
+            sun_set=sun_info.sun_set.strftime("%H:%M:%S [%m/%d]"),
+            civil_set=sun_info.civil_set.strftime("%H:%M:%S [%m/%d]"),
+            nautical_set=sun_info.nautical_set.strftime("%H:%M:%S [%m/%d]"),
+            astronomical_set=sun_info.astronomical_set.strftime("%H:%M:%S [%m/%d]"),
+            astronomical_rise=sun_info.astronomical_rise.strftime("%H:%M:%S [%m/%d]"),
+            nautical_rise=sun_info.nautical_rise.strftime("%H:%M:%S [%m/%d]"),
+            civil_rise=sun_info.civil_rise.strftime("%H:%M:%S [%m/%d]"),
+            sun_rise=sun_info.sun_rise.strftime("%H:%M:%S [%m/%d]"),
+            night_center=sun_info.night_center.strftime("%H:%M:%S [%m/%d]")))
 
+        # update with moon info
         moon_data = calcpos.Moon.calc(site, dt)
         info.update(dict(
             # Moon info here
