@@ -69,6 +69,7 @@ class PolarSky(GingaPlugin.LocalPlugin):
         self.site_obj = None
         self.dt_utc = None
         self.cur_tz = None
+        self._last_sunmoon_update_dt = None
 
         self.gui_up = False
 
@@ -306,10 +307,13 @@ class PolarSky(GingaPlugin.LocalPlugin):
         self.cur_tz = cur_tz
 
         self.update_times()
-        elapsed = abs((self.dt_utc - old_dt_utc).total_seconds())
-        if elapsed >= self.settings.get('times_update_interval', 60.0):
-            self.logger.info("updating targets")
-            self.update_sunmoon()
+
+        if (self._last_sunmoon_update_dt is None or
+            abs((self.dt_utc - self._last_sunmoon_update_dt).total_seconds()) >
+            self.settings.get('times_update_interval')):
+            self.logger.info("updating sunmoon times")
+            self._last_sunmoon_update_dt = self.dt_utc
+            self.fv.gui_do(self.update_sunmoon)
 
     def replot_all(self):
         self.initialize_plot()
