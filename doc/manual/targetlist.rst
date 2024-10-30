@@ -22,8 +22,13 @@ be ignored.  In this format, RA and DEC can be specified as decimal values
 (HH:MM:SS.SSS for RA, DD:MM:SS.SS for DEC).  Equinox can be specified
 as e.g. J2000 or 2000.0.
 
-.. note:: SPOT can also read targets from CSV files in "SOSS notation".
-          See the section below on loading targets from an OPE file.
+.. important:: The equinox column is in here for future support. Currently,
+               target coordinates in SPOT are assumed to be in ICRS.
+               We hope to eventually be able to support older reference
+               systems such as FK4, but for now please just realize that
+               the coordinates will be assumed to be in ICRS. For J2000
+               coordinates this will generally be good enough for most
+               planning purposes.
 
 Press the "File" button and navigate to, and select, a CSV file with the
 above format.  Or, type the path of the file in the box next to the "File"

@@ -418,7 +418,8 @@ class Targets(GingaPlugin.LocalPlugin):
         if self.plot_which == 'all':
             shown_tgt_lst = tgt_df
         elif self.plot_which == 'tagged+selected':
-            mask = np.array([tgt in self.selected.union(self.tagged)
+            tagged_and_selected = self.selected.union(self.tagged)
+            mask = np.array([tgt in tagged_and_selected
                              for tgt in self.full_tgt_list], dtype=bool)
             shown_tgt_lst = tgt_df[mask]
         elif self.plot_which == 'selected':
@@ -844,7 +845,7 @@ class Targets(GingaPlugin.LocalPlugin):
         updated_tgts = (self.selected - new_highlighted).union(
             new_highlighted - self.selected)
         self.selected = new_highlighted
-        if self.plot_which == 'selected':
+        if self.plot_which in ['selected', 'tagged+selected']:
             self.update_all(targets_changed=False)
         else:
             self._update_target_colors(updated_tgts)
