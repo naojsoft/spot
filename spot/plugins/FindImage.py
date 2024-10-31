@@ -27,6 +27,8 @@ from ginga import GingaPlugin
 from ginga.util import wcs, catalog, dp
 from ginga.AstroImage import AstroImage
 
+from spot.util.target import normalize_ra_dec_equinox
+
 image_sources = {
     'SkyView: DSS1 Blue': dict(),
     'SkyView: DSS1 Red': dict(),
@@ -148,6 +150,17 @@ class FindImage(GingaPlugin.LocalPlugin):
         canvas = self.dc.DrawingCanvas()
         canvas.set_surface(self.viewer)
         self.canvas = canvas
+
+        compass = self.dc.Compass(0.15, 0.15, 0.08,
+                                  fontsize=14, coord='percentage',
+                                  color='orange')
+        self.canvas.add(compass, redraw=False)
+
+        self.lbl_obj = self.dc.Text(0.025, 0.975, text='', color='gold',
+                                    bgcolor='black', bgalpha=1.0,
+                                    fontsize=9,
+                                    coord='percentage')
+        self.canvas.add(self.lbl_obj, redraw=False)
 
         bank = self.fv.get_server_bank()
 
@@ -318,6 +331,8 @@ class FindImage(GingaPlugin.LocalPlugin):
                 image_timestamp.strftime("%D %H:%M:%S")
             self.w.select_image_info.set_text(image_info_text)
             self.download_image()
+            self.label_image()
+
         except Exception as e:
             image_timestamp = datetime.datetime.now()
             image_info_text = "Image download failed at: " + \
@@ -531,18 +546,23 @@ class FindImage(GingaPlugin.LocalPlugin):
         image.set(nothumb=True)
         self.fitsimage.set_image(image)
 
+    def label_image(self):
+        # TODO: add image source
+        ra_deg, dec_deg = self.get_radec()
+        name = self.w.tgt_name.get_text()
+
+        ra_sgm, dec_sgm = wcs.ra_deg_to_str(ra_deg), wcs.dec_deg_to_str(dec_deg)
+        lbl = f"{name} (RA: {ra_sgm} / DEC: {dec_sgm})"
+        self.lbl_obj.text = lbl
+        self.fitsimage.redraw(whence=3)
+
     def get_radec(self):
         try:
             ra_str = self.w.ra.get_text().strip()
             dec_str = self.w.dec.get_text().strip()
 
-            if ':' in ra_str:
-                ra_deg = wcs.hmsStrToDeg(ra_str)
-                dec_deg = wcs.dmsStrToDeg(dec_str)
-            else:
-                from oscript.util import ope
-                ra_deg = ope.funkyHMStoDeg(ra_str)
-                dec_deg = ope.funkyDMStoDeg(dec_str)
+            ra_deg, dec_deg, eq = normalize_ra_dec_equinox(ra_str, dec_str,
+                                                           2000.0)
 
         except Exception as e:
             self.fv.show_error("Error getting coordinate: please check selected target")

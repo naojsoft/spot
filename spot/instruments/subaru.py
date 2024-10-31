@@ -28,6 +28,7 @@ class AO188_FOV(FOV):
             self.dc.Text(x, y + r,
                          text="Tip Tilt Guide Star w/LGS (1 arcmin)",
                          color=self.ao_color,
+                         bgcolor='floralwhite', bgalpha=0.8,
                          rot_deg=self.rot_deg))
         self.canvas.add(self.ao_circ)
 
@@ -427,6 +428,7 @@ class HDS_FOV(FOV):
             self.dc.Text(x, y,
                          text="HDS SV FOV (1 arcmin)",
                          color=self.hds_color,
+                         bgcolor='floralwhite', bgalpha=0.8,
                          rot_deg=self.rot_deg),
             self.dc.Line(x, y - r, x, y + r,
                          color=self.hds_color, linewidth=2))

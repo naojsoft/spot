@@ -75,11 +75,6 @@ class InsFov(GingaPlugin.LocalPlugin):
         canvas.set_surface(self.viewer)
         self.canvas = canvas
 
-        compass = self.dc.Compass(0.15, 0.15, 0.08,
-                                  fontsize=14, coord='percentage',
-                                  color='orange')
-        self.canvas.add(compass, redraw=False)
-
         self.cur_fov = None
         self.xflip = False
         self.rot_deg = 0.0
