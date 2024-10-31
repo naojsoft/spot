@@ -4,7 +4,7 @@
 SPOT: Site Planning and Observation Tool
 ++++++++++++++++++++++++++++++++++++++++
 
-.. image:: manual/figures/SampleWorkspace2.*
+.. image:: manual/figures/SampleWorkspace.*
 
 .. toctree::
    :maxdepth: 2

@@ -12,7 +12,7 @@ planning to also use the :doc:`targetlist` or :doc:`visplot` plugins.
 If you are not interested in the almanac info you can minimize the
 plugin UI after starting it.
 
-.. image:: figures/PolarSky2.*
+.. image:: figures/PolarSky.*
 
 ===============
 PolarSky Window

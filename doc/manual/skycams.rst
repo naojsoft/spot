@@ -6,7 +6,7 @@ The SkyCam plugin is used to place an all sky camera image on the background
 of the Targets channel to assist with monitoring sky conditions. There is a 
 drop-down menu with several sites to choose from.
 
-.. image:: figures/skycam2.*
+.. image:: figures/skycam.*
 
 =====================
 Setting the Sky Image
@@ -22,7 +22,7 @@ window underneath "Image Download Info".
 The SkyCam plugin can also generate a differential image from the selected 
 channel server by selecting the checkbox next to "Show Differential Image".
 
-.. image:: figures/skydif2.*
+.. image:: figures/skydif.*
 
 ==================
 Adding new cameras

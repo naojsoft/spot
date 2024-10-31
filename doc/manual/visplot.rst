@@ -5,7 +5,7 @@ Visibility Plot
 This window contains a display which shows the altitude over time of 
 selected targets in your target list.
 
-.. image:: figures/Visibility2.*
+.. image:: figures/Visibility.*
 
 .. note:: This window will be blank if there are no targets selected.
 

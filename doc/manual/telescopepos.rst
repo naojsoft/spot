@@ -10,7 +10,7 @@ target positions.
           necessary to draw these positions.  If you didn't create such
           a plugin, it will look as though the telescope is parked.
 
-.. image:: figures/telpos2.*
+.. image:: figures/telpos.*
 
 The telescope and target positions are shown in both
 Right Ascension/Declination and Azimuth/Elevation.

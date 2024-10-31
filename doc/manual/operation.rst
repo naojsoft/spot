@@ -40,7 +40,7 @@ The FIND channel is used for viewing FITS files. The window will be
 blank initially, details about the plugins can be found in the 
 following chapters.
 
-.. image:: figures/SampleWorkspace2.*
+.. image:: figures/SampleWorkspace.*
 
 Image contains data from the WISE 3.4 :math:`\mu`\ m survey. 
 (`Wright et al (2010)`_, `Mainzer et al (2011)`_)
@@ -61,7 +61,7 @@ button.  Note that this will delete everything in the workspace.
 TGTS Channel
 ============
 
-.. image:: figures/TGTSchannel2.png
+.. image:: figures/TGTSchannel.png
 
 The Targets (TGTS) Channel is the main window for tracking the sky position of selected 
 targets. The following plugins are primarily used with the Targets channel.
@@ -83,7 +83,7 @@ targets. The following plugins are primarily used with the Targets channel.
 FIND Channel
 ============
 
-.. image:: figures/findchannel2.png
+.. image:: figures/findchannel.png
 
 Image contains data from the WISE 3.4 :math:`\mu`\ m survey. 
 (`Wright et al (2010)`_, `Mainzer et al (2011)`_)
