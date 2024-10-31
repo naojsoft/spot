@@ -97,13 +97,9 @@ class FindImage(GingaPlugin.LocalPlugin):
 
     Selecting a Target
     ------------------
-    In the "Targets" plugin, double-click a target to uniquely select it.
-    This should populate the "RA", "DEC", "Equinox" and "Name" fields in
-    the "Pointing" area of FindImage.
-
-    .. important:: To keep the coordinates from changing due to other
-                   selections in the targets table, check the "Lock Target"
-                   checkbox after populating these fields.
+    In the "Targets" plugin, select a single target to uniquely select it.
+    Then click the "Get Selected" button in the "Pointing" area of FindImage.
+    This should populate the "RA", "DEC", "Equinox" and "Name" fields.
 
     .. note:: If you have working telescope status integration, you can
               click the "Follow telescope" checkbox to have the "Pointing"
@@ -184,6 +180,7 @@ class FindImage(GingaPlugin.LocalPlugin):
         self.size = (3, 3)
 
         self.sitesel = None
+        self.targets = None
         self.tmr = GwHelp.Timer(duration=self.settings['telescope_update_interval'])
         self.tmr.add_callback('expired', self.update_tel_timer_cb)
         self.gui_up = False
@@ -195,9 +192,8 @@ class FindImage(GingaPlugin.LocalPlugin):
 
         wsname, _ = self.channel.name.split('_')
         channel = self.fv.get_channel(wsname + '_TGTS')
-        targets = channel.opmon.get_plugin('Targets')
-        targets.cb.add_callback('tagged-changed', self.target_selection_cb)
         self.sitesel = channel.opmon.get_plugin('SiteSelector')
+        self.targets = channel.opmon.get_plugin('Targets')
 
         top = Widgets.VBox()
         top.set_border_width(4)
@@ -233,7 +229,7 @@ class FindImage(GingaPlugin.LocalPlugin):
                      'dec', 'llabel'),
                     ('Equinox:', 'label', 'equinox', 'llabel',
                      'Name:', 'label', 'tgt_name', 'llabel'),
-                    ('__ph3', 'spacer', 'Lock Target', 'checkbox',
+                    ('Get Selected', 'button', 'Lock Target', 'checkbox',
                      '__ph4', 'spacer', "Follow telescope", 'checkbox')
                     )
 
@@ -242,6 +238,8 @@ class FindImage(GingaPlugin.LocalPlugin):
         b.dec.set_text('')
         b.equinox.set_text('')
         b.tgt_name.set_text('')
+        b.get_selected.set_tooltip("Get the coordinates from the selected target in Targets table")
+        b.get_selected.add_callback('activated', self.get_selected_target_cb)
         b.lock_target.set_tooltip("Lock target from changing by selections in 'Targets'")
         b.follow_telescope.set_tooltip("Set pan position to telescope position")
         b.follow_telescope.set_state(self.settings['follow_telescope'])
@@ -587,20 +585,6 @@ class FindImage(GingaPlugin.LocalPlugin):
 
         return (ra_list, dec_list)
 
-    def target_selection_cb(self, cb, targets):
-        if len(targets) == 0:
-            return
-        tgt = next(iter(targets))
-        if self.gui_up:
-            if self.w.lock_target.get_state():
-                # target is locked
-                self.logger.info("target is locked")
-                return
-            self.w.ra.set_text(wcs.ra_deg_to_str(tgt.ra))
-            self.w.dec.set_text(wcs.dec_deg_to_str(tgt.dec))
-            self.w.equinox.set_text(str(tgt.equinox))
-            self.w.tgt_name.set_text(tgt.name)
-
     def update_info(self, status):
         self.fv.assert_gui_thread()
         if self.w.follow_telescope.get_state():
@@ -631,6 +615,23 @@ class FindImage(GingaPlugin.LocalPlugin):
 
         if self.gui_up:
             self.fv.gui_do(self.update_info, status)
+
+    def get_selected_target_cb(self, w):
+        if self.w.lock_target.get_state():
+            # target is locked
+            self.fv.show_error("existing target is locked--uncheck 'Lock Target' ?")
+            return
+
+        selected = self.targets.get_selected_targets()
+        if len(selected) != 1:
+            self.fv.show_error("Please select exactly one target in the Targets table!")
+            return
+        tgt = list(selected)[0]
+        self.w.ra.set_text(wcs.ra_deg_to_str(tgt.ra))
+        self.w.dec.set_text(wcs.dec_deg_to_str(tgt.dec))
+        self.w.equinox.set_text(str(tgt.equinox))
+        self.w.tgt_name.set_text(tgt.name)
+
 
     def __str__(self):
         return 'findimage'

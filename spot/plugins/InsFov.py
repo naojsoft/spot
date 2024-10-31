@@ -21,7 +21,7 @@ from spot.instruments import inst_dict
 
 
 class InsFov(GingaPlugin.LocalPlugin):
-    """TODO
+    """
     ++++++++++++++
     Instrument FOV
     ++++++++++++++
@@ -29,27 +29,36 @@ class InsFov(GingaPlugin.LocalPlugin):
     The Instrument FOV plugin is used to overlay the field of view of an
     instrument over a survey image in the `<wsname>_FIND` window.
 
+    .. note:: It is important to have previously downloaded an image in
+              the find viewer (using the "FindImage" plugin) that has an
+              accurate WCS in order for this plugin to operate properly.
+
     Selecting the Instrument
     ========================
 
     The instrument can be selected by pressing the "Choose" button under
     "Instrument", and then navigating the menu until you find the
     desired instrument. Once the instrument is selected the name will be
-    filled in by "Instrument:" and a red outline of the instrument's
+    filled in by "Instrument:" and an outline of the instrument's
     field of view will appear in the `<wsname>_FIND` window. The position
     angle can be adjusted, rotating the survey image relative to the
     instrument overlay. The image can also be  flipped across the vertical
     axis by checking the "Flip" box.
 
     The RA and DEC will be autofilled by setting the pan position in the
-    `<wsname>_FIND` window, but can also be adjusted manually by entering
-    in the coordinates. The RA and DEC can be specified as decimal values
-    (degrees) or sexigesimal notation.
+    `<wsname>_FIND` window (for example, by Shift-clicking), but can also
+    be adjusted manually by entering in the coordinates. The RA and DEC
+    can be specified as decimal values (degrees) or sexigesimal notation.
 
     To center the image on the current telescope pointing, check the box
-    next to "Follow telescope" in the ``FindImage`` plugin UI.  This will allow
-    you to watch a dither happening on an area of the sky if the world
-    coordinate system is reasonably accurate in the finding image.
+    next to "Follow telescope" in the ``FindImage`` plugin UI.  This will
+    allow you to watch a dither happening on an area of the sky if the WCS
+    is reasonably accurate in the finding image.
+
+    .. note:: To get the "Follow telescope" feature to work, you need to
+              have written a companion plugin to get the status from your
+              telescope as described in the documentation for the
+              TelescopePosition plugin.
     """
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger

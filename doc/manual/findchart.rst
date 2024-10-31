@@ -17,12 +17,19 @@ Display an image of a specified region
 
 The center coordinates of the image can be set either from a target from 
 the :doc:`targetlist` or from the telescope position. To set the coordinates 
-from the target list, double left-click a target from the list and the
-coordinates under "Pointing" will be automatically filled out. 
+from the target list, select a single target from the list and then click
+the "Get Selected" button in the "Pointing" area of the FindImage plugin UI.
+This should fill in the coordinates there.
 Alternatively, the coordinates can be set from the current telescope pointing 
-by checking the checkbox by "Follow telescope" (requires the 
-:doc:`telescopepos` plugin). Checking the "Lock Target" checkbox will prevent 
-the coordinates from changing until the box is unchecked.
+by checking the checkbox by "Follow telescope".
+
+.. note:: To get the "Follow telescope" feature to work, you need to
+          have written a companion plugin to get the status from your
+          telescope as described in the documentation for the
+          :doc:`telescopepos` plugin.
+
+Checking the "Lock Target" checkbox will prevent the coordinates from changing
+until the box is unchecked.
 
 The image source can be selected from a list of optical, ultraviolet,  
 infrared, and radio sky surveys. The image will be a square with the height 
