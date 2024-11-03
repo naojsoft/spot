@@ -155,6 +155,7 @@ class Visibility(GingaPlugin.LocalPlugin):
         obj.cb.add_callback('tagged-changed', self.tagged_changed_cb)
         self.selected = set(obj.get_selected_targets())
         obj.cb.add_callback('selection-changed', self.selection_changed_cb)
+        self.tgts_obj = obj
 
         top = Widgets.VBox()
         top.set_border_width(4)
@@ -222,7 +223,7 @@ class Visibility(GingaPlugin.LocalPlugin):
 
     def start(self):
         self.initialize_plot()
-        self.replot()
+        self._set_target_subset()
 
     def stop(self):
         self.gui_up = False

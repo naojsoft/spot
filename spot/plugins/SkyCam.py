@@ -79,7 +79,6 @@ naojsoft packages
 # stdlib
 import os
 import time
-import threading
 import datetime
 
 # 3rd party
@@ -150,6 +149,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
         prefs = self.fv.get_preferences()
         self.settings = prefs.create_category('plugin_SkyCam')
         self.settings.add_defaults(download_folder=tempfile.gettempdir(),
+                                   image_update_interval=60.0,
                                    default_camera=None,
                                    image_radius=1000)
         self.settings.load(onError='silent')
@@ -175,8 +175,8 @@ class SkyCam(GingaPlugin.LocalPlugin):
         self.config = self.configs[self.img_src_name]
         self.update_settings()
 
-        self.ev_quit = threading.Event()
         self.sky_image_path = None
+        self._last_img_update_dt = None
         self.flag_use_sky_image = False
         self.flag_use_diff_image = False
 
@@ -208,6 +208,10 @@ class SkyCam(GingaPlugin.LocalPlugin):
 
         if not self.chname.endswith('_TGTS'):
             raise Exception(f"This plugin is not designed to run in channel {self.chname}")
+
+        # initialize site and date/time/tz
+        obj = self.channel.opmon.get_plugin('SiteSelector')
+        obj.cb.add_callback('time-changed', self.time_changed_cb)
 
         top = Widgets.VBox()
         top.set_border_width(4)
@@ -290,16 +294,12 @@ class SkyCam(GingaPlugin.LocalPlugin):
 
         # insert canvas, if not already
         self.initialize_plot()
+        self._last_img_update_dt = None
         self._sky_image_canvas_setup()
 
         self.canvas.delete_all_objects()
-        self.ev_quit.clear()
-
-        # start the image update loop
-        self.fv.nongui_do(self.image_update_loop, self.ev_quit)
 
     def stop(self):
-        self.ev_quit.set()
         self.gui_up = False
         # remove the canvas from the image
         p_canvas = self.viewer.get_canvas()
@@ -377,7 +377,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
         ht, wd = data_np.shape[:2]
 
         if not self.flag_use_diff_image or self.old_data is not None:
-            self.viewer.onscreen_message_off()
+            self.w.select_image_info.set_text('')
 
         if self.flag_use_diff_image:
             if self.old_data is not None:
@@ -405,6 +405,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
         self.fv.gui_do(self.__update_display, img)
 
     def __update_display(self, img):
+        self.fv.assert_gui_thread()
         with self.viewer.suppress_redraw:
             wd, ht = img.get_size()
             rx, ry = wd * 0.5, ht * 0.5
@@ -423,10 +424,24 @@ class SkyCam(GingaPlugin.LocalPlugin):
 
     def download_sky_image(self):
         try:
+            self.fv.assert_gui_thread()
             image_timestamp = datetime.datetime.now()
             image_info_text = "Initiating image download at: " + \
                 image_timestamp.strftime("%D %H:%M:%S")
             self.w.select_image_info.set_text(image_info_text)
+            self.fv.nongui_do(self.do_download_sky_image)
+
+        except Exception as e:
+            image_timestamp = datetime.datetime.now()
+            image_info_text = "Image download failed at: " + \
+                image_timestamp.strftime("%D %H:%M:%S")
+            self.w.select_image_info.set_text(image_info_text)
+            self.logger.error("failed to download/update sky image: {}"
+                              .format(e), exc_info=True)
+
+    def do_download_sky_image(self):
+        try:
+            self.fv.assert_nongui_thread()
             start_time = time.time()
             url = self.settings['image_url']
             _, ext = os.path.splitext(url)
@@ -447,28 +462,17 @@ class SkyCam(GingaPlugin.LocalPlugin):
             image_timestamp = datetime.datetime.now()
             image_info_text = "Image download failed at: " + \
                 image_timestamp.strftime("%D %H:%M:%S")
-            self.w.select_image_info.set_text(image_info_text)
+            self.fv.gui_do(self.w.select_image_info.set_text, image_info_text)
             self.logger.error("failed to download/update sky image: {}"
                               .format(e), exc_info=True)
-        finally:
-            self.viewer.onscreen_message(None)
 
     def update_sky_image(self):
+        self.fv.assert_gui_thread()
         with self.viewer.suppress_redraw:
             if self.sky_image_path is not None:
                 self.update_image(self.sky_image_path)
 
             self.viewer.redraw(whence=0)
-
-    def image_update_loop(self, ev_quit):
-        interval = self.settings['image_update_interval']
-
-        while not ev_quit.is_set():
-            time_deadline = time.time() + interval
-            if self.flag_use_sky_image:
-                self.download_sky_image()
-
-            ev_quit.wait(max(0, time_deadline - time.time()))
 
     def get_scale(self):
         """Return scale in pix/deg"""
@@ -498,13 +502,13 @@ class SkyCam(GingaPlugin.LocalPlugin):
             # if user now wants a background image and we don't have one
             # initiate a download; otherwise timed loop will pull one in
             # eventually
-            self.fv.nongui_do(self.download_sky_image)
+            self.download_sky_image()
 
     def diff_image_toggle_cb(self, w, tf):
         self.flag_use_diff_image = tf
         message = "Waiting for the next image to create a differential sky..."
         if self.flag_use_diff_image and self.old_data is None:
-            self.viewer.onscreen_message(message)
+            self.w.select_image_info.set_text(message)
         self.refresh_image()
 
     def image_source_cb(self, w, idx):
@@ -528,13 +532,22 @@ class SkyCam(GingaPlugin.LocalPlugin):
         try:
             self.canvas.delete_all_objects()
             self._sky_image_canvas_setup()
-            self.viewer.onscreen_message("Downloading sky image...")
             self.download_sky_image()
 
         except Exception as e:
-            self.viewer.onscreen_message("error downloading; check log",
-                                         delay=2.0)
+            self.w.select_image_info.set_text("Error downloading, check log")
             self.logger.error(f"Error loading image: {e}", exc_info=True)
+
+    def time_changed_cb(self, cb, time_utc, cur_tz):
+        if not self.gui_up or not self.flag_use_sky_image:
+            return
+
+        if (self._last_img_update_dt is None or
+            abs((time_utc - self._last_img_update_dt).total_seconds()) >
+            self.settings.get('image_update_interval')):
+            self._last_img_update_dt = time_utc
+            self.logger.info("attempting to update image")
+            self.download_sky_image()
 
     def __str__(self):
         return 'skycam'

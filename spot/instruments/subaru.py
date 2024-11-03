@@ -3,6 +3,8 @@ subaru.py -- Subaru instrument overlays
 
 """
 import numpy as np
+from astropy.coordinates import Angle
+from astropy import units as u
 
 from spot.plugins.InsFov import FOV
 
@@ -465,6 +467,26 @@ class HDS_FOV(FOV):
         self.canvas.delete_object(self.hds_circ)
 
 
+class HDS_FOV_no_IMR(HDS_FOV):
+    def __init__(self, canvas, pt):
+        super().__init__(canvas, pt)
+
+    def calc_pa_noimr(dec_deg, ha_hr, lat_deg):
+        lat_rad = np.radians(lat_deg)
+        dec_rad = np.radians(dec_deg)
+        ha_rad = np.radians(ha_hr * 15.0)
+        hds_pa_offset = -58.4
+
+        p_deg = np.degrees(np.arctan2((np.tan(lat_rad) * np.cos(dec_rad) -
+                                       np.sin(dec_rad) * np.cos(ha_rad)),
+                                      np.sin(ha_rad)))
+        z_deg = np.degrees(np.arccos(np.sin(lat_rad) * np.sin(dec_rad) +
+                                     np.cos(lat_rad) * np.cos(dec_rad) *
+                                     np.cos(ha_rad)))
+        hds_pa_ang = Angle((-(p_deg - z_deg) + hds_pa_offset) * u.deg)
+        return hds_pa_ang.wrap_at(180 * u.deg).value
+
+
 class PF_FOV(FOV):
     def __init__(self, canvas, pt):
         super().__init__(canvas, pt)
@@ -528,4 +550,5 @@ class PFS_FOV(PF_FOV):
 subaru_fov_dict = dict(AO188=AO188_FOV, IRCS=IRCS_FOV, IRD=IRD_FOV,
                        #COMICS=COMICS_FOV, SWIMS=SWIMS_FOV,
                        MOIRCS=MOIRCS_FOV, FOCAS=FOCAS_FOV,
-                       HDS=HDS_FOV, HSC=HSC_FOV, PFS=PFS_FOV)
+                       HDS=HDS_FOV, HDS_NO_IMR=HDS_FOV_no_IMR,
+                       HSC=HSC_FOV, PFS=PFS_FOV)

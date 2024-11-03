@@ -612,6 +612,8 @@ class Targets(GingaPlugin.LocalPlugin):
         self.update_plots()
 
     def time_changed_cb(self, cb, time_utc, cur_tz):
+        if not self.gui_up:
+            return
         old_dt_utc = self.dt_utc
         self.dt_utc = time_utc
         self.cur_tz = cur_tz
@@ -814,7 +816,12 @@ class Targets(GingaPlugin.LocalPlugin):
         return color
 
     def _update_target_colors(self, targets):
-        tgt_obj = self.canvas.get_object_by_tag('targets')
+        try:
+            tgt_obj = self.canvas.get_object_by_tag('targets')
+        except KeyError:
+            self.update_all(targets_changed=False)
+            return
+
         for tgt in targets:
             obj = tgt.get('plotted', None)
             if obj is not None:
