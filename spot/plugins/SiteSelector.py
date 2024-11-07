@@ -79,6 +79,14 @@ class SiteSelector(GingaPlugin.LocalPlugin):
     Whenever you change the observing location or the time, the other plugins
     should update automatically (if they subscribe for site and time changes,
     which most are designed to do).
+
+    .. important:: Closing this plugin can cause other plugins to not work
+                   as expected. SiteSelector is important as the source of
+                   time updates for almost all the other plugins, and if you
+                   close it completely the time tracker there will no longer
+                   trigger updates in those other plugins. If in doubt,
+                   start and minimize this plugin instead of closing.
+
     """
     def __init__(self, fv, fitsimage):
         super().__init__(fv, fitsimage)

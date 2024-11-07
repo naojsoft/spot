@@ -43,20 +43,21 @@ class CPanel(GingaPlugin.GlobalPlugin):
 
     Creating a workspace
     --------------------
-    Use the "New Workspace" button to create a new workspace.  If you want to
+    Use the "Open Workspace" button to open a workspace.  If you want to
     give it a specific name, put a name in the entry box to the right of the
     button before pressing the button.  Workspace names must be unique.
     If you don't provide a name, the workspaces will be created with a generic
     name.
 
-    Select the new workspace by selecting its tab in order to see and work
+    Select the opened workspace by selecting its tab in order to see and work
     with the plugins that will be opened there.
 
     Selecting a workspace to start a plugin
     ---------------------------------------
-    Using the "Select Workspace" drop-down menu, choose a workspace in which
-    you want to launch one of the SPOT planning plugins.  Then use the
-    checkboxes below to start (check) or stop (uncheck) a plugin.
+    Using the "Select Workspace" drop-down menu, choose an opened workspace
+    in which you want to launch one of the SPOT planning plugins (note that
+    the workspace must have been opened first using "Open Workspace").
+    Then use the checkboxes below to start (check) or stop (uncheck) a plugin.
 
     You will almost always want to start the "SiteSelector" plugin, because it
     controls many of the aspects of the other plugins visible on the workspace.
@@ -69,6 +70,13 @@ class CPanel(GingaPlugin.GlobalPlugin):
     you can start the plugin and then click on the UI minimization button
     in the plugin UI title bar to minimize the plugin and create space for
     other plugins.
+
+    .. important:: Closing some plugins can cause other plugins to not work
+                   as expected. For example, the SiteSelector plugin is
+                   important as the source of time updates for almost all
+                   the other plugins, and if you close it completely the time
+                   tracker there may no longer trigger updates in those other
+                   plugins. If in doubt, minimize a plugin instead of closing.
 
     Saving the workspace layout
     ---------------------------
@@ -103,18 +111,18 @@ class CPanel(GingaPlugin.GlobalPlugin):
         top = Widgets.VBox()
         top.set_border_width(4)
 
-        captions = (("New Workspace", 'button', "wsname", 'entry'),
+        captions = (("Open Workspace", 'button', "wsname", 'entry'),
                     ("Select Workspace:", 'label', 'sel_ws', 'combobox')
                     )
 
         w, b = Widgets.build_info(captions)
         self.w = b
-        b.wsname.set_tooltip("Name for the new workspace (optional)")
-        b.new_workspace.add_callback('activated', self.new_workspace_cb)
-        b.new_workspace.set_tooltip("Create a new workspace")
+        b.wsname.set_tooltip("Name for a new or existing workspace (optional)")
+        b.open_workspace.add_callback('activated', self.open_workspace_cb)
+        b.open_workspace.set_tooltip("Open a new or existing workspace")
         top.add_widget(w, stretch=0)
 
-        b.sel_ws.set_tooltip("Select a workspace")
+        b.sel_ws.set_tooltip("Select an opened workspace")
         b.sel_ws.add_callback('activated', self.select_workspace_cb)
 
         self.w.stk = Widgets.StackWidget()
@@ -164,7 +172,7 @@ class CPanel(GingaPlugin.GlobalPlugin):
         if chname.endswith('_FIND'):
             channel.viewer.show_pan_mark(True, color='red')
 
-    def new_workspace_cb(self, w):
+    def open_workspace_cb(self, w):
         wsname = self.w.wsname.get_text().strip()
         wsname = wsname.replace("\n", '').replace(" ", "_")[:15]
         if len(wsname) == 0:
@@ -311,8 +319,15 @@ class CPanel(GingaPlugin.GlobalPlugin):
         ws = self.fv.ds.get_ws(wsname)
         cfg_d = ws.get_configuration()
         path = os.path.join(ginga_home, wsname + '.json')
-        with open(path, 'w') as out_f:
-            out_f.write(json.dumps(cfg_d, indent=4))
+        try:
+            with open(path, 'w') as out_f:
+                out_f.write(json.dumps(cfg_d, indent=4))
+            self.fv.show_status(f"Workspace positions saved for {wsname}")
+
+        except Exception as e:
+            errmsg = f"Error saving workspace {wsname}: {e}"
+            self.logger.error(errmsg)
+            self.fv.show_error(errmsg)
 
     def close_ws_cb(self, w, wsname):
         ws = self.fv.ds.get_ws(wsname)

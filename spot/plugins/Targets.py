@@ -457,10 +457,11 @@ class Targets(GingaPlugin.LocalPlugin):
         self.canvas.delete_object_by_tag(tag)
 
         # filter the subset desired to be seen
-        pt_radius = 3
+        scale = self.get_scale()
+        pt_radius = np.log(scale)
         cl_radius = pt_radius * 2
-        radius_dct = dict(Sun=cl_radius * 8,
-                          Moon=cl_radius * 8)
+        radius_dct = dict(Sun=cl_radius * pt_radius * 2,
+                          Moon=cl_radius * pt_radius * 2)
         if tag != 'ss':
             tgt_df = self.filter_targets(tgt_df)
             fill = False
@@ -501,6 +502,7 @@ class Targets(GingaPlugin.LocalPlugin):
                                     font="Roboto condensed bold",
                                     fontscale=True,
                                     fontsize=None, fontsize_min=12,
+                                    fontsize_max=16,
                                     bgcolor='floralwhite', bgalpha=bg_alpha,
                                     bordercolor='orangered1', borderlinewidth=2,
                                     borderalpha=bg_alpha)

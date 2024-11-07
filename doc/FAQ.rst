@@ -43,6 +43,21 @@ spot (we realize this is not ideal, and are working on a solution for it).
 Just please be patient and eventually the
 plugin should start
 
+Targets don't seem to be updating with time?
+--------------------------------------------
+Closing some plugins can cause other plugins to not work as expected.
+For example, the "SiteSelector" plugin is important as the source of time
+updates for almost all the other plugins, and if you close it completely
+the time tracker there may no longer trigger updates in those other
+plugins. Similarly, the "Targets" plugin is the one that actually plots
+the targets and solar system objects in the Polar plot, so if you close it
+those objects may not be updated.  If in doubt, minimize a plugin instead
+of closing.
+
+And speaking of the "SiteSelector" plugin, if the "Time mode" is set to
+"Fixed" then the time will not update regularly either, and objects will
+be plotted in fixed positions with respect to that fixed time.
+
 -----------
 Customizing
 -----------

@@ -15,15 +15,15 @@ command "spot". When the program starts it will look like this:
 If it has not been selected by default, switch to the ``CPanel``
 tab on the right side of the SPOT program. Switching to CPanel 
 opens the SPOT Control Panel.
-On the right side underneath CPanel, you can press ``New Workspace`` 
+On the right side underneath CPanel, you can press ``Open Workspace``
 to create a blank workspace. If you would like to give the 
 workspace a name, you will need to type a name next to the 
-``New Workspace`` button in the fillable area. Otherwise, 
+``Open Workspace`` button in the fillable area. Otherwise,
 the name will default to "WS1", "WS2", etc.
 
 .. image:: figures/NewWorkspace.*
 
-When a new workspace is created two channels will appear, 
+When a workspace is opened two channels will appear,
 "wsname"_TGTS and "wsname"_FIND. You will normally want to resize
 these channel windows to be larger than the default size.
 The TGTS channel (Targets Channel) is used to display a map of the sky. 

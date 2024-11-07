@@ -11,6 +11,13 @@ controls many of the aspects of the other plugins visible on the workspace.
 
 .. image:: figures/SiteSelect.*
 
+.. important:: Closing this plugin can cause other plugins to not work
+               as expected. ``SiteSelector`` is important as the source of
+               time updates for almost all the other plugins, and if you
+               close it completely the time tracker there will no longer
+               trigger updates in those other plugins. If in doubt,
+               start and minimize this plugin instead of closing.
+
 ==============================
 Setting the observing location
 ==============================
