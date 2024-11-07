@@ -93,8 +93,8 @@ class Observer(object):
         self.date = date
         self.wavelength = wavelength
         self.description = description
-        #self.horizon = -1 * np.sqrt(2 * elevation / earth_radius_m)
-        self.horizon = np.degrees(- np.arccos(earth_radius_m / (earth_radius_m + self.elev_m)))
+        #self.horizon_deg = -1 * np.sqrt(2 * elevation / earth_radius_m)
+        self.horizon_deg = np.degrees(- np.arccos(earth_radius_m / (earth_radius_m + self.elev_m)))
 
         earth = ssbodies['earth']
         self.location = earth + wgs84.latlon(latitude_degrees=self.lat_deg,
@@ -329,8 +329,8 @@ class Observer(object):
             date = self.get_date(date)
 
         t, y = self._find_setting(ssbodies['sun'], date,
-                                  date + timedelta(days=1, hours=0),
-                                  self.horizon - solar_radius_deg * 2)
+                                  date + timedelta(days=1, hours=1),
+                                  self.horizon_deg - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
 
     def sunrise(self, date=None):
@@ -341,8 +341,8 @@ class Observer(object):
             date = self.get_date(date)
 
         t, y = self._find_rising(ssbodies['sun'], date,
-                                 date + timedelta(days=1, hours=0),
-                                 self.horizon - solar_radius_deg * 2)
+                                 date + timedelta(days=1, hours=1),
+                                 self.horizon_deg - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
 
     def evening_twilight_6(self, date=None):
@@ -355,7 +355,7 @@ class Observer(object):
 
         t, y = self._find_setting(ssbodies['sun'], date,
                                   date + timedelta(days=1, hours=0),
-                                  horizon_6 - solar_radius_deg * 2)
+                                  horizon_6 - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
 
     def evening_twilight_12(self, date=None):
@@ -368,7 +368,7 @@ class Observer(object):
 
         t, y = self._find_setting(ssbodies['sun'], date,
                                   date + timedelta(days=1, hours=0),
-                                  horizon_12 - solar_radius_deg * 2)
+                                  horizon_12 - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
 
     def evening_twilight_18(self, date=None):
@@ -381,7 +381,7 @@ class Observer(object):
 
         t, y = self._find_setting(ssbodies['sun'], date,
                                   date + timedelta(days=1, hours=0),
-                                  horizon_18 - solar_radius_deg * 2)
+                                  horizon_18 - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
 
     def morning_twilight_6(self, date=None):
@@ -394,7 +394,7 @@ class Observer(object):
 
         t, y = self._find_rising(ssbodies['sun'], date,
                                  date + timedelta(days=1, hours=0),
-                                 horizon_6)  # - solar_radius_deg * 2)
+                                 horizon_6 - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
 
     def morning_twilight_12(self, date=None):
@@ -407,7 +407,7 @@ class Observer(object):
 
         t, y = self._find_rising(ssbodies['sun'], date,
                                  date + timedelta(days=1, hours=0),
-                                 horizon_12)  # - solar_radius_deg * 2)
+                                 horizon_12 - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
 
     def morning_twilight_18(self, date=None):
@@ -420,7 +420,7 @@ class Observer(object):
 
         t, y = self._find_rising(ssbodies['sun'], date,
                                  date + timedelta(days=1, hours=0),
-                                 horizon_18)  # - solar_radius_deg * 2)
+                                 horizon_18 - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
 
     def sun_set_rise_times(self, date=None):
@@ -444,7 +444,7 @@ class Observer(object):
 
         t, y = self._find_rising(ssbodies['moon'], date,
                                  date + timedelta(days=2, hours=0),
-                                 self.horizon - moon_radius_deg * 2)
+                                 self.horizon_deg - moon_radius_deg)
         return t[0].astimezone(self.tz_local)
 
     def moon_set(self, date=None):
@@ -456,7 +456,7 @@ class Observer(object):
 
         t, y = self._find_setting(ssbodies['moon'], date,
                                   date + timedelta(days=2, hours=0),
-                                  self.horizon - moon_radius_deg * 2)
+                                  self.horizon_deg - moon_radius_deg)
         return t[0].astimezone(self.tz_local)
 
     def moon_illumination(self, date=None):
@@ -758,7 +758,7 @@ class CalculationResult(object):
             _last = self.obstime.gast + self.observer.lon_deg / 15.0
             # normalize to 24 hour time
             self._last = np.fmod(_last + 24.0, 24.0)
-        return self._last
+        return np.radians(self._last * 15)
 
     @property
     def ha(self):
@@ -915,7 +915,6 @@ class CalculationResult(object):
         self._az, self._alt = az, alt
 
         # calculate moon separation from target(s)
-        # TODO: don't we need to specify a time here somehow?
         moon = ssbodies['moon']
         astrometric_m = self.observer.location.at(self.obstime).observe(moon)
         apparent_m = astrometric_m.apparent()
