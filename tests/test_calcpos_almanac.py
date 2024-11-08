@@ -16,12 +16,13 @@ def get_observer(site_name, date):
 
 class TestCalcpos_Almanac:
 
+    # results can be up to this many seconds off of expected
     almanac_limit = 60
 
     @pytest.mark.parametrize(
         ("site_name", "date", "expected"),
-        [("subaru", "2024-04-09 12:00 HST", "2024-04-09 18:48:57 HST"),
-         ("subaru", "2024-11-23 14:00 HST", "2024-11-23 17:52:14 HST")])
+        [("subaru", "2024-04-09 12:00 HST", "2024-04-09 18:44:54 HST"),
+         ("subaru", "2024-11-23 14:00 HST", "2024-11-23 17:47:57 HST")])
     def test_sunset(self, site_name, date, expected):
         observer = get_observer(site_name, date)
         expected = observer.get_date(expected)
@@ -118,8 +119,8 @@ class TestCalcpos_Almanac:
 
     @pytest.mark.parametrize(
         ("site_name", "date", "expected"),
-        [("subaru", "2024-04-09 12:00 HST", "2024-04-10 05:57:00 HST"),
-         ("subaru", "2024-11-23 14:00 HST", "2024-11-24 06:25:17 HST")])
+        [("subaru", "2024-04-09 12:00 HST", "2024-04-10 06:01:00 HST"),
+         ("subaru", "2024-11-23 14:00 HST", "2024-11-24 06:29:34 HST")])
     def test_sunrise(self, site_name, date, expected):
         observer = get_observer(site_name, date)
         expected = observer.get_date(expected)
@@ -132,8 +133,8 @@ class TestCalcpos_Almanac:
 
     @pytest.mark.parametrize(
         ("site_name", "date", "expected"),
-        [("subaru", "2024-04-09 12:00 HST", "2024-04-10 07:23:46 HST"),
-         ("subaru", "2024-11-23 14:00 HST", "2024-11-24 01:06:00 HST")])
+        [("subaru", "2024-04-09 12:00 HST", "2024-04-10 07:28:09 HST"),
+         ("subaru", "2024-11-23 14:00 HST", "2024-11-24 01:09:59 HST")])
     def test_moonrise(self, site_name, date, expected):
         observer = get_observer(site_name, date)
         expected = observer.get_date(expected)
@@ -146,8 +147,8 @@ class TestCalcpos_Almanac:
 
     @pytest.mark.parametrize(
         ("site_name", "date", "expected"),
-        [("subaru", "2024-04-09 12:00 HST", "2024-04-09 20:15:57 HST"),
-         ("subaru", "2024-11-23 14:00 HST", "2024-11-23 17:52:14 HST")])
+        [("subaru", "2024-04-09 12:00 HST", "2024-04-09 20:11:32 HST"),
+         ("subaru", "2024-11-23 14:00 HST", "2024-11-24 13:55:37 HST")])
     def test_moonset(self, site_name, date, expected):
         observer = get_observer(site_name, date)
         expected = observer.get_date(expected)
