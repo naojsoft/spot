@@ -2,7 +2,12 @@
 What's New
 ++++++++++
 
-Ver 0.3.2 (unreleased)
+Ver 0.4.1 (unreleased)
+======================
+- Added a Help menu with an About function--shows banner with version
+- Fixed a bug with the Workspace menu items
+
+Ver 0.4.0 (2024-11-07)
 ======================
 - Fixed an issue where channels could not be closed
 - Fixed an issue with the TelescopePosition plugin where it could freeze
