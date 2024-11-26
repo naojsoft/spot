@@ -96,22 +96,22 @@ class PolarSky(GingaPlugin.LocalPlugin):
         # format sun info
         info.update(dict(
             # Sun rise/set info
-            sun_set=sun_info.sun_set.strftime("%H:%M:%S [%m/%d]"),
-            civil_set=sun_info.civil_set.strftime("%H:%M:%S [%m/%d]"),
-            nautical_set=sun_info.nautical_set.strftime("%H:%M:%S [%m/%d]"),
-            astronomical_set=sun_info.astronomical_set.strftime("%H:%M:%S [%m/%d]"),
-            astronomical_rise=sun_info.astronomical_rise.strftime("%H:%M:%S [%m/%d]"),
-            nautical_rise=sun_info.nautical_rise.strftime("%H:%M:%S [%m/%d]"),
-            civil_rise=sun_info.civil_rise.strftime("%H:%M:%S [%m/%d]"),
-            sun_rise=sun_info.sun_rise.strftime("%H:%M:%S [%m/%d]"),
-            night_center=sun_info.night_center.strftime("%H:%M:%S [%m/%d]")))
+            sun_set=sun_info.sun_set.strftime("%H:%M [%m/%d]"),
+            civil_set=sun_info.civil_set.strftime("%H:%M [%m/%d]"),
+            nautical_set=sun_info.nautical_set.strftime("%H:%M [%m/%d]"),
+            astronomical_set=sun_info.astronomical_set.strftime("%H:%M [%m/%d]"),
+            astronomical_rise=sun_info.astronomical_rise.strftime("%H:%M [%m/%d]"),
+            nautical_rise=sun_info.nautical_rise.strftime("%H:%M [%m/%d]"),
+            civil_rise=sun_info.civil_rise.strftime("%H:%M [%m/%d]"),
+            sun_rise=sun_info.sun_rise.strftime("%H:%M [%m/%d]"),
+            night_center=sun_info.night_center.strftime("%H:%M [%m/%d]")))
 
         # update with moon info
         moon_data = calcpos.Moon.calc(site, dt)
         info.update(dict(
             # Moon info here
-            moon_rise=(site.moon_rise(dt)).strftime("%H:%M:%S [%m/%d]"),
-            moon_set=(site.moon_set(dt)).strftime("%H:%M:%S [%m/%d]"),
+            moon_rise=(site.moon_rise(dt)).strftime("%H:%M [%m/%d]"),
+            moon_set=(site.moon_set(dt)).strftime("%H:%M [%m/%d]"),
             moon_illum=str("%.2f%%" % (moon_data.moon_pct * 100)),
             moon_alt="%.1f deg" % moon_data.alt_deg,
             moon_ra=ra_deg_to_str(moon_data.ra_deg),

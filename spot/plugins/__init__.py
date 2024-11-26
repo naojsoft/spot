@@ -54,6 +54,15 @@ def setup_Targets():
     return spec
 
 
+def setup_TargetGenerator():
+    spec = Bunch(path=os.path.join(p_path, 'TargetGenerator.py'),
+                 module='TargetGenerator', klass='TargetGenerator',
+                 ptype='local', workspace='in:toplevel', start=False,
+                 category="Planning", menu="TargetGenerator",
+                 tab='TargetGenerator')
+    return spec
+
+
 def setup_Visibility():
     spec = Bunch(path=os.path.join(p_path, 'Visibility.py'),
                  module='Visibility', klass='Visibility',
@@ -67,12 +76,4 @@ def setup_SiteSelector():
                  module='SiteSelector', klass='SiteSelector',
                  ptype='local', workspace='dialogs', start=False,
                  category="Planning", menu="Site Selector", tab='Site Selector')
-    return spec
-
-
-def setup_HSCPlanner():
-    spec = Bunch(path=os.path.join(p_path, 'HSCPlanner.py'),
-                 module='HSCPlanner', klass='HSCPlanner',
-                 ptype='local', workspace='dialogs', start=False,
-                 category="Planning", menu="HSCPlanner", tab='HSCPlanner')
     return spec
