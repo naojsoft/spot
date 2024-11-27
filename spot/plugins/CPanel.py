@@ -155,8 +155,12 @@ class CPanel(GingaPlugin.GlobalPlugin):
         name = str(self).capitalize()
         self.fv.help_text(name, self.__doc__, trim_pfx=4)
 
+    def _plugin_sort_method(self, spec):
+        index = spec.get('index', 9999)
+        return index
+
     def start(self):
-        pass
+        self.fv.plugins.sort(key=self._plugin_sort_method)
 
     def stop(self):
         self.gui_up = False
