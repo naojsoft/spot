@@ -197,16 +197,41 @@ class FindImage(GingaPlugin.LocalPlugin):
         top = Widgets.VBox()
         top.set_border_width(4)
 
-        fr = Widgets.Frame("Image Source")
+        fr = Widgets.Frame("Pointing")
 
-        captions = (('Source:', 'label', 'image_source', 'combobox',
-                     'Size (arcmin):', 'label', 'size', 'spinbutton'),
-                    ('__ph1', 'spacer', 'Find image', 'button'),
-                    ('__ph2', 'spacer', 'Create Blank', 'button'),
+        captions = (('RA:', 'label', 'ra', 'llabel', 'DEC:', 'label',
+                     'dec', 'llabel'),
+                    ('Equinox:', 'label', 'equinox', 'llabel',
+                     'Name:', 'label', 'tgt_name', 'llabel'),
+                    ('Get Selected', 'button', 'Lock Target', 'checkbox',
+                     '__ph4', 'spacer', "Follow telescope", 'checkbox')
                     )
 
         w, b = Widgets.build_info(captions)
         self.w = b
+        b.ra.set_text('')
+        b.dec.set_text('')
+        b.equinox.set_text('')
+        b.tgt_name.set_text('')
+        b.get_selected.set_tooltip("Get the coordinates from the selected target in Targets table")
+        b.get_selected.add_callback('activated', self.get_selected_target_cb)
+        b.lock_target.set_tooltip("Lock target from changing by selections in 'Targets'")
+        b.follow_telescope.set_tooltip("Set pan position to telescope position")
+        b.follow_telescope.set_state(self.settings['follow_telescope'])
+        self.w.update(b)
+        fr.set_widget(w)
+        top.add_widget(fr, stretch=0)
+
+        fr = Widgets.Frame("Image Source")
+
+        captions = (("Source:", 'label', 'image_source', 'combobox',
+                     "Size (arcmin):", 'label', 'size', 'spinbutton'),
+                    ('__ph1', 'spacer', "Find image", 'button',
+                     "Create Blank", 'button', "Load FITS", 'button'),
+                    )
+
+        w, b = Widgets.build_info(captions)
+        self.w.update(b)
         fr.set_widget(w)
         top.add_widget(fr, stretch=0)
 
@@ -221,30 +246,9 @@ class FindImage(GingaPlugin.LocalPlugin):
         b.create_blank.set_tooltip("Create a blank image")
         b.create_blank.add_callback('activated',
                                     lambda w: self.create_blank_image())
-
-        fr = Widgets.Frame("Pointing")
-
-        captions = (('RA:', 'label', 'ra', 'llabel', 'DEC:', 'label',
-                     'dec', 'llabel'),
-                    ('Equinox:', 'label', 'equinox', 'llabel',
-                     'Name:', 'label', 'tgt_name', 'llabel'),
-                    ('Get Selected', 'button', 'Lock Target', 'checkbox',
-                     '__ph4', 'spacer', "Follow telescope", 'checkbox')
-                    )
-
-        w, b = Widgets.build_info(captions)
-        b.ra.set_text('')
-        b.dec.set_text('')
-        b.equinox.set_text('')
-        b.tgt_name.set_text('')
-        b.get_selected.set_tooltip("Get the coordinates from the selected target in Targets table")
-        b.get_selected.add_callback('activated', self.get_selected_target_cb)
-        b.lock_target.set_tooltip("Lock target from changing by selections in 'Targets'")
-        b.follow_telescope.set_tooltip("Set pan position to telescope position")
-        b.follow_telescope.set_state(self.settings['follow_telescope'])
-        self.w.update(b)
-        fr.set_widget(w)
-        top.add_widget(fr, stretch=0)
+        b.load_fits.set_tooltip("Load a FITS image with WCS")
+        b.load_fits.add_callback('activated',
+                                 lambda w: self.load_fits_image())
 
         fr = Widgets.Frame("Image Download Info")
         image_info_text = "Please select 'Find image' to find your selected image"
@@ -541,6 +545,9 @@ class FindImage(GingaPlugin.LocalPlugin):
         image.set(nothumb=True, path=None)
         self.fitsimage.set_image(image)
 
+    def load_fits_image(self):
+        self.fv.start_local_plugin(self.chname, "FBrowser")
+
     def label_image(self):
         image_timestamp = datetime.datetime.now()
         image_info_text = "Image download complete, displayed at: " + \
@@ -618,10 +625,15 @@ class FindImage(GingaPlugin.LocalPlugin):
             self.fv.show_error("Please select exactly one target in the Targets table!")
             return
         tgt = list(selected)[0]
-        self.w.ra.set_text(wcs.ra_deg_to_str(tgt.ra))
-        self.w.dec.set_text(wcs.dec_deg_to_str(tgt.dec))
-        self.w.equinox.set_text(str(tgt.equinox))
-        self.w.tgt_name.set_text(tgt.name)
+        self.set_pointing(tgt.ra, tgt.dec, tgt.equinox, tgt.name)
+
+    def set_pointing(self, ra_deg, dec_deg, equinox, tgt_name):
+        if not self.gui_up:
+            return
+        self.w.ra.set_text(wcs.ra_deg_to_str(ra_deg))
+        self.w.dec.set_text(wcs.dec_deg_to_str(dec_deg))
+        self.w.equinox.set_text(str(equinox))
+        self.w.tgt_name.set_text(tgt_name)
 
     def __str__(self):
         return 'findimage'

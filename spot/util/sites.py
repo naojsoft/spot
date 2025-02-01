@@ -40,6 +40,7 @@ class Site:
             longitude_deg=0.0,
             latitude_deg=0.0,
             elevation_m=0.0,
+            horizon_deg=0.0,          # horizon for calculating sunset/sunrise
             pressure_mbar=0.0,        # ATM pressure in millibars
             temperature_c=0.0,        # temperature at site
             timezone_name='UTC',      # name of time zone at site
@@ -87,6 +88,7 @@ class Site:
                                  pressure=status.pressure_mbar,
                                  temperature=status.temperature_c,
                                  humidity=status.humidity,
+                                 horizon_deg=status.horizon_deg,
                                  wavelength=status.wavelength,
                                  timezone=timezone)
 

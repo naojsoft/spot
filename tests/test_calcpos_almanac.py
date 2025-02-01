@@ -21,8 +21,8 @@ class TestCalcpos_Almanac:
 
     @pytest.mark.parametrize(
         ("site_name", "date", "expected"),
-        [("subaru", "2024-04-09 12:00 HST", "2024-04-09 18:44:54 HST"),
-         ("subaru", "2024-11-23 14:00 HST", "2024-11-23 17:47:57 HST")])
+        [("subaru", "2024-04-09 12:00 HST", "2024-04-09 18:47:48 HST"),
+         ("subaru", "2024-11-23 14:00 HST", "2024-11-23 17:51:01 HST")])
     def test_sunset(self, site_name, date, expected):
         observer = get_observer(site_name, date)
         expected = observer.get_date(expected)
@@ -35,8 +35,8 @@ class TestCalcpos_Almanac:
 
     @pytest.mark.parametrize(
         ("site_name", "date", "expected"),
-        [("subaru", "2024-04-09 12:00 HST", "2024-04-09 19:02:19 HST"),
-         ("subaru", "2024-11-23 14:00 HST", "2024-11-23 18:06:15 HST")])
+        [("subaru", "2024-04-09 12:00 HST", "2024-04-09 19:00:20 HST"),
+         ("subaru", "2024-11-23 14:00 HST", "2024-11-23 18:04:10 HST")])
     def test_evening6(self, site_name, date, expected):
         observer = get_observer(site_name, date)
         expected = observer.get_date(expected)
@@ -49,8 +49,8 @@ class TestCalcpos_Almanac:
 
     @pytest.mark.parametrize(
         ("site_name", "date", "expected"),
-        [("subaru", "2024-04-09 12:00 HST", "2024-04-09 19:28:06 HST"),
-         ("subaru", "2024-11-23 14:00 HST", "2024-11-23 18:32:51 HST")])
+        [("subaru", "2024-04-09 12:00 HST", "2024-04-09 19:26:26 HST"),
+         ("subaru", "2024-11-23 14:00 HST", "2024-11-23 18:31:08 HST")])
     def test_evening12(self, site_name, date, expected):
         observer = get_observer(site_name, date)
         expected = observer.get_date(expected)
@@ -63,8 +63,8 @@ class TestCalcpos_Almanac:
 
     @pytest.mark.parametrize(
         ("site_name", "date", "expected"),
-        [("subaru", "2024-04-09 12:00 HST", "2024-04-09 19:54:30 HST"),
-         ("subaru", "2024-11-23 14:00 HST", "2024-11-23 18:59:30 HST")])
+        [("subaru", "2024-04-09 12:00 HST", "2024-04-09 19:52:48 HST"),
+         ("subaru", "2024-11-23 14:00 HST", "2024-11-23 18:57:49 HST")])
     def test_evening18(self, site_name, date, expected):
         observer = get_observer(site_name, date)
         expected = observer.get_date(expected)
@@ -77,8 +77,8 @@ class TestCalcpos_Almanac:
 
     @pytest.mark.parametrize(
         ("site_name", "date", "expected"),
-        [("subaru", "2024-04-09 12:00 HST", "2024-04-10 04:51:28 HST"),
-         ("subaru", "2024-11-23 14:00 HST", "2024-11-24 05:17:56 HST")])
+        [("subaru", "2024-04-09 12:00 HST", "2024-04-10 04:53:07 HST"),
+         ("subaru", "2024-11-23 14:00 HST", "2024-11-24 05:19:38 HST")])
     def test_morning18(self, site_name, date, expected):
         observer = get_observer(site_name, date)
         expected = observer.get_date(expected)
@@ -91,8 +91,8 @@ class TestCalcpos_Almanac:
 
     @pytest.mark.parametrize(
         ("site_name", "date", "expected"),
-        [("subaru", "2024-04-09 12:00 HST", "2024-04-10 05:17:51 HST"),
-         ("subaru", "2024-11-23 14:00 HST", "2024-11-24 05:44:37 HST")])
+        [("subaru", "2024-04-09 12:00 HST", "2024-04-10 05:19:29 HST"),
+         ("subaru", "2024-11-23 14:00 HST", "2024-11-24 05:46:20 HST")])
     def test_morning12(self, site_name, date, expected):
         observer = get_observer(site_name, date)
         expected = observer.get_date(expected)
@@ -105,8 +105,8 @@ class TestCalcpos_Almanac:
 
     @pytest.mark.parametrize(
         ("site_name", "date", "expected"),
-        [("subaru", "2024-04-09 12:00 HST", "2024-04-10 05:43:38 HST"),
-         ("subaru", "2024-11-23 14:00 HST", "2024-11-24 06:11:17 HST")])
+        [("subaru", "2024-04-09 12:00 HST", "2024-04-10 05:45:34 HST"),
+         ("subaru", "2024-11-23 14:00 HST", "2024-11-24 06:13:19 HST")])
     def test_morning6(self, site_name, date, expected):
         observer = get_observer(site_name, date)
         expected = observer.get_date(expected)
@@ -119,8 +119,8 @@ class TestCalcpos_Almanac:
 
     @pytest.mark.parametrize(
         ("site_name", "date", "expected"),
-        [("subaru", "2024-04-09 12:00 HST", "2024-04-10 06:01:00 HST"),
-         ("subaru", "2024-11-23 14:00 HST", "2024-11-24 06:29:34 HST")])
+        [("subaru", "2024-04-09 12:00 HST", "2024-04-10 05:58:06 HST"),
+         ("subaru", "2024-11-23 14:00 HST", "2024-11-24 06:26:29 HST")])
     def test_sunrise(self, site_name, date, expected):
         observer = get_observer(site_name, date)
         expected = observer.get_date(expected)
@@ -133,8 +133,8 @@ class TestCalcpos_Almanac:
 
     @pytest.mark.parametrize(
         ("site_name", "date", "expected"),
-        [("subaru", "2024-04-09 12:00 HST", "2024-04-10 07:28:09 HST"),
-         ("subaru", "2024-11-23 14:00 HST", "2024-11-24 01:09:59 HST")])
+        [("subaru", "2024-04-09 12:00 HST", "2024-04-10 07:24:57 HST"),
+         ("subaru", "2024-11-23 14:00 HST", "2024-11-24 01:07:00 HST")])
     def test_moonrise(self, site_name, date, expected):
         observer = get_observer(site_name, date)
         expected = observer.get_date(expected)
@@ -147,8 +147,8 @@ class TestCalcpos_Almanac:
 
     @pytest.mark.parametrize(
         ("site_name", "date", "expected"),
-        [("subaru", "2024-04-09 12:00 HST", "2024-04-09 20:11:32 HST"),
-         ("subaru", "2024-11-23 14:00 HST", "2024-11-24 13:55:37 HST")])
+        [("subaru", "2024-04-09 12:00 HST", "2024-04-09 20:14:43 HST"),
+         ("subaru", "2024-11-23 14:00 HST", "2024-11-24 13:58:33 HST")])
     def test_moonset(self, site_name, date, expected):
         observer = get_observer(site_name, date)
         expected = observer.get_date(expected)

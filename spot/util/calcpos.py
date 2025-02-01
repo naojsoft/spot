@@ -20,12 +20,16 @@ import erfa
 from astropy.coordinates import SkyCoord, Latitude, Longitude, Angle
 from astropy.time import Time
 from astropy import units as u
-from astropy.config import set_temp_cache
-set_temp_cache(path=datadir)
+from astropy.utils.iers import conf as ap_iers_conf
+#ap_iers_conf.auto_download = False
+ap_iers_conf.remote_timeout = 5.0
+ap_iers_conf.iers_degraded_accuracy = 'ignore'
+#from astropy.config import set_temp_cache
+#set_temp_cache(path=datadir)
 #solar_system_ephemeris.set("jpl")
 
 from skyfield.api import Star, Loader, wgs84
-#from skyfield.earthlib import refraction
+from skyfield.earthlib import refraction
 from skyfield import almanac
 # don't download ephemeris to the CWD
 load = Loader(os.path.join(datadir))
@@ -38,7 +42,7 @@ moon_radius_deg = 0.26
 ssbodies = load('de421.bsp')
 timescale = load.timescale()
 
-# used for twilight calculations
+# used for almanac calculations
 horizon_6 = -6.0
 horizon_12 = -12.0
 horizon_18 = -18.0
@@ -63,14 +67,15 @@ def airmass2alt(am):
 #### Classes ####
 
 
-class Observer(object):
+class Observer:
     """
     Observer
     """
     def __init__(self, name, timezone=None, longitude=None, latitude=None,
                  elevation=0, pressure=0, temperature=0, humidity=0,
-                 date=None, wavelength=None, description=None):
-        super(Observer, self).__init__()
+                 horizon_deg=None, date=None, wavelength=None,
+                 description=None):
+        super().__init__()
         self.name = name
         if timezone is None:
             # default to UTC
@@ -93,8 +98,9 @@ class Observer(object):
         self.date = date
         self.wavelength = wavelength
         self.description = description
-        #self.horizon_deg = -1 * np.sqrt(2 * elevation / earth_radius_m)
-        self.horizon_deg = np.degrees(- np.arccos(earth_radius_m / (earth_radius_m + self.elev_m)))
+        if horizon_deg is None:
+            horizon_deg = np.degrees(- np.arccos(earth_radius_m / (earth_radius_m + self.elev_m)))
+        self.horizon_deg = horizon_deg
 
         earth = ssbodies['earth']
         self.location = earth + wgs84.latlon(latitude_degrees=self.lat_deg,
@@ -224,39 +230,34 @@ class Observer(object):
         if alt_deg >= min_alt_deg:
             # body is above desired altitude at start of period
             # so calculate next setting
-            time_rise = time_start_utc
-            _t_set = self._find_setting(coord, time_start, time_end,
-                                        min_alt_deg)
-            time_set = _t_set.astimezone(self.tz_local)
+            time_rise = time_start
+            _t_set, y = self._find_setting(coord, time_start, time_stop,
+                                           min_alt_deg)
+            if len(_t_set) > 0:
+                time_set = _t_set[0].astimezone(self.tz_local)
+            else:
+                time_set = time_stop
             #print("body already up: set=%s" % (time_set))
 
         else:
             # body is below desired altitude at start of period
-            _t_rise = self._find_rising(coord, time_start,
-                                        time_end, min_alt_deg)
-            time_rise = _t_rise.astimezone(self.tz_local)
-            _t_set = self._find_setting(coord, time_start_utc,
-                                        time_end_utc, min_alt_deg)
-            time_set = _t_set.astimezone(self.tz_local)
+            _t_rise, y = self._find_rising(coord, time_start,
+                                           time_stop, min_alt_deg)
+            if len(_t_rise) == 0:
+                time_rise = None
+                time_set = None
+            else:
+                time_rise = _t_rise[0].astimezone(self.tz_local)
+                _t_set, y = self._find_setting(coord, time_start,
+                                               time_stop, min_alt_deg)
+                if len(_t_set) > 0:
+                    time_set = _t_set[0].astimezone(self.tz_local)
+                else:
+                    time_set = time_stop
 
-            #print("body not up: rise=%s set=%s" % (time_rise, time_set))
-            ## if time_rise < time_set:
-            ##     print("body still rising, below threshold")
-            ##     # <-- body is still rising, just not high enough yet
-            ## else:
-            ##     # <-- body is setting
-            ##     print("body setting, below threshold")
-            ##     # calculate rise time backward from end of period
-            ##     #time_rise = site.previous_rising(target.body, start=time_stop_utc)
-            ##     pass
 
-        if time_rise < time_start:
-            diff = time_rise - time_start
-            ## raise AssertionError("time rise (%s) < time start (%s)" % (
-            ##         time_rise, time_start))
-            print(("WARNING: time rise (%s) < time start (%s)" % (
-                time_rise, time_start)))
-            time_rise = time_start
+        if None in (time_rise, time_set):
+            return (False, time_rise, time_set)
 
         # last observable time is setting or end of period,
         # whichever comes first
@@ -266,14 +267,7 @@ class Observer(object):
         # object is observable as long as the duration that it is
         # up is as long or longer than the time needed
         diff = duration - float(time_needed)
-        #can_obs = diff > -0.001
         can_obs = duration > time_needed
-        #print("can_obs=%s duration=%f needed=%f diff=%f" % (
-        #    can_obs, duration, time_needed, diff))
-
-        # convert times back to datetime's
-        #time_rise = self.date_to_local(time_rise.datetime())
-        #time_end = self.date_to_local(time_end.datetime())
 
         return (can_obs, time_rise, time_end)
 
@@ -289,9 +283,9 @@ class Observer(object):
         t0 = timescale.from_datetime(start_dt)
         t1 = timescale.from_datetime(stop_dt)
         # TODO: refraction function does not appear to work as expected
-        #r = refraction(horizon_deg, temperature_C=self.temp_C,
-        #               pressure_mbar=self.pressure_mbar)
-        r = horizon_deg
+        r = refraction(0.0, temperature_C=self.temp_C,
+                       pressure_mbar=self.pressure_mbar)
+        r = horizon_deg + r
         t, y = almanac.find_settings(self.location, coord, t0, t1,
                                      horizon_degrees=r)
         return t, y
@@ -300,9 +294,9 @@ class Observer(object):
         t0 = timescale.from_datetime(start_dt)
         t1 = timescale.from_datetime(stop_dt)
         # TODO: refraction function does not appear to work as expected
-        #r = refraction(horizon_deg, temperature_C=self.temp_C,
-        #               pressure_mbar=self.pressure_mbar)
-        r = horizon_deg
+        r = refraction(0.0, temperature_C=self.temp_C,
+                       pressure_mbar=self.pressure_mbar)
+        r = horizon_deg + r
         t, y = almanac.find_risings(self.location, coord, t0, t1,
                                     horizon_degrees=r)
         return t, y

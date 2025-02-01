@@ -113,7 +113,7 @@ if __name__ == "__main__":
               ch_sfx='_TGTS', index=1.0, enabled=True, exclusive=False),
         Bunch(module='Targets', ptype='local', workspace='channels',
               category="Planning", menu="Target List", tab='Targets',
-              ch_sfx='_TGTS', index=2.0, enabled=True, exclusive=True),
+              ch_sfx='_TGTS', index=2.0, enabled=True, exclusive=False),
         Bunch(module='Visibility', ptype='local', workspace='channels',
               category="Planning", menu="Visibility Plot", tab='Visibility',
               ch_sfx='_TGTS', index=3.0, enabled=True, exclusive=False),

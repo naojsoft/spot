@@ -25,6 +25,7 @@ CFHT:
   longitude_deg: -155.6720
   pressure_mbar: 615
   temperature_c: 0
+  horizon_deg: -3.1
   timezone_name: HST
   timezone_offset_min: -600
   humidity: 10
@@ -67,6 +68,7 @@ Gemini_North:
   longitude_deg: -155.46984
   pressure_mbar: 615
   temperature_c: 10
+  horizon_deg: -3.1
   timezone_name: HST
   timezone_offset_min: -600
   humidity: 10
@@ -109,6 +111,7 @@ Keck:
   longitude_deg: -155.6655
   pressure_mbar: 615
   temperature_c: 0
+  horizon_deg: -3.1
   timezone_name: HST
   timezone_offset_min: -600
   humidity: 10
@@ -163,6 +166,7 @@ Subaru:
   fov_deg: 1.5
   latitude_deg: 19.8285
   longitude_deg: -155.4761
+  horizon_deg: -3.1
   pressure_mbar: 615
   temperature_c: 0
   timezone_name: HST

@@ -201,7 +201,7 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         fr.set_widget(vbox)
         top.add_widget(fr, stretch=0)
 
-        top.add_widget(Widgets.Label(''), stretch=1)
+        #top.add_widget(Widgets.Label(''), stretch=1)
 
         btns = Widgets.HBox()
         btns.set_border_width(4)

@@ -102,7 +102,7 @@ class Visibility(GingaPlugin.LocalPlugin):
         prefs = self.fv.get_preferences()
         self.settings = prefs.create_category('plugin_Visibility')
         self.settings.add_defaults(targets_update_interval=60.0,
-                                   color_selected='blue',
+                                   color_selected='dodgerblue1',
                                    color_tagged='mediumorchid1',
                                    color_normal='mediumseagreen',
                                    plot_interval_min=10)
@@ -117,9 +117,11 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.selected = set([])
         self._targets = []
         self._last_tgt_update_dt = None
-        self._columns = ['ut', 'alt_deg', 'airmass', 'moon_alt', 'moon_sep']
+        self._columns = ['ut', 'alt_deg', 'az_deg', 'airmass',
+                         'moon_alt', 'moon_sep']
         self.vis_dict = dict()
         self.plot_moon_sep = False
+        self.plot_polar_azel = False
         self.plot_legend = False
         self.plot_which = 'selected'
         self.gui_up = False
@@ -131,6 +133,15 @@ class Visibility(GingaPlugin.LocalPlugin):
         # When time_axis_mode is "Current", x-axis range will be
         # time_range_current_mode hours.
         self.time_range_current_mode = 10  # hours
+
+        self.viewer = self.fitsimage
+        self.dc = fv.get_draw_classes()
+        canvas = self.dc.DrawingCanvas()
+        canvas.enable_draw(False)
+        #canvas.register_for_cursor_drawing(self.fitsimage)
+        canvas.set_surface(self.fitsimage)
+        canvas.set_draw_mode('pick')
+        self.canvas = canvas
 
         self.tmr_replot = self.fv.make_timer()
         self.tmr_replot.add_callback('expired', lambda tmr: self.replot())
@@ -169,6 +180,7 @@ class Visibility(GingaPlugin.LocalPlugin):
         top.add_widget(plot_w, stretch=1)
 
         captions = (('Plot moon sep', 'checkbox',
+                     'Plot polar AzEl', 'checkbox',
                      'Time axis:', 'label', 'mode', 'combobox',
                      'Plot:', 'label', 'plot', 'combobox'),
                     )
@@ -178,6 +190,9 @@ class Visibility(GingaPlugin.LocalPlugin):
         b.plot_moon_sep.set_state(self.plot_moon_sep)
         b.plot_moon_sep.add_callback('activated', self.toggle_mon_sep_cb)
         b.plot_moon_sep.set_tooltip("Show moon separation on plot lines")
+        b.plot_polar_azel.set_state(self.plot_polar_azel)
+        b.plot_polar_azel.add_callback('activated', self.plot_polar_azel_cb)
+        b.plot_polar_azel.set_tooltip("Plot Az/El paths on polar plot")
 
         for name in self.time_axis_options:
             b.mode.append_text(name)
@@ -225,8 +240,20 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.initialize_plot()
         self._set_target_subset()
 
+        # insert canvas, if not already
+        p_canvas = self.viewer.get_canvas()
+        if self.canvas not in p_canvas:
+            # Add our canvas
+            p_canvas.add(self.canvas)
+
+        self.canvas.delete_all_objects()
+
     def stop(self):
         self.gui_up = False
+        # remove the canvas from the image
+        p_canvas = self.fitsimage.get_canvas()
+        if self.canvas in p_canvas:
+            p_canvas.delete_object(self.canvas)
 
     def redo(self):
         pass
@@ -236,6 +263,7 @@ class Visibility(GingaPlugin.LocalPlugin):
 
     def clear_plot(self):
         self.plot.clear()
+        self.canvas.delete_object_by_tag('targets')
 
     def plot_targets(self, targets):
         """Plot targets.
@@ -285,86 +313,20 @@ class Visibility(GingaPlugin.LocalPlugin):
             center_time = self.dt_utc
 
         # round start time to every interval minutes
-        interval = self.settings.get('plot_interval_min', 15)
-        start_minute = start_time.minute // interval * interval
+        interval_min = self.settings.get('plot_interval_min', 15)
+        start_minute = start_time.minute // interval_min * interval_min
         start_time = start_time.replace(minute=start_minute,
                                         second=0, microsecond=0)
-        stop_minute = stop_time.minute // interval * interval
+        stop_minute = stop_time.minute // interval_min * interval_min
         stop_time = stop_time.replace(minute=stop_minute,
                                       second=0, microsecond=0)
 
-        site.set_date(start_time)
-        # create date array
-        #dt_arr = np.arange(start_time, stop_time, timedelta(minutes=15))
-        dt_arr = np.arange(start_time.astimezone(tz.UTC),
-                           stop_time.astimezone(tz.UTC),
-                           timedelta(minutes=interval))
-
-        num_tgts = len(targets)
-        target_data = []
-        if num_tgts > 0:
-            for tgt in targets:
-                vis_dct = self.vis_dict.get(tgt, None)
-                if vis_dct is None:
-                    # no history for this target, so calculate values for full
-                    # time period
-                    cres = site.calc(tgt, dt_arr)
-                    vis_dct = cres.get_dict(columns=self._columns)
-                    vis_dct['time'] = dt_arr
-                    self.vis_dict[tgt] = vis_dct
-
-                else:
-                    # we have some possible history for this target,
-                    # so only calculate values for the new time period
-                    # that we haven't already calculated
-                    t_arr = vis_dct['time']
-                    # remove any old calculations not in this time period
-                    mask = np.isin(t_arr, dt_arr, invert=True)
-                    if np.any(mask):
-                        num_rem = mask.sum()
-                        self.logger.debug(f"removing results for {num_rem} times")
-                        for key in self._columns + ['time']:
-                            vis_dct[key] = vis_dct[key][~mask]
-
-                    # add any new calculations in this time period
-                    add_arr = np.setdiff1d(dt_arr, t_arr)
-                    num_add = len(add_arr)
-                    if num_add == 0:
-                        self.logger.debug("no new calculations needed")
-                    elif num_add > 0:
-                        self.logger.debug(f"adding results for {num_add} new times")
-                        # only calculate for new times
-                        cres = site.calc(tgt, add_arr)
-                        dct = cres.get_dict(columns=self._columns)
-                        dct['time'] = add_arr
-                        if len(vis_dct['time']) == 0:
-                            # we removed all the old data
-                            vis_dct.update(dct)
-                        elif vis_dct['time'].min() < add_arr.max():
-                            # prepend new data
-                            for key in self._columns + ['time']:
-                                vis_dct[key] = np.append(dct[key],
-                                                         vis_dct[key])
-                        else:
-                            # append new data
-                            for key in self._columns + ['time']:
-                                vis_dct[key] = np.append(vis_dct[key],
-                                                         dct[key])
-
-                df = pd.DataFrame.from_dict(vis_dct, orient='columns')
-                color, alpha, zorder, textbg = self._get_target_color(tgt)
-                color = colors.lookup_color(color, format='hash')
-                target_data.append(Bunch.Bunch(history=df,
-                                               color=color,
-                                               alpha=alpha,
-                                               zorder=zorder,
-                                               textbg=textbg,
-                                               target=tgt))
-
-        # make airmass plot
+        target_data = self.get_target_data(targets, start_time, stop_time,
+                                           interval_min)
+        # make altitude plot
         self.clear_plot()
 
-        if num_tgts == 0:
+        if len(target_data) == 0:
             self.logger.debug("no targets for plotting airmass")
         else:
             self.logger.debug("plotting altitude/airmass")
@@ -375,6 +337,126 @@ class Visibility(GingaPlugin.LocalPlugin):
                                show_target_legend=self.plot_legend,
                                center_time=center_time)
         self.fv.error_wrap(self.plot.draw)
+
+        self.plot_azalt(target_data, 'targets')
+
+    def get_target_data(self, targets, start_time, stop_time, interval_min):
+        num_tgts = len(targets)
+        target_data = []
+        if num_tgts == 0:
+            return target_data
+
+        # TODO: work with site object directly, not observer
+        site = self.site.observer
+
+        site.set_date(start_time)
+        # create date array
+        dt_arr = np.arange(start_time.astimezone(tz.UTC),
+                           stop_time.astimezone(tz.UTC),
+                           timedelta(minutes=interval_min))
+
+        for tgt in targets:
+            vis_dct = self.vis_dict.get(tgt, None)
+            if vis_dct is None:
+                # no history for this target, so calculate values for full
+                # time period
+                cres = site.calc(tgt, dt_arr)
+                vis_dct = cres.get_dict(columns=self._columns)
+                vis_dct['time'] = dt_arr
+                self.vis_dict[tgt] = vis_dct
+
+            else:
+                # we have some possible history for this target,
+                # so only calculate values for the new time period
+                # that we haven't already calculated
+                t_arr = vis_dct['time']
+                # remove any old calculations not in this time period
+                mask = np.isin(t_arr, dt_arr, invert=True)
+                if np.any(mask):
+                    num_rem = mask.sum()
+                    self.logger.debug(f"removing results for {num_rem} times")
+                    for key in self._columns + ['time']:
+                        vis_dct[key] = vis_dct[key][~mask]
+
+                # add any new calculations in this time period
+                add_arr = np.setdiff1d(dt_arr, t_arr)
+                num_add = len(add_arr)
+                if num_add == 0:
+                    self.logger.debug("no new calculations needed")
+                elif num_add > 0:
+                    self.logger.debug(f"adding results for {num_add} new times")
+                    # only calculate for new times
+                    cres = site.calc(tgt, add_arr)
+                    dct = cres.get_dict(columns=self._columns)
+                    dct['time'] = add_arr
+                    if len(vis_dct['time']) == 0:
+                        # we removed all the old data
+                        vis_dct.update(dct)
+                    elif vis_dct['time'].min() < add_arr.max():
+                        # prepend new data
+                        for key in self._columns + ['time']:
+                            vis_dct[key] = np.append(dct[key],
+                                                     vis_dct[key])
+                    else:
+                        # append new data
+                        for key in self._columns + ['time']:
+                            vis_dct[key] = np.append(vis_dct[key],
+                                                     dct[key])
+
+            df = pd.DataFrame.from_dict(vis_dct, orient='columns')
+            color, alpha, zorder, textbg = self._get_target_color(tgt)
+            color = colors.lookup_color(color, format='hash')
+            target_data.append(Bunch.Bunch(history=df,
+                                           color=color,
+                                           alpha=alpha,
+                                           zorder=zorder,
+                                           textbg=textbg,
+                                           target=tgt))
+
+        return target_data
+
+    def plot_azalt(self, target_data, tag):
+        """Plot targets.
+        """
+        self.canvas.delete_object_by_tag(tag)
+
+        if not self.plot_polar_azel:
+            return
+
+        self.logger.info("plotting {} azimuths tag {}".format(len(target_data), tag))
+        objs = []
+        alpha = 1.0
+        # plot targets elevation vs. time
+        for i, info in enumerate(target_data):
+            alt_data = np.array(info.history['alt_deg'], dtype=float)
+            az_data = np.array(info.history['az_deg'], dtype=float)
+            for alt_data, az_data in split_on_positive_alt(alt_data, az_data):
+                if len(az_data) == 0:
+                    continue
+                t, r = self.map_azalt(az_data, alt_data)
+                x, y = self.p2r(r, t)
+                pts = np.array((x, y)).T
+                path = self.dc.Path(pts, color=info.color, linewidth=1, alpha=alpha)
+                objs.append(path)
+                tgtname = info.target.name
+                x, y = pts[-1]
+                text = self.dc.Text(x, y, tgtname,
+                                    color=info.color, alpha=alpha,
+                                    fill=True, fillcolor=info.color,
+                                    fillalpha=alpha, linewidth=0,
+                                    font="Roboto condensed bold",
+                                    fontscale=True,
+                                    fontsize=None, fontsize_min=12,
+                                    fontsize_max=16)#,
+                                    # bgcolor='floralwhite', bgalpha=bg_alpha,
+                                    # bordercolor='orangered1', borderlinewidth=2,
+                                    # borderalpha=bg_alpha)
+                objs.append(text)
+
+        o = self.dc.CompoundObject(*objs)
+        self.canvas.add(o, tag=tag, redraw=False)
+
+        self.canvas.update_canvas(whence=3)
 
     def replot(self):
         if self._targets is not None:
@@ -400,6 +482,10 @@ class Visibility(GingaPlugin.LocalPlugin):
 
     def toggle_mon_sep_cb(self, w, tf):
         self.plot_moon_sep = tf
+        self.replot()
+
+    def plot_polar_azel_cb(self, w, tf):
+        self.plot_polar_azel = tf
         self.replot()
 
     def toggle_show_legend_cb(self, w, tf):
@@ -466,5 +552,33 @@ class Visibility(GingaPlugin.LocalPlugin):
 
         self.fv.gui_do(self.replot)
 
+    def p2r(self, r, t):
+        obj = self.channel.opmon.get_plugin('PolarSky')
+        return obj.p2r(r, t)
+
+    # def get_scale(self):
+    #     obj = self.channel.opmon.get_plugin('PolarSky')
+    #     return obj.get_scale()
+
+    def map_azalt(self, az, alt):
+        obj = self.channel.opmon.get_plugin('PolarSky')
+        return obj.map_azalt(az, alt)
+
     def __str__(self):
         return 'visibility'
+
+
+def split_on_positive_alt(alt_arr, az_arr):
+    if len(alt_arr) == 0:
+        return []
+
+    # Identify indices where the value transitions between >0 and <=0
+    transitions = np.where((alt_arr[:-1] > 0) != (alt_arr[1:] > 0))[0] + 1
+
+    # Split the array at these indices
+    alt_res = np.split(alt_arr, transitions)
+    az_res = np.split(az_arr, transitions)
+
+    # return only the arrays where elev > 0
+    return [(alt_res[i], az_res[i]) for i in range(len(alt_res))
+            if alt_res[i][0] > 0]
