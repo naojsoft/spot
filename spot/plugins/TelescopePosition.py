@@ -17,6 +17,7 @@ import numpy as np
 # ginga
 from ginga.gw import Widgets
 from ginga import GingaPlugin
+from ginga.misc.Callback import Callbacks
 from ginga.util import wcs
 
 # local
@@ -94,6 +95,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         self._follow_target = False
         self._updating_target_flag = False
         self._last_tel_update_dt = None
+        self._cur_tel_status = ''
 
         self.viewer = self.fitsimage
         self.dc = fv.get_draw_classes()
