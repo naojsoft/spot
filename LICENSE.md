@@ -1,4 +1,4 @@
-Copyright (c) 2023-2024  SPOT Maintainers.
+Copyright (c) 2023-2025  SPOT Maintainers.
 
 All rights reserved.
 

@@ -20,6 +20,7 @@ from ginga import GingaPlugin
 from ginga.util import wcs
 
 # local
+from spot.util.target import Target
 from spot.util.rot import normalize_angle
 
 
@@ -71,6 +72,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
                                    color_telescope='skyblue1',
                                    color_slew='thistle1',
                                    color_target='tan1',
+                                   min_delta_arcsec=600.0,
                                    slew_distance_threshold=0.05,
                                    telescope_update_interval=3.0)
         self.settings.load(onError='silent')
@@ -80,6 +82,12 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         self.telescope_pos = [-90.0, 89.5]
         self.telescope_cmd = [-90.0, 89.5]
         self.telescope_diff = [0.0, 0.0]
+
+        # minimum distance from tracking to be considered the "same target"
+        # (in arcsec)
+        self.min_delta_arcsec = self.settings.get('min_delta_arcsec', 600.0)
+        self._follow_target = False
+        self._updating_target_flag = False
 
         self.viewer = self.fitsimage
         self.dc = fv.get_draw_classes()
@@ -135,6 +143,9 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         obj = self.channel.opmon.get_plugin('SiteSelector')
         self.site = obj.get_site()
         obj.cb.add_callback('site-changed', self.site_changed_cb)
+        self.targets = self.channel.opmon.get_plugin('Targets')
+        self.targets.cb.add_callback('selection-changed',
+                                     self.target_selection_cb)
 
         top = Widgets.VBox()
         top.set_border_width(4)
@@ -165,8 +176,9 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
 
         top.add_widget(Widgets.Label(''), stretch=1)
 
-        captions = (('Plot telescope position', 'checkbutton'),
-                    ('Rotate view to azimuth', 'checkbutton'),
+        captions = (("Plot telescope position", 'checkbox',
+                     "Target follows telescope", 'checkbox'),
+                    ("Rotate view to azimuth", 'checkbox'),
                     )
 
         w, b = Widgets.build_info(captions)
@@ -181,6 +193,10 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         b.rotate_view_to_azimuth.set_tooltip("Rotate the display to show the current azimuth at the top")
         b.rotate_view_to_azimuth.add_callback('activated',
                                               self.tel_posn_toggle_cb)
+        b.target_follows_telescope.set_state(self._follow_target)
+        b.target_follows_telescope.add_callback('activated',
+                                                self.follow_target_cb)
+        b.target_follows_telescope.set_tooltip("Track target by telescope position")
 
         btns = Widgets.HBox()
         btns.set_border_width(4)
@@ -333,6 +349,32 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         except Exception as e:
             self.logger.error(f"error updating info: {e}", exc_info=True)
 
+    def select_target_by_telpos(self, status):
+        tel_pos = Target(name="telescope", ra=status.ra_deg,
+                         dec=status.dec_deg, equinox=status.equinox)
+        self.logger.debug(f"tel position {status.ra_deg, status.dec_deg}")
+
+        # Now find this target in our "regular" target list, if possible
+        tgt = self.targets.get_target_by_separation(tel_pos,
+                                                    min_delta_sep_arcsec=self.min_delta_arcsec)
+        targets = []
+        if tgt is not None:
+            # select target in Targets table
+            targets = [tgt]
+        self._updating_target_flag = True
+        try:
+            self.targets.select_targets(targets)
+        finally:
+            self._updating_target_flag = False
+
+    def follow_target_cb(self, w, tf):
+        self._follow_target = tf
+
+        if self._follow_target:
+            obj = self.channel.opmon.get_plugin('SiteSelector')
+            status = obj.get_status()
+            self.select_target_by_telpos(status)
+
     def update_status(self, status):
         self.telescope_pos[0] = status.az_deg
         self.telescope_pos[1] = status.alt_deg
@@ -348,6 +390,8 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
 
         self.fv.gui_do(self.update_info, status)
         self.fv.gui_do(self.update_telescope_plot)
+        if self._follow_target:
+            self.fv.gui_do(self.select_target_by_telpos, status)
 
     def update_tel_timer_cb(self, timer):
         timer.start()
@@ -364,6 +408,15 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         obj = self.channel.opmon.get_plugin('SiteSelector')
         status = obj.get_status()
         self.update_status(status)
+
+    def target_selection_cb(self, cb, targets):
+        """Called when the user selects targets in the Target table"""
+        self._follow_target = False
+        if not self.gui_up:
+            return
+        if not self._updating_target_flag:
+            self.w.target_follows_telescope.set_state(False)
+            self._follow_target = False
 
     def tel_posn_toggle_cb(self, w, tf):
         self.fv.gui_do(self.update_telescope_plot)

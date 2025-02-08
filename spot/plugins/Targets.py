@@ -128,7 +128,7 @@ class Targets(GingaPlugin.LocalPlugin):
     the target was added from a file, reloading the file by pressing "Set"
     will restore all of the deleted targets.
 
-    Checking the box next to "Plot SS" will plot the Sun, the Planets, and
+    Checking the box next to "Plot SolarSys" will plot the Sun, the Planets, and
     Pluto on the `<wsname>_TGTS` window.
 
     The drop down menu next to "Plot:" changes which targets are plotted on
@@ -277,8 +277,8 @@ class Targets(GingaPlugin.LocalPlugin):
         action.set_state(self.settings.get('merge_targets', False))
         #action.add_callback('activated', self.merge_targets_cb)
         self.w.merge_targets = action
-        action = m.add_name("List PRM Targets", checkable=True)
-        action.set_tooltip("Show unreferenced targets in .prm files")
+        action = m.add_name("List unreferenced targets", checkable=True)
+        action.set_tooltip("Show unreferenced targets (e.g. from .prm files")
         action.set_state(self.show_unref_tgts)
         action.add_callback('activated', self.list_prm_cb)
         self.w.list_prm_targets = action
@@ -335,7 +335,7 @@ class Targets(GingaPlugin.LocalPlugin):
 
         hbox.add_widget(Widgets.Label(''), stretch=1)
 
-        self.w.plot_ss = Widgets.CheckBox("Plot SS")
+        self.w.plot_ss = Widgets.CheckBox("Plot Solar Sys")
         self.w.plot_ss.set_state(self.plot_ss_objects)
         self.w.plot_ss.add_callback('activated', self.plot_ss_cb)
         hbox.add_widget(self.w.plot_ss, stretch=0)
@@ -450,6 +450,16 @@ class Targets(GingaPlugin.LocalPlugin):
             sel_dct = self.w.tgt_tbl.get_selected()
             self.target_selection_cb(self.w.tgt_tbl, sel_dct)
         return True
+
+    def select_targets(self, targets):
+        self.w.tgt_tbl.clear_selection()
+        for tgt in targets:
+            path = [tgt.category, tgt.name]
+            self.w.tgt_tbl.select_path(path)
+            self.w.tgt_tbl.scroll_to_path(path)
+
+        sel_dct = self.w.tgt_tbl.get_selected()
+        self.target_selection_cb(self.w.tgt_tbl, sel_dct)
 
     def plot_targets(self, tgt_df, tag):
         """Plot targets.
@@ -609,6 +619,41 @@ class Targets(GingaPlugin.LocalPlugin):
             self.update_targets(self.tgt_df, 'targets')
         if self.plot_ss_objects:
             self.update_targets(self.ss_df, 'ss')
+
+    def get_target_by_separation(self, tgt, dt=None, min_delta_sep_arcsec=600):
+        """Select a target by angular distance from another target.
+
+        Parameters
+        ----------
+        tgt : `~spot.util.target.Target`
+            A target to search against
+
+        dt : datetime.datetime (optional, defaults to current time)
+            The time of checking
+
+        min_delta_sep_arcsec : float (optional, defaults to 600 asec)
+            Separation must be less than this value
+
+        Returns
+        -------
+        tgt : `~spot.util.target.Target`
+            Target matching parameter or None
+        """
+        if self._mbody is None:
+            return None
+        if dt is None:
+            dt = self.dt_utc
+
+        cr = self.site.observer.calc(self._mbody, dt)
+        # calculate separation from the supplied target
+        sep_radec = cr.calc_separation(tgt)
+
+        idx = np.argmin(sep_radec)
+        tgt_radec, sep_radec = self.full_tgt_list[idx], sep_radec[idx]
+        if sep_radec >= min_delta_sep_arcsec:
+            # no target meets the minimum acceptable separation
+            tgt_radec = None
+        return tgt_radec
 
     def change_radius_cb(self, setting, radius):
         # sky radius has changed in PolarSky
@@ -849,9 +894,11 @@ class Targets(GingaPlugin.LocalPlugin):
         self.fitsimage.redraw(whence=3)
 
     def target_selection_cb(self, w, sel_dct):
+        """Called when a selection is made in the targets table."""
         if self._updating_table_flag:
             # see NOTE in targets_to_table()
             return
+
         new_highlighted = set([self.target_dict[(category, name)]
                                for category, dct in sel_dct.items()
                                for name in dct.keys()])

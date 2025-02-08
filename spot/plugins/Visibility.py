@@ -26,6 +26,7 @@ naojsoft packages
 """
 # stdlib
 from datetime import timedelta
+import threading
 
 # 3rd party
 import numpy as np
@@ -110,6 +111,7 @@ class Visibility(GingaPlugin.LocalPlugin):
 
         # these are set via callbacks from the SiteSelector plugin
         self.site = None
+        self.lock = threading.RLock()
         self.dt_utc = None
         self.cur_tz = None
         self.full_tgt_list = []
@@ -156,10 +158,11 @@ class Visibility(GingaPlugin.LocalPlugin):
 
         # initialize site and date/time/tz
         obj = self.channel.opmon.get_plugin('SiteSelector')
-        self.site = obj.get_site()
-        obj.cb.add_callback('site-changed', self.site_changed_cb)
-        self.dt_utc, self.cur_tz = obj.get_datetime()
-        obj.cb.add_callback('time-changed', self.time_changed_cb)
+        with self.lock:
+            self.site = obj.get_site()
+            obj.cb.add_callback('site-changed', self.site_changed_cb)
+            self.dt_utc, self.cur_tz = obj.get_datetime()
+            obj.cb.add_callback('time-changed', self.time_changed_cb)
 
         obj = self.channel.opmon.get_plugin('Targets')
         self.full_tgt_list = obj.get_targets()
@@ -272,13 +275,13 @@ class Visibility(GingaPlugin.LocalPlugin):
         """
         # remove no longer used targets
         new_tgts = set(targets)
-        cur_tgts = set(self._targets)
-        rem_set = cur_tgts - new_tgts
-        for tgt in rem_set:
-            pass
+        with self.lock:
+            dt_utc = self.dt_utc
+            cur_tz = self.cur_tz
+            satellite_barh_data = self._satellite_barh_data
+            collision_barh_data = self._collision_barh_data
+            self._targets = targets
 
-        # add brand new targets
-        self._targets = targets
         if not self.gui_up:
             return
 
@@ -310,9 +313,9 @@ class Visibility(GingaPlugin.LocalPlugin):
             # the left edge of the period.
             time_period_sec = 60 * 60 * self.time_range_current_mode
             start_offset_from_current_sec = time_period_sec / 4
-            start_time = self.dt_utc - timedelta(seconds=start_offset_from_current_sec)
-            stop_time = self.dt_utc + timedelta(seconds=time_period_sec)
-            center_time = self.dt_utc
+            start_time = dt_utc - timedelta(seconds=start_offset_from_current_sec)
+            stop_time = dt_utc + timedelta(seconds=time_period_sec)
+            center_time = dt_utc
 
         # round start time to every interval minutes
         interval_min = self.settings.get('plot_interval_min', 15)
@@ -333,11 +336,13 @@ class Visibility(GingaPlugin.LocalPlugin):
         else:
             self.logger.debug("plotting altitude/airmass")
             self.fv.error_wrap(self.plot.plot_altitude, site,
-                               target_data, self.cur_tz,
-                               current_time=self.dt_utc,
+                               target_data, cur_tz,
+                               current_time=dt_utc,
                                plot_moon_distance=self.plot_moon_sep,
                                show_target_legend=self.plot_legend,
-                               center_time=center_time)
+                               center_time=center_time,
+                               satellite_barh_data=satellite_barh_data,
+                               collision_barh_data=collision_barh_data)
         self.fv.error_wrap(self.plot.draw)
 
         self.plot_azalt(target_data, 'targets')
@@ -394,7 +399,7 @@ class Visibility(GingaPlugin.LocalPlugin):
                     if len(vis_dct['time']) == 0:
                         # we removed all the old data
                         vis_dct.update(dct)
-                    elif vis_dct['time'].min() < add_arr.max():
+                    elif add_arr.max() < vis_dct['time'].min():
                         # prepend new data
                         for key in self._columns + ['time']:
                             vis_dct[key] = np.append(dct[key],
@@ -461,8 +466,10 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.canvas.update_canvas(whence=3)
 
     def replot(self):
-        if self._targets is not None:
-            self.plot_targets(self._targets)
+        with self.lock:
+            targets = self._targets
+        if targets is not None:
+            self.plot_targets(targets)
 
     def _get_target_color(self, tgt):
         if tgt in self.selected:
@@ -506,12 +513,13 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.replot()
 
     def _set_target_subset(self):
-        if self.plot_which == 'all':
-            self._targets = self.full_tgt_list
-        elif self.plot_which == 'tagged+selected':
-            self._targets = list(self.tagged.union(self.selected))
-        elif self.plot_which == 'selected':
-            self._targets = list(self.selected)
+        with self.lock:
+            if self.plot_which == 'all':
+                self._targets = self.full_tgt_list
+            elif self.plot_which == 'tagged+selected':
+                self._targets = list(self.tagged.union(self.selected))
+            elif self.plot_which == 'selected':
+                self._targets = list(self.selected)
 
         #self.fv.gui_do(self.replot)
         self.tmr_replot.set(self.replot_after_sec)
@@ -541,21 +549,23 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.tmr_replot.set(self.replot_after_sec)
 
     def time_changed_cb(self, cb, time_utc, cur_tz):
-        old_dt_utc = self.dt_utc
-        self.dt_utc = time_utc
-        self.cur_tz = cur_tz
+        with self.lock:
+            old_dt_utc = self.dt_utc
+            self.dt_utc = time_utc
+            self.cur_tz = cur_tz
 
         if (self._last_tgt_update_dt is None or
-            abs((self.dt_utc - self._last_tgt_update_dt).total_seconds()) >
+            abs((time_utc - self._last_tgt_update_dt).total_seconds()) >
             self.settings.get('targets_update_interval')):
             self.logger.info("updating visibility plot")
-            self._last_tgt_update_dt = self.dt_utc
+            self._last_tgt_update_dt = time_utc
             self.fv.gui_do(self.replot)
 
     def site_changed_cb(self, cb, site_obj):
         self.logger.debug("site has changed")
-        self.site = site_obj
-        self.vis_dict = dict()
+        with self.lock:
+            self.site = site_obj
+            self.vis_dict = dict()
 
         self.fv.gui_do(self.replot)
 
@@ -572,24 +582,26 @@ class Visibility(GingaPlugin.LocalPlugin):
         return obj.map_azalt(az, alt)
 
     def set_satellite_windows(self, windows):
-        if windows is None:
-            self._satellite_barh_data = None
-        else:
-            windows_open, windows_close = windows.T
-            windows_dur_sec = windows_close - windows_open
-            windows_dur = np.array((windows_open, windows_dur_sec)).T
-            self._satellite_barh_data = windows_dur
+        with self.lock:
+            if windows is None:
+                self._satellite_barh_data = None
+            else:
+                windows_open, windows_close = windows.T
+                windows_dur_sec = windows_close - windows_open
+                windows_dur = np.array((windows_open, windows_dur_sec)).T
+                self._satellite_barh_data = windows_dur
 
         self.replot()
 
     def set_collision_windows(self, windows):
-        if windows is None:
-            self._collision_barh_data = None
-        else:
-            windows_open, windows_close = windows.T
-            windows_dur_sec = windows_close - windows_open
-            windows_dur = np.array((windows_open, windows_dur_sec)).T
-            self._collision_barh_data = windows_dur
+        with self.lock:
+            if windows is None:
+                self._collision_barh_data = None
+            else:
+                windows_open, windows_close = windows.T
+                windows_dur_sec = windows_close - windows_open
+                windows_dur = np.array((windows_open, windows_dur_sec)).T
+                self._collision_barh_data = windows_dur
 
         self.replot()
 

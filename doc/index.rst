@@ -32,7 +32,7 @@ It also contains a display for showing catalog images, which can be setup to inc
 Copyright and License
 =====================
 
-Copyright (c) 2023-2024 SPOT Maintainers. All rights reserved.
+Copyright (c) 2023-2025 SPOT Maintainers. All rights reserved.
 
 SPOT is distributed under an open-source BSD licence. Please see the
 file ``LICENSE.md`` in the top-level directory for details.

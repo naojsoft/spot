@@ -850,11 +850,15 @@ class CalculationResult(object):
 
     def calc_separation(self, body):
         """Compute separation from another target"""
-        coord1 = self.body._get_coord(self.obstime)
-        coord2 = body._get_coord(self.obstime)
-        sep = coord1.separation(coord2)
+        coord1 = self.body._get_coord()
+        coord2 = body._get_coord()
 
-        return sep.arcsecond
+        e = self.observer.location.at(self.obstime)
+        r1 = e.observe(coord1)
+        r2 = e.observe(coord2)
+        sep = r1.separation_from(r2)
+
+        return sep.arcseconds()
 
     def _calc_atmos_refco(self, bar_press_mbar, temp_degc, rh_pct, wl_mm):
         """Compute atmospheric refraction coefficients (radians)"""
