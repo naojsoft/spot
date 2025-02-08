@@ -15,7 +15,7 @@ from datetime import timedelta
 import numpy as np
 
 # ginga
-from ginga.gw import Widgets, GwHelp
+from ginga.gw import Widgets
 from ginga import GingaPlugin
 from ginga.util import wcs
 
@@ -78,6 +78,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         self.settings.load(onError='silent')
 
         self.site = None
+        self._last_tel_update_dt = None
         # Az, Alt/El current tel position and commanded position
         self.telescope_pos = [-90.0, 89.5]
         self.telescope_cmd = [-90.0, 89.5]
@@ -88,6 +89,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         self.min_delta_arcsec = self.settings.get('min_delta_arcsec', 600.0)
         self._follow_target = False
         self._updating_target_flag = False
+        self._last_tel_update_dt = None
 
         self.viewer = self.fitsimage
         self.dc = fv.get_draw_classes()
@@ -129,9 +131,6 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
                                  rot_deg=-45.0))
         self.tel_obj = self.dc.CompoundObject(*objs)
 
-        self.tmr = GwHelp.Timer(duration=self.settings['telescope_update_interval'])
-        self.tmr.add_callback('expired', self.update_tel_timer_cb)
-
         self.gui_up = False
 
     def build_gui(self, container):
@@ -143,6 +142,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         obj = self.channel.opmon.get_plugin('SiteSelector')
         self.site = obj.get_site()
         obj.cb.add_callback('site-changed', self.site_changed_cb)
+        obj.cb.add_callback('time-changed', self.time_changed_cb)
         self.targets = self.channel.opmon.get_plugin('Targets')
         self.targets.cb.add_callback('selection-changed',
                                      self.target_selection_cb)
@@ -189,10 +189,11 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
                                                self.tel_posn_toggle_cb)
         b.plot_telescope_position.set_state(True)
         b.plot_telescope_position.set_tooltip("Plot the telescope position")
-        b.rotate_view_to_azimuth.set_state(False)
+        b.rotate_view_to_azimuth.set_state(self.settings.get('rotate_view_to_az',
+                                                             False))
         b.rotate_view_to_azimuth.set_tooltip("Rotate the display to show the current azimuth at the top")
         b.rotate_view_to_azimuth.add_callback('activated',
-                                              self.tel_posn_toggle_cb)
+                                              self.rotate_view_to_azimuth_cb)
         b.target_follows_telescope.set_state(self._follow_target)
         b.target_follows_telescope.add_callback('activated',
                                                 self.follow_target_cb)
@@ -235,9 +236,9 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         self.canvas.delete_all_objects()
 
         self.canvas.add(self.tel_obj, tag='telescope', redraw=False)
-        self.update_telescope_plot()
 
-        self.update_tel_timer_cb(self.tmr)
+        status = self.site.get_status()
+        self.fv.gui_do(self.update_status, status)
 
     def stop(self):
         self.tmr.stop()
@@ -388,18 +389,19 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         if not self.gui_up:
             return
 
-        self.fv.gui_do(self.update_info, status)
-        self.fv.gui_do(self.update_telescope_plot)
+        self.update_info(status)
+        self.update_telescope_plot()
         if self._follow_target:
-            self.fv.gui_do(self.select_target_by_telpos, status)
+            self.select_target_by_telpos(status)
 
-    def update_tel_timer_cb(self, timer):
-        timer.start()
-
-        obj = self.channel.opmon.get_plugin('SiteSelector')
-        status = obj.get_status()
-
-        self.update_status(status)
+    def time_changed_cb(self, cb, time_utc, cur_tz):
+        if (self._last_tel_update_dt is None or
+            abs((time_utc - self._last_tel_update_dt).total_seconds()) >
+            self.settings.get('telescope_update_interval')):
+            self.logger.debug("updating telescope position on plot")
+            self._last_tel_update_dt = time_utc
+            status = self.site.get_status()
+            self.fv.gui_do(self.update_status, status)
 
     def site_changed_cb(self, cb, site_obj):
         self.logger.debug("site has changed")
@@ -411,14 +413,15 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
 
     def target_selection_cb(self, cb, targets):
         """Called when the user selects targets in the Target table"""
-        self._follow_target = False
-        if not self.gui_up:
-            return
         if not self._updating_target_flag:
-            self.w.target_follows_telescope.set_state(False)
+            if self.gui_up:
+                self.w.target_follows_telescope.set_state(False)
             self._follow_target = False
 
     def tel_posn_toggle_cb(self, w, tf):
+        self.fv.gui_do(self.update_telescope_plot)
+
+    def rotate_view_to_azimuth_cb(self, w, tf):
         self.fv.gui_do(self.update_telescope_plot)
 
     def p2r(self, r, t):

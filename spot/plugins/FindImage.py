@@ -21,7 +21,7 @@ from astroquery.skyview import SkyView
 from astropy.table import Table
 
 # ginga
-from ginga.gw import Widgets, GwHelp
+from ginga.gw import Widgets
 from ginga import GingaPlugin
 from ginga.util import wcs, catalog, dp
 from ginga.AstroImage import AstroImage
@@ -180,8 +180,7 @@ class FindImage(GingaPlugin.LocalPlugin):
 
         self.sitesel = None
         self.targets = None
-        self.tmr = GwHelp.Timer(duration=self.settings['telescope_update_interval'])
-        self.tmr.add_callback('expired', self.update_tel_timer_cb)
+        self._last_tel_update_dt = None
         self.gui_up = False
 
     def build_gui(self, container):
@@ -192,6 +191,7 @@ class FindImage(GingaPlugin.LocalPlugin):
         wsname, _ = self.channel.name.split('_')
         channel = self.fv.get_channel(wsname + '_TGTS')
         self.sitesel = channel.opmon.get_plugin('SiteSelector')
+        self.sitesel.cb.add_callback('time-changed', self.time_changed_cb)
         self.targets = channel.opmon.get_plugin('Targets')
 
         top = Widgets.VBox()
@@ -301,10 +301,10 @@ class FindImage(GingaPlugin.LocalPlugin):
             p_canvas.add(self.canvas)
         self.canvas.ui_set_active(False)
 
-        self.update_tel_timer_cb(self.tmr)
+        status = self.sitesel.get_status()
+        self.fv.gui_do(self.update_info, status)
 
     def stop(self):
-        self.tmr.stop()
         self.gui_up = False
         # remove the canvas from the image
         p_canvas = self.viewer.get_canvas()
@@ -606,13 +606,15 @@ class FindImage(GingaPlugin.LocalPlugin):
                 self.logger.error(f"Could not set pan position: {e}",
                                   exc_info=True)
 
-    def update_tel_timer_cb(self, timer):
-        timer.start()
-
-        status = self.sitesel.get_status()
-
-        if self.gui_up:
-            self.fv.gui_do(self.update_info, status)
+    def time_changed_cb(self, cb, time_utc, cur_tz):
+        if (self._last_tel_update_dt is None or
+            abs((time_utc - self._last_tel_update_dt).total_seconds()) >
+            self.settings.get('telescope_update_interval')):
+            self.logger.debug("updating find image")
+            self._last_tel_update_dt = time_utc
+            if self.gui_up:
+                status = self.sitesel.get_status()
+                self.fv.gui_do(self.update_info, status)
 
     def get_selected_target_cb(self, w):
         if self.w.lock_target.get_state():
