@@ -77,6 +77,10 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
                                    telescope_update_interval=3.0)
         self.settings.load(onError='silent')
 
+        self.cb = Callbacks()
+        for name in ['telescope-status-changed']:
+            self.cb.enable_callback(name)
+
         self.site = None
         self._last_tel_update_dt = None
         # Az, Alt/El current tel position and commanded position
@@ -241,7 +245,6 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         self.fv.gui_do(self.update_status, status)
 
     def stop(self):
-        self.tmr.stop()
         self.gui_up = False
         # remove the canvas from the image
         p_canvas = self.fitsimage.get_canvas()
@@ -350,7 +353,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         except Exception as e:
             self.logger.error(f"error updating info: {e}", exc_info=True)
 
-    def select_target_by_telpos(self, status):
+    def find_target_by_telpos(self, status, select=False):
         tel_pos = Target(name="telescope", ra=status.ra_deg,
                          dec=status.dec_deg, equinox=status.equinox)
         self.logger.debug(f"tel position {status.ra_deg, status.dec_deg}")
@@ -358,6 +361,9 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         # Now find this target in our "regular" target list, if possible
         tgt = self.targets.get_target_by_separation(tel_pos,
                                                     min_delta_sep_arcsec=self.min_delta_arcsec)
+        if not select:
+            return tgt
+
         targets = []
         if tgt is not None:
             # select target in Targets table
@@ -368,13 +374,14 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         finally:
             self._updating_target_flag = False
 
+        return tgt
+
     def follow_target_cb(self, w, tf):
         self._follow_target = tf
 
         if self._follow_target:
-            obj = self.channel.opmon.get_plugin('SiteSelector')
-            status = obj.get_status()
-            self.select_target_by_telpos(status)
+            status = self.site.get_status()
+            self.find_target_by_telpos(status, select=True)
 
     def update_status(self, status):
         self.telescope_pos[0] = status.az_deg
@@ -391,8 +398,12 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
 
         self.update_info(status)
         self.update_telescope_plot()
-        if self._follow_target:
-            self.select_target_by_telpos(status)
+
+        tgt = self.find_target_by_telpos(status, select=self._follow_target)
+        if status.tel_status != self._cur_tel_status:
+            self._cur_tel_status = status.tel_status
+            self.cb.make_callback('telescope-status-changed',
+                                  status.tel_status, tgt)
 
     def time_changed_cb(self, cb, time_utc, cur_tz):
         if (self._last_tel_update_dt is None or
@@ -404,12 +415,11 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
             self.fv.gui_do(self.update_status, status)
 
     def site_changed_cb(self, cb, site_obj):
-        self.logger.debug("site has changed")
+        self.logger.info("site has changed")
         self.site = site_obj
 
-        obj = self.channel.opmon.get_plugin('SiteSelector')
-        status = obj.get_status()
-        self.update_status(status)
+        status = self.site.get_status()
+        self.fv.gui_do(self.update_status, status)
 
     def target_selection_cb(self, cb, targets):
         """Called when the user selects targets in the Target table"""

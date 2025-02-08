@@ -550,14 +550,13 @@ class Visibility(GingaPlugin.LocalPlugin):
 
     def time_changed_cb(self, cb, time_utc, cur_tz):
         with self.lock:
-            old_dt_utc = self.dt_utc
             self.dt_utc = time_utc
             self.cur_tz = cur_tz
 
         if (self._last_tgt_update_dt is None or
             abs((time_utc - self._last_tgt_update_dt).total_seconds()) >
             self.settings.get('targets_update_interval')):
-            self.logger.info("updating visibility plot")
+            self.logger.debug("updating visibility plot")
             self._last_tgt_update_dt = time_utc
             self.fv.gui_do(self.replot)
 

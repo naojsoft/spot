@@ -193,6 +193,9 @@ class FindImage(GingaPlugin.LocalPlugin):
         self.sitesel = channel.opmon.get_plugin('SiteSelector')
         self.sitesel.cb.add_callback('time-changed', self.time_changed_cb)
         self.targets = channel.opmon.get_plugin('Targets')
+        self.telpos = channel.opmon.get_plugin('TelescopePosition')
+        self.telpos.cb.add_callback('telescope-status-changed',
+                                    self.telpos_changed_cb)
 
         top = Widgets.VBox()
         top.set_border_width(4)
@@ -615,6 +618,10 @@ class FindImage(GingaPlugin.LocalPlugin):
             if self.gui_up:
                 status = self.sitesel.get_status()
                 self.fv.gui_do(self.update_info, status)
+
+    def telpos_changed_cb(self, cb, status, target):
+        # TODO: for future automation
+        self.logger.info(f"telescope status changed to {status}")
 
     def get_selected_target_cb(self, w):
         if self.w.lock_target.get_state():

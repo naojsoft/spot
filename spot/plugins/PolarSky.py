@@ -311,7 +311,7 @@ class PolarSky(GingaPlugin.LocalPlugin):
         if (self._last_sunmoon_update_dt is None or
             abs((self.dt_utc - self._last_sunmoon_update_dt).total_seconds()) >
             self.settings.get('times_update_interval')):
-            self.logger.info("updating sunmoon times")
+            self.logger.debug("updating sunmoon times")
             self._last_sunmoon_update_dt = self.dt_utc
             self.fv.gui_do(self.update_sunmoon)
 
