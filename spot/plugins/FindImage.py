@@ -2,9 +2,13 @@
 FindImage.py -- Download images matching a target
 
 J. Merchant
+T. Inagaki
+E. Jeschke
 
 Requirements
 ============
+- astropy
+- astroquery
 
 naojsoft packages
 -----------------
@@ -102,12 +106,11 @@ class FindImage(GingaPlugin.LocalPlugin):
 
     .. note:: If you have working telescope status integration, you can
               click the "Follow telescope" checkbox to have the "Pointing"
-              area updated by the telescope's actual position (the
-              "Lock Target" checkbox must be unchecked to allow the
-              coordinates to be updated).  Further, the image in the
-              finding viewer will be panned according to the telescope's
-              current position, allowing you to follow a dithering pattern
-              (for example).
+              area updated by the telescope's actual position, if it
+              matches a target that is loaded into the Targets plugin.
+              Further, the image in the finding viewer will be downloaded
+              and panned according to the telescope's current position,
+              allowing you to follow a dithering pattern (for example).
 
     Loading an image from an image source
     -------------------------------------
@@ -118,9 +121,11 @@ class FindImage(GingaPlugin.LocalPlugin):
     "Find Image" button.  It may take a little while for the image to be
     downloaded and displayed in the finder viewer.
 
-    .. note:: Alternatively, you can click "Create Blank" to create a blank
-              image with a WCS set to the desired location.  This may
-              possibly be useful if an image source is not available.
+    .. note:: Alternatively, "Load FITS" can be used to load a local FITS
+              file with a working WCS of the region, or you can click
+              "Create Blank" to create a blank image with a WCS set to the
+              desired location.  Either of these may possibly be useful if
+              an image source is not available via download.
 
     """
     def __init__(self, fv, fitsimage):
@@ -178,9 +183,8 @@ class FindImage(GingaPlugin.LocalPlugin):
 
         self.size = (3, 3)
 
-        self.sitesel = None
         self.targets = None
-        self._last_tel_update_dt = None
+        self._cur_target = None
         self.gui_up = False
 
     def build_gui(self, container):
@@ -190,8 +194,6 @@ class FindImage(GingaPlugin.LocalPlugin):
 
         wsname, _ = self.channel.name.split('_')
         channel = self.fv.get_channel(wsname + '_TGTS')
-        self.sitesel = channel.opmon.get_plugin('SiteSelector')
-        self.sitesel.cb.add_callback('time-changed', self.time_changed_cb)
         self.targets = channel.opmon.get_plugin('Targets')
         self.telpos = channel.opmon.get_plugin('TelescopePosition')
         self.telpos.cb.add_callback('telescope-status-changed',
@@ -206,8 +208,8 @@ class FindImage(GingaPlugin.LocalPlugin):
                      'dec', 'llabel'),
                     ('Equinox:', 'label', 'equinox', 'llabel',
                      'Name:', 'label', 'tgt_name', 'llabel'),
-                    ('Get Selected', 'button', 'Lock Target', 'checkbox',
-                     '__ph4', 'spacer', "Follow telescope", 'checkbox')
+                    ('Get Selected', 'button', '_sp1', 'spacer',
+                     "Follow telescope", 'checkbox')
                     )
 
         w, b = Widgets.build_info(captions)
@@ -218,7 +220,6 @@ class FindImage(GingaPlugin.LocalPlugin):
         b.tgt_name.set_text('')
         b.get_selected.set_tooltip("Get the coordinates from the selected target in Targets table")
         b.get_selected.add_callback('activated', self.get_selected_target_cb)
-        b.lock_target.set_tooltip("Lock target from changing by selections in 'Targets'")
         b.follow_telescope.set_tooltip("Set pan position to telescope position")
         b.follow_telescope.set_state(self.settings['follow_telescope'])
         self.w.update(b)
@@ -240,7 +241,7 @@ class FindImage(GingaPlugin.LocalPlugin):
 
         for name in image_sources.keys():
             b.image_source.append_text(name)
-        b.find_image.add_callback('activated', self.find_image_cb)
+        b.find_image.add_callback('activated', lambda w: self.find_image())
 
         b.size.set_limits(1, 120, incr_value=1)
         b.size.set_value(self.size[0])
@@ -304,9 +305,6 @@ class FindImage(GingaPlugin.LocalPlugin):
             p_canvas.add(self.canvas)
         self.canvas.ui_set_active(False)
 
-        status = self.sitesel.get_status()
-        self.fv.gui_do(self.update_info, status)
-
     def stop(self):
         self.gui_up = False
         # remove the canvas from the image
@@ -328,7 +326,7 @@ class FindImage(GingaPlugin.LocalPlugin):
         if self.gui_up:
             self.w.size.set_value(radius)
 
-    def find_image_cb(self, w):
+    def find_image(self):
         try:
             self.fv.assert_gui_thread()
             ra_deg, dec_deg = self.get_radec()
@@ -586,47 +584,51 @@ class FindImage(GingaPlugin.LocalPlugin):
         ra_list, dec_list = ra_sgm.split(':'), dec_sgm.split(':')
         return (ra_list, dec_list)
 
-    def update_info(self, status):
+    def set_pan_pos(self, ra_deg, dec_deg):
         self.fv.assert_gui_thread()
-        if self.w.follow_telescope.get_state():
-            if not self.w.lock_target.get_state():
-                try:
-                    self.w.ra.set_text(wcs.ra_deg_to_str(status.ra_deg))
-                    self.w.dec.set_text(wcs.dec_deg_to_str(status.dec_deg))
-                    self.w.equinox.set_text(str(status.equinox))
+        # Try to set the pan position of the viewer to our location
+        try:
+            image = self.viewer.get_image()
+            if image is not None:
+                x, y = image.radectopix(ra_deg, dec_deg)
+                self.viewer.set_pan(x, y)
 
-                except Exception as e:
-                    self.logger.error(f"error updating info: {e}", exc_info=True)
-
-            # Try to set the pan position of the viewer to our location
-            try:
-                image = self.viewer.get_image()
-                if image is not None:
-                    x, y = image.radectopix(status.ra_deg, status.dec_deg)
-                    self.viewer.set_pan(x, y)
-
-            except Exception as e:
-                self.logger.error(f"Could not set pan position: {e}",
-                                  exc_info=True)
-
-    def time_changed_cb(self, cb, time_utc, cur_tz):
-        if (self._last_tel_update_dt is None or
-            abs((time_utc - self._last_tel_update_dt).total_seconds()) >
-            self.settings.get('telescope_update_interval')):
-            self.logger.debug("updating find image")
-            self._last_tel_update_dt = time_utc
-            if self.gui_up:
-                status = self.sitesel.get_status()
-                self.fv.gui_do(self.update_info, status)
+        except Exception as e:
+            self.logger.error(f"Could not set pan position: {e}",
+                              exc_info=True)
 
     def telpos_changed_cb(self, cb, status, target):
-        # TODO: for future automation
-        self.logger.info(f"telescope status changed to {status}")
+        self.fv.assert_gui_thread()
+        if not self.gui_up or not self.w.follow_telescope.get_state():
+            return
+        tel_status = status.tel_status.lower()
+        self.logger.info(f"telescope status is '{tel_status}'")
+        if tel_status not in ['tracking', 'guiding']:
+            # don't do anything unless telescope is stably tracking/guiding
+            return
+
+        ra_deg, dec_deg = status.ra_deg, status.dec_deg
+
+        self.logger.info(f"target is {target}")
+        if target is None:
+            # telescope is not tracking a known target, but may be dithering
+            # just change position in window and return
+            self.logger.info(f"changing pan position to {ra_deg},{dec_deg}")
+            self.set_pan_pos(ra_deg, dec_deg)
+        elif target is self._cur_target:
+            self.logger.info(f"changing pan position to {ra_deg},{dec_deg}")
+            self.set_pan_pos(ra_deg, dec_deg)
+        else:
+            # <-- moved to a different known target
+            # set target info and try to download the image
+            self._cur_target = target
+            self.set_pointing(target.ra, target.dec, target.equinox, target.name)
+            self.find_image()
 
     def get_selected_target_cb(self, w):
-        if self.w.lock_target.get_state():
-            # target is locked
-            self.fv.show_error("existing target is locked--uncheck 'Lock Target' ?")
+        if self.w.follow_telescope.get_state():
+            # target is following telescope
+            self.fv.show_error("uncheck 'Follow telescope' to get selection")
             return
 
         selected = self.targets.get_selected_targets()

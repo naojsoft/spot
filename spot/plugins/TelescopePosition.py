@@ -95,7 +95,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         self._follow_target = False
         self._updating_target_flag = False
         self._last_tel_update_dt = None
-        self._cur_tel_status = ''
+        self._cur_tel_target = None
 
         self.viewer = self.fitsimage
         self.dc = fv.get_draw_classes()
@@ -402,10 +402,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         self.update_telescope_plot()
 
         tgt = self.find_target_by_telpos(status, select=self._follow_target)
-        if status.tel_status != self._cur_tel_status:
-            self._cur_tel_status = status.tel_status
-            self.cb.make_callback('telescope-status-changed',
-                                  status.tel_status, tgt)
+        self.cb.make_callback('telescope-status-changed', status, tgt)
 
     def time_changed_cb(self, cb, time_utc, cur_tz):
         if (self._last_tel_update_dt is None or

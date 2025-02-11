@@ -70,11 +70,16 @@ class LGS(GingaPlugin.LocalPlugin):
         self.tgt_dict = dict()
         self.tgts_radec = []
         self.mbody_radec = None
+        self._cur_target = None
         self._windows = None
         # these are set in callbacks
         self.site_obj = None
         self.dt_utc = None
         self.cur_tz = None
+
+        self.tmr_replot = self.fv.make_timer()
+        self.tmr_replot.add_callback('expired', lambda tmr: self.replot())
+        self.replot_after_sec = 0.2
 
         self.gui_up = False
 
@@ -218,11 +223,7 @@ class LGS(GingaPlugin.LocalPlugin):
                              pad_sec=self.pad_sec, use_datetime=True)
 
     def replot(self):
-        if self.visplot is not None:
-
-            windows = next(iter(self.tgt_dict.values()))
-
-            self.visplot.set_satellite_windows(windows)
+        self.show_target_sat_windows(self._cur_target)
 
     def set_pamdir_cb(self, w):
         # clear out target info
@@ -247,6 +248,7 @@ class LGS(GingaPlugin.LocalPlugin):
             windows = self.tgt_dict.get(pam_tgt, None)
         else:
             windows = None
+        self._cur_target = tgt
         self._windows = windows
 
         self.check_sat_window_status()
@@ -309,7 +311,9 @@ class LGS(GingaPlugin.LocalPlugin):
                 text = "Multiple targets selected"
         if self.gui_up:
             self.w.target.set_text(text)
-        self.show_target_sat_windows(target)
+
+        self._cur_target = target
+        self.tmr_replot.set(self.replot_after_sec)
 
     def selected_redo(self):
         # See if anything is selected in targets and plot appropriately
