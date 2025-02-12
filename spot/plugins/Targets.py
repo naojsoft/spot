@@ -670,6 +670,7 @@ class Targets(GingaPlugin.LocalPlugin):
             abs((self.dt_utc - self._last_tgt_update_dt).total_seconds()) >
             self.settings.get('targets_update_interval')):
             self.logger.info("updating targets")
+            self._last_tgt_update_dt = time_utc
             self.update_all()
 
     def load_file_cb(self, w):
