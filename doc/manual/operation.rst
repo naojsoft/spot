@@ -24,8 +24,8 @@ the name will default to "WS1", "WS2", etc.
 .. image:: figures/NewWorkspace.*
 
 When a workspace is opened two channels will appear,
-"wsname"_TGTS and "wsname"_FIND. You will normally want to resize
-these channel windows to be larger than the default size.
+"wsname"_TGTS and "wsname"_FIND. You may want to resize
+these channel windows.
 The TGTS channel (Targets Channel) is used to display a map of the sky. 
 Initially it will be blank, so in the CPanel window press 
 :doc:`siteselect`, :doc:`polarsky`, and :doc:`targetlist`. 
@@ -64,18 +64,7 @@ TGTS Channel
 .. image:: figures/TGTSchannel.png
 
 The Targets (TGTS) Channel is the main window for tracking the sky position of selected 
-targets. The following plugins are primarily used with the Targets channel.
-
-.. toctree::
-   :maxdepth: 1
-
-   siteselect
-   polarsky
-   targetlist
-   visplot
-   skycams
-   telescopepos
-   telgen
+targets. 
 
 .. _FindChannel:
 
@@ -88,14 +77,9 @@ FIND Channel
 Image contains data from the WISE 3.4 :math:`\mu`\ m survey. 
 (`Wright et al (2010)`_, `Mainzer et al (2011)`_)
 
-The FIND channel is used to plan individual or sets of observations. The 
-following plugins are primarily used with the FIND channel.
+The FIND channel is used to display FITS images and to plan individual or sets of 
+observations. 
 
-.. toctree::
-   :maxdepth: 1
-
-   findchart
-   intfov
 
 Loading a FITS image file
 -------------------------
@@ -140,6 +124,7 @@ about each plugin can be found in the links below.
    visplot
    skycams
    telescopepos
+   lgs
    telgen
    findchart
    intfov

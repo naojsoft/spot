@@ -215,18 +215,26 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
         name = self.w.obj_name.get_text().strip()
         server = self.w.server.get_text()
 
+        srvbank = self.fv.get_server_bank()
+        namesvc = srvbank.get_name_server(server)
+
+        self.fv.nongui_do(self._getname_bg, name, server, namesvc)
+
+    def _getname_bg(self, name, server, namesvc):
+        self.fv.assert_nongui_thread()
         try:
-            srvbank = self.fv.get_server_bank()
-            namesvc = srvbank.get_name_server(server)
             self.logger.info("looking up name '{}' at {}".format(name, server))
 
             ra_str, dec_str = namesvc.search(name)
 
-            # populate the image server UI coordinate
-            self.w.ra.set_text(ra_str)
-            self.w.dec.set_text(dec_str)
-            self.w.equinox.set_text('2000.0')  # ??!!
-            self.w.tgt_name.set_text(name)
+            def _update_gui():
+                # populate the image server UI coordinate
+                self.w.ra.set_text(ra_str)
+                self.w.dec.set_text(dec_str)
+                self.w.equinox.set_text('2000.0')  # ??!!
+                self.w.tgt_name.set_text(name)
+
+            self.fv.gui_do(_update_gui)
 
         except Exception as e:
             errmsg = "Name service query exception: %s" % (str(e))

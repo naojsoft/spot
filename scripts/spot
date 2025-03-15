@@ -73,7 +73,7 @@ if __name__ == "__main__":
                            # ('Colorbar', dict(workspace='colorbar')),
                            ('Cursor', dict(workspace='readout')),
                            ('Errors', dict(workspace='right')),
-                           ('Downloads', dict(workspace='dialogs')),
+                           ('Downloads', dict(workspace='right', start=True)),
                            ('Command', dict(workspace='dialogs')),
                            ('Log', dict(workspace='right')),
                            ('ScreenShot', dict(workspace='dialogs')),

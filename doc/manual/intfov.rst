@@ -10,6 +10,9 @@ instrument over a survey image in the :ref:`FindChannel`.
 Image contains data from the WISE 3.4 :math:`\mu`\ m survey. 
 (`Wright et al (2010)`_, `Mainzer et al (2011)`_)
 
+.. note:: It is important to have previously downloaded an image in
+          the find viewer (using the "FindImage" plugin) that has an
+          accurate WCS in order for this plugin to operate properly.
 
 ========================
 Selecting the Instrument
@@ -26,18 +29,7 @@ flipped across the vertical axis by checking the "Flip" box.
 
 The RA and DEC will be autofilled by the :doc:`findchart` channel, but 
 can also be adjusted manually by entering in the coordinates. The
-RA and DEC can be specified as decimal values or sexigesimal notation.
-
-To center the image on the current telescope pointing, check the box 
-next to "Follow telescope" in the :doc:`findchart` window.  This can allow
-you to watch a dither happening on an area of the sky if the world
-coordinate system is reasonably accurate in the finding image.
-
-===================
-Custom Instruments 
-===================
-
-To be continued.
+RA and DEC can be specified as decimal values or sexagesimal notation.
 
 
 .. _Wright et al (2010): https://ui.adsabs.harvard.edu/abs/2010AJ....140.1868W/abstract

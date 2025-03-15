@@ -388,7 +388,7 @@ data coordinates in the image; if set to "WCS" then the values shown in
 the "Pan X" and "Pan Y" controls will be WCS coordinates (assuming a valid
 WCS is in the image).  In the latter case, the "WCS sexagesimal" control
 can be left unchecked to show/set the coordinates in degrees, or checked to
-show/set the values in standard sexigesimal notation.
+show/set the values in standard sexagesimal notation.
 
 The "Center Image" button sets the pan position to the center of the
 image, as calculated by halving the dimensions in X and Y.

@@ -6,7 +6,7 @@ Target List, or Targets (Not to be confused with the Targets channel), is
 normally used in conjunction with the 
 plugins :doc:`polarsky` and :doc:`visplot` to show information about celestial 
 objects that could be observed.  It allows you to load one or more files 
-of targets and then plot them on the "<wsname>_TGTS" window, or show their 
+of targets and then plot them on the :ref:`TargetsChannel`, or show their 
 visibility in the :doc:`visplot` plugin UI.
 
 .. image:: figures/targetlist.*
@@ -18,7 +18,7 @@ Targets can be loaded from a CSV file that contains a column header
 containing the column titles "Name", "RA", "DEC", and "Equinox" (they
 do not need to be in that order).  Other columns may be present but will
 be ignored.  In this format, RA and DEC can be specified as decimal values
-(in which case they are interpreted as degrees) or sexigesimal notation
+(in which case they are interpreted as degrees) or sexagesimal notation
 (HH:MM:SS.SSS for RA, DD:MM:SS.SS for DEC).  Equinox can be specified
 as e.g. J2000 or 2000.0.
 
@@ -35,7 +35,14 @@ above format.  Or, type the path of the file in the box next to the "File"
 button and press "Set" (the latter method can also be used to quickly
 reload a file that you have edited).
 
-The targets should populate the table.
+The targets should populate the table and will be grouped by file. 
+To group targets into one group, select "Merge Targets" from the 
+"Settings" drop down menu and *then* load the files. Once loaded, a target 
+cannot be moved to another group.
+
+.. note:: SPOT can also read targets from CSV files in "SOSS notation".
+          See the section below on loading targets from an OPE file.
+
 
 ================================
 Loading targets from an OPE file
@@ -50,6 +57,12 @@ choose an OPE file instead.
 .. note::  In order to load this format you need to have installed the
            optional "oscript" package:
            (pip install git+https://github.com/naojsoft/oscript).
+
+.. note::  Sometimes an OPE file will have unreferenced targets (for
+           example, targets that are defined but not referenced or targets
+           in "PRM" include files that are not referenced. To add those 
+           targets to the target list, select "List unreferenced targets"
+           from the "Settings" drop down menu.
 
 =================
 Table information
@@ -81,7 +94,7 @@ a target and pressing "Delete" will remove the target from the list. If
 the target was added from a file, reloading the file by pressing "Set" 
 will restore all of the deleted targets.
 
-Checking the box next to "Plot SS" will plot the Sun, the Planets, and 
+Checking the box next to "Plot Solar Sys" will plot the Sun, the Planets, and 
 Pluto on the :ref:`TargetsChannel`.
 
 The drop down menu next to "Plot:" changes which targets are plotted on 
