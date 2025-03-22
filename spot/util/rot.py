@@ -1,84 +1,68 @@
 #
 # rot.py -- rotation calculations
 #
-from collections import namedtuple
-
 import numpy as np
 
 
-TelMove = namedtuple('TelMove', ['rot1_start_deg', 'rot1_stop_deg',
-                                 'rot2_start_deg', 'rot2_stop_deg',
-                                 'az1_start_deg', 'az1_stop_deg',
-                                 'az2_start_deg', 'az2_stop_deg',
-                                 'alt_start_deg', 'alt_stop_deg',
-                                 ])
-
-
 def calc_alternate_angle(ang_deg):
-    """calculates the alternative usable angle to the given one."""
-    _ang_deg = ang_deg - np.sign(ang_deg) * 360
-    return _ang_deg
+    """Calculates the alternative usable angle to the given one.
 
+    Parameters
+    ----------
+    ang_deg : float or array of float
+        The input angle(s) in degrees
 
-def calc_rotation_choices(cr_start, cr_stop, pa_deg):
-    """cr_start and cr_stop are CalculationResult objects for the
-    same target at two different times.
+    Returns
+    -------
+    alt_deg : float or array of float
+        The output angle(s) in degrees
     """
-    pang1_deg = cr_start.pang_deg
-    pang2_deg = cr_stop.pang_deg
-
-    # calculate direction of movement
-    # if rotation movement is greater than 180 degrees, then switch the
-    # rotation direction of movement to the smaller one with opposite sign
-    rot_delta = np.fmod(pang2_deg - pang1_deg, 360.0)
-    if np.abs(rot_delta) > 180.0:
-        rot_delta = - np.sign(rot_delta) * (rot_delta - np.sign(rot_delta) * 360)
-
-    # rotator_angle = parallactic_angle + position_angle
-    rot1_start = np.fmod(pang1_deg + pa_deg, 360.0)
-    # calculate the other possible angle for this target
-    rot2_start = calc_alternate_angle(rot1_start)
-
-    rot1_stop = rot1_start + rot_delta
-    rot2_stop = rot2_start + rot_delta
-
-    az1_start = cr_start.az_deg
-    az2_start = calc_alternate_angle(az1_start)
-    az1_stop = cr_stop.az_deg
-
-    # calculate direction of movement for standard rotation
-    # (see remarks above for rot_delta)
-    az_delta = np.fmod(az1_stop - az1_start, 360.0)
-    if np.abs(az_delta) > 180.0:
-        az_delta = - np.sign(az_delta) * (az_delta - np.sign(az_delta) * 360)
-    az2_stop = az2_start + az_delta
-
-    # return both rotation moves, both azimuth moves and elevation start/stop
-    return TelMove(rot1_start, rot1_stop, rot2_start, rot2_stop,
-                   az1_start, az1_stop, az2_start, az2_stop,
-                   cr_start.alt_deg, cr_stop.alt_deg)
+    alt_deg = ang_deg - np.sign(ang_deg) * 360
+    return alt_deg
 
 
-def normalize_angle(ang_deg, limit=None, ang_offset=0):
+def normalize_angle(ang_deg, limit=None, ang_offset=0.0):
     """Normalize an angle.
 
+    Parameters
+    ----------
+    az_deg: float
+        A traditional azimuth value where 0 deg == North
+
+    limit: str or None (optional, defaults to None)
+        How to limit the range of the result angle
+
+    ang_offset: float (optional, defaults to 0.0)
+        Angle to add to the input angle to offset it
+
+    Returns
+    -------
     limit: None (-360, 360), 'full' (0, 360), or 'half' (-180, 180)
+
+    To normalize to Subaru azimuth (AZ 0 == S), do
+        normalize_angle(ang_deg, limit='half', ang_offset=-180)
     """
+    # convert to array if just a scalar
+    is_array = isinstance(ang_deg, np.ndarray)
+    if not is_array:
+        ang_deg = np.array([ang_deg])
+
     ang_deg = ang_deg + ang_offset
 
     # constrain to -360, +360
-    if np.fabs(ang_deg) >= 360.0:
-        ang_deg = np.remainder(ang_deg, np.sign(ang_deg) * 360.0)
-    if limit is None:
-        return ang_deg
+    mask = np.fabs(ang_deg) >= 360.0
+    ang_deg[mask] = np.remainder(ang_deg[mask], np.sign(ang_deg[mask]) * 360.0)
+    if limit is not None:
+        # constrain to 0, +360
+        mask = ang_deg < 0.0
+        ang_deg[mask] += 360.0
+        if limit == 'half':
+            # constrain to -180, +180
+            mask = ang_deg > 180.0
+            ang_deg[mask] -= 360.0
 
-    # constrain to 0, +360
-    if ang_deg < 0.0:
-        ang_deg += 360.0
-    if limit != 'half':
-        return ang_deg
+    if not is_array:
+        # extract scalar
+        ang_deg = ang_deg[0]
 
-    # constrain to -180, +180
-    if ang_deg > 180.0:
-        ang_deg -= 360.0
     return ang_deg
