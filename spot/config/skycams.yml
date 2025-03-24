@@ -10,26 +10,26 @@
     flip_x: False
     update_interval: 120.0
   
-  Canada France Hawaii Telescope ASIVA (Visible):
-    url: "https://www.cfht.hawaii.edu/~asiva/images/mask_rot/current_vis.png"
-    title: "Canada France Hawaii Telescope ASIVA (Visible)"
-    ctr_x: 394
-    ctr_y: 282
-    radius: 235
-    rot_deg: 0.5
+  Canada France Hawaii Telescope Nānā ao (Visible):
+    url: "https://www.cfht.hawaii.edu/~nanaao/last_vis.png"
+    title: "Canada France Hawaii Telescope Nanaao (Visible)"
+    ctr_x: 622
+    ctr_y: 600
+    radius: 592
+    rot_deg: 0.0
     flip_y: False
-    flip_x: False
+    flip_x: True
     update_interval: 120.0
   
-  Canada France Hawaii ASIVA (Mid-IR):
-    url: "https://www.cfht.hawaii.edu/~asiva/images/mask_rot/raw_a.jpg"
-    title: "Canada France Hawaii ASIVA (Mid-IR)"
-    ctr_x: 333
-    ctr_y: 253
-    radius: 275
-    rot_deg: -14.0
+  Canada France Hawaii Nānā ao (Mid-IR):
+    url: "https://www.cfht.hawaii.edu/~nanaao/last_ir.png"
+    title: "Canada France Hawaii Nanaao (Mid-IR)"
+    ctr_x: 605
+    ctr_y: 614
+    radius: 600
+    rot_deg: 0.0
     flip_y: False
-    flip_x: False
+    flip_x: True
     update_interval: 180.0
     
   Canary - La Palma/GTC (Visual):

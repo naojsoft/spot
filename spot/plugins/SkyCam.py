@@ -161,19 +161,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
         self.cur_data = None
         self.img_src_name = self.settings.get('default_camera', None)
 
-        # see if user has a custom list of sky cams
-        path = os.path.join(ginga_home, "skycams.yml")
-        if not os.path.exists(path):
-            # open stock list of skycams
-            path = os.path.join(cfgdir, "skycams.yml")
-
-        with open(path, 'r') as cam_f:
-            self.configs = yaml.safe_load(cam_f)
-
-        if self.img_src_name is None:
-            self.img_src_name = list(self.configs.keys())[0]
-        self.config = self.configs[self.img_src_name]
-        self.update_settings()
+        self.read_skycams_config()
 
         self.sky_image_path = None
         self._last_img_update_dt = None
@@ -204,10 +192,28 @@ class SkyCam(GingaPlugin.LocalPlugin):
         self.crop_circ = self.dc.Circle(xc, yc, r)
         self.crop_circ.crdmap = self.viewer.get_coordmap('data')
 
+    def read_skycams_config(self):
+        # see if user has a custom list of sky cams
+        path = os.path.join(ginga_home, "skycams.yml")
+        if not os.path.exists(path):
+            # open stock list of skycams
+            path = os.path.join(cfgdir, "skycams.yml")
+
+        with open(path, 'r') as cam_f:
+            self.configs = yaml.safe_load(cam_f)
+
+        if self.img_src_name is None:
+            self.img_src_name = list(self.configs.keys())[0]
+        self.config = self.configs[self.img_src_name]
+        self.update_settings()
+
     def build_gui(self, container):
 
         if not self.chname.endswith('_TGTS'):
             raise Exception(f"This plugin is not designed to run in channel {self.chname}")
+
+        # re-read skycams config, in case user is tweaking settings
+        self.read_skycams_config()
 
         # initialize site and date/time/tz
         obj = self.channel.opmon.get_plugin('SiteSelector')
