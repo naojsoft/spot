@@ -304,6 +304,15 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         self.logger.info("date/time set to: {}".format(self.dt_utc.strftime("%Y-%m-%d %H:%M:%S %z")))
         self.cb.make_callback('time-changed', self.dt_utc, self.cur_tz)
 
+    def set_datetime(self, dt):
+        """Set datetime programatically."""
+        if not self.gui_up:
+            return
+        self.time_mode = 'fixed'
+        self.w.mode.set_text('Fixed')
+        self.w.datetime.set_text(dt.strftime("%Y-%m-%d %H:%M:%S"))
+        self._set_datetime()
+
     def get_obsdate_noon(self):
         """A mostly internal procedure to get the date/time at noon
         on the day of observation.

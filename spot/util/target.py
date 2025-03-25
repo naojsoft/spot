@@ -18,7 +18,7 @@ class Target(Body):
                  comment='', category=None):
         super().__init__(name, ra, dec, equinox, comment=comment)
         self.category = category
-        self.metadata = dict()
+        self.metadata = None
 
     def set(self, **kwargs):
         if self.metadata is None:
@@ -46,17 +46,32 @@ class Target(Body):
                                                                    rec['Equinox'])
         self.comment = rec.get('Comment', '').strip()
 
-    def get(self, key, val):
+    def get(self, *args):
+        if len(args) not in [1, 2]:
+            raise ValueError("Wrong number of parameters to get()")
+        elif len(args) == 1:
+            key = args[0]
+            if self.metadata is None:
+                return KeyError(key)
+            return self.metadata[key]
+
+        key, val = args
+        if self.metadata is None:
+            return val
         return self.metadata.get(key, val)
 
     def __getitem__(self, key):
+        if self.metadata is None:
+            raise KeyError(key)
         return self.metadata[key]
 
     def __setitem__(self, key, value):
+        if self.metadata is None:
+            self.metadata = Bunch.Bunch()
         self.metadata[key] = value
 
     def __delitem__(self, key):
-        if key not in self.metadata:
+        if self.metadata is None or key not in self.metadata:
             raise KeyError(key)
         del self.metadata[key]
 

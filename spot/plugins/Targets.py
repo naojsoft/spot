@@ -30,6 +30,8 @@ from collections import OrderedDict
 # 3rd party
 import numpy as np
 import pandas as pd
+from dateutil.parser import parse as parse_date
+from datetime import UTC
 
 # ginga
 from ginga.gw import Widgets, GwHelp
@@ -136,6 +138,24 @@ class Targets(GingaPlugin.LocalPlugin):
     selecting "Tagged+Selected" will show all of the targets which have been
     tagged or are selected, and selecting "Selected" will show only the
     target which is selected.
+
+    Settings Menu
+    =============
+    Clicking the "Settings" button will invoke a pop-up menu to enable certain
+    settings.
+
+    * If you check "Merge Targets" then all targets loaded *after that*
+      will be organized under a single heading of "Targets", instead of being grouped
+      by file name.
+    * "List Unreferenced Targets" is a setting that just affects OPE files.  Normally,
+      the Targets plugin will ignore targets that are not referenced in the commands.
+      Checking this setting will show all targets regardless of whether they are
+      referenced or not.  This can be used to show targets in PRM include files.
+    * "Enable DateTime setting" is a option to enable the setting of a fixed date/time
+      if the CSV file includes a "DateTime" column.  When enabled, selecting a single
+      target in the table will set the date/time in the SiteSelector plugin to that
+      date and time.  The format of this column should be: YYYY-MM-DD HH:MM:SS <TZ>
+      If the timezone string is omitted, UTC is assumed.
     """
     def __init__(self, fv, fitsimage):
         super().__init__(fv, fitsimage)
@@ -152,6 +172,7 @@ class Targets(GingaPlugin.LocalPlugin):
                                    color_normal='seagreen2',
                                    plot_ss_objects=True,
                                    load_directory=user_home,
+                                   enable_datetime_setting=False,
                                    merge_targets=False)
         self.settings.load(onError='silent')
 
@@ -282,6 +303,11 @@ class Targets(GingaPlugin.LocalPlugin):
         action.set_state(self.show_unref_tgts)
         action.add_callback('activated', self.list_prm_cb)
         self.w.list_prm_targets = action
+        action = m.add_name("Enable DateTime setting", checkable=True)
+        action.set_tooltip("Allow DateTime column in target CSV to set fixed time")
+        action.set_state(self.settings.get('enable_datetime_setting', False))
+        action.add_callback('activated', self.enable_datetime_cb)
+        self.w.enable_datetime_setting = action
 
         btn = Widgets.Button("Settings")
         btn.set_tooltip("Configure some settings for this plugin")
@@ -724,7 +750,9 @@ class Targets(GingaPlugin.LocalPlugin):
                        equinox=eq,
                        comment=comment,
                        category=category)
-            t.set(is_ref=row.get('IsRef', True), comment=comment)
+            t.set(is_ref=row.get('IsRef', True))
+            # get all column values as metadata
+            t.set(**row.to_dict())
             new_targets.append(t)
 
         self.add_target_list(category, new_targets, merge=merge)
@@ -913,6 +941,19 @@ class Targets(GingaPlugin.LocalPlugin):
 
         self._update_selection_buttons()
 
+        if len(self.selected) == 1:
+            if self.settings.get('enable_datetime_setting', False):
+                tgt = list(self.selected)[0]
+                dt_str = tgt.get('DateTime', None)
+                if dt_str is not None:
+                    dt = parse_date(dt_str)
+                    if dt.tzinfo is None:
+                        # assume UTC if no timezone specified
+                        dt = dt.replace(tzinfo=UTC)
+                    self.logger.info(f"setting date to {dt}")
+                    obj = self.channel.opmon.get_plugin('SiteSelector')
+                    obj.set_datetime(dt)
+
         self.cb.make_callback('selection-changed', self.selected)
 
     def target_single_cb(self, w, sel_dct):
@@ -1031,6 +1072,9 @@ class Targets(GingaPlugin.LocalPlugin):
 
         self.clear_plot()
         self.update_all()
+
+    def enable_datetime_cb(self, w, tf):
+        self.settings.set(enable_datetime_setting=tf)
 
     def get_datetime(self):
         # TODO: work with self.site directly, not observer
