@@ -35,7 +35,7 @@ from datetime import UTC
 
 # ginga
 from ginga.gw import Widgets, GwHelp
-from ginga import GingaPlugin
+from ginga import GingaPlugin, colors
 from ginga.util.paths import ginga_home, home as user_home
 from ginga.util import wcs
 from ginga.misc import Bunch, Callback
@@ -82,6 +82,11 @@ class Targets(GingaPlugin.LocalPlugin):
     .. note:: SPOT can also read targets from CSV files in "SOSS notation".
               See the section below on loading targets from an OPE file.
 
+    If you want to set a specific color for the targets to be plotted, click
+    the "Color" button to manually select a color before proceeding to open
+    a file, otherwise the targets will be colored according to the option
+    (described further below) called "Rotate target colors".
+
     Press the "File" button and navigate to, and select, a CSV file with the
     above format.  Or, type the path of the file in the box next to the "File"
     button and press "Set" (the latter method can also be used to quickly
@@ -112,32 +117,31 @@ class Targets(GingaPlugin.LocalPlugin):
 
     Operation
     =========
-    To "tag" a target, select a target on the list by left-clicking on it
-    and press "Tag". A checkmark will appear on the left side under the
-    "Tagged" column to show which targets have been tagged. To untag a target,
-    select a tagged target on the list and press "Untag". To tag only
-    the selected target and untag all other targets, select a target from the
-    list and then double left-click on the target row.
+    To "tag" targets, select one or more targets on the list and press "Tag".
+    A checkmark will appear on the left side under the "Tagged" column to show
+    which targets have been tagged. To untag a target, select one or more
+    tagged targets on the list and press "Untag".
 
-    On the `<wsname>_TGTS` window and the ``Visibility`` UI untagged targets
-    will appear in green and tagged targets will appear in magenta. If a target
-    is selected it will appear in blue, and the name will have a white
-    background with a red border on the `<wsname>_TGTS` window.
+    On the `<wsname>_TGTS` window, targets will be plotted in the position
+    of the time set in the SiteSelector plugin.  The color of the target will
+    be a magenta-like color if the target is tagged. If a target is selected
+    it will appear in blue, and the name will have a white background with a
+    red border on the `<wsname>_TGTS` window.  Otherwise the target will be
+    colored according to the color that was manually or automatically selected
+    when the file containing the targets was loaded.
 
-    The "Tag All" button will set all of the targets to "Tagged", and the
-    "Untag All" button will set all of the targets to "Untagged". Selecting
-    a target and pressing "Delete" will remove the target from the list. If
-    the target was added from a file, reloading the file by pressing "Set"
-    will restore all of the deleted targets.
+    The "Select All" button will select all of the targets in the table.
 
-    Checking the box next to "Plot SolarSys" will plot the Sun, the Planets, and
-    Pluto on the `<wsname>_TGTS` window.
+    Selecting targets and pressing "Delete" will remove those selected targets
+    from the list. .
 
     The drop down menu next to "Plot:" changes which targets are plotted on
     the `<wsname>_TGTS` window. Selecting "All" will show all of the targets,
-    selecting "Tagged+Selected" will show all of the targets which have been
+    selecting "Uncollapsed" will show any targets that are not collapsed
+    (hidden) in the table as well as tagged and selected targets, selecting
+    "Tagged+Selected" will show all of the targets which have been
     tagged or are selected, and selecting "Selected" will show only the
-    target which is selected.
+    targets which are selected.
 
     Settings Menu
     =============
@@ -151,6 +155,12 @@ class Targets(GingaPlugin.LocalPlugin):
       the Targets plugin will ignore targets that are not referenced in the commands.
       Checking this setting will show all targets regardless of whether they are
       referenced or not.  This can be used to show targets in PRM include files.
+    * Checking the option for "Plot solar system objects" will plot the Sun,
+      Earth's Moon, the planets, and pluto on the `<wsname>_TGTS` window.
+
+    * The "Rotate target colors" option will mean that each file loaded will
+      use a different automatically selected color for the targets (this will
+      only take effect if "Merge targets" is turned off).
     * "Enable DateTime setting" is a option to enable the setting of a fixed date/time
       if the CSV file includes a "DateTime" column.  When enabled, selecting a single
       target in the table will set the date/time in the SiteSelector plugin to that
@@ -173,6 +183,7 @@ class Targets(GingaPlugin.LocalPlugin):
                                    plot_ss_objects=True,
                                    load_directory=user_home,
                                    enable_datetime_setting=False,
+                                   rotate_target_colors=True,
                                    merge_targets=False)
         self.settings.load(onError='silent')
 
@@ -184,15 +195,21 @@ class Targets(GingaPlugin.LocalPlugin):
         self.home = self.settings.get('load_directory', user_home)
 
         self.cb = Callback.Callbacks()
-        for name in ['targets-changed', 'tagged-changed', 'selection-changed']:
+        for name in ['targets-changed', 'tagged-changed', 'selection-changed',
+                     'uncollapsed-changed']:
             self.cb.enable_callback(name)
 
-        self.colors = ['red', 'blue', 'green', 'cyan', 'magenta', 'yellow']
+        self._tgt_color = self.settings['color_normal']
+        self.tgt_colors = [self._tgt_color, 'chocolate', 'slateblue2',
+                           'cyan', 'coral', 'olivedrab', 'darkorange2',
+                           'khaki4', 'deeppink2', 'purple']
+        self._tgt_color_idx = 0
         self.base_circ = None
         self.target_dict = {}
         self.full_tgt_list = []
-        self.plot_which = 'all'
+        self.plot_which = 'uncollapsed'
         self.plot_ss_objects = self.settings.get('plot_ss_objects', True)
+        self.uncollapsed = set([])
         self.tagged = set([])
         self.selected = set([])
         self.show_unref_tgts = False
@@ -273,21 +290,38 @@ class Targets(GingaPlugin.LocalPlugin):
         top = Widgets.VBox()
         top.set_border_width(4)
 
-        captions = (('Load File', 'button', 'File Path', 'entryset'),
+        captions = (('Load File', 'button', 'File Path', 'entryset',
+                     'Color', 'button'),
                     )
 
         w, b = Widgets.build_info(captions)
         self.w = b
 
         b.load_file.set_text("File")
-        self.w.fileselect = GwHelp.FileSelection(container.get_widget(),
-                                                 all_at_once=True)
+        self.w.fileselect = Widgets.FileDialog(parent=b.load_file,
+                                               title="Select target files")
+        self.w.fileselect.set_mode('files')
+        self.w.fileselect.set_directory(self.home)
+        self.w.fileselect.add_ext_filter("CSV", ".csv")
+        self.w.fileselect.add_ext_filter("OPE", ".ope")
+
+        self.w.fileselect.add_callback('activated', self.load_file_cb)
         b.file_path.set_text(self.home)
 
         top.add_widget(w, stretch=0)
-        b.load_file.add_callback('activated', self.load_file_cb)
+        b.load_file.add_callback('activated',
+                                 lambda w: self.w.fileselect.show())
         b.load_file.set_tooltip("Select target file")
         b.file_path.add_callback('activated', self.file_setpath_cb)
+
+        self.w.colorselect = Widgets.ColorDialog(parent=b.color,
+                                                 title="Choose target color")
+        self.w.colorselect.add_callback('activated', self.color_select_cb)
+        hex_color = colors.lookup_color(self._tgt_color, format='hex')
+        self.w.colorselect.set_color(hex_color)
+        b.color.add_callback('activated', lambda w: self.w.colorselect.popup())
+        b.color.set_tooltip("Set the color of the loaded targets")
+        b.color.set_color(bg=hex_color, fg='black')
 
         plot_update_text = "Please select file for list display"
 
@@ -296,13 +330,27 @@ class Targets(GingaPlugin.LocalPlugin):
         action = m.add_name("Merge Targets", checkable=True)
         action.set_tooltip("Put all targets under one category called 'Targets'")
         action.set_state(self.settings.get('merge_targets', False))
-        #action.add_callback('activated', self.merge_targets_cb)
+        action.add_callback('activated', self.merge_targets_cb)
         self.w.merge_targets = action
+
         action = m.add_name("List unreferenced targets", checkable=True)
         action.set_tooltip("Show unreferenced targets (e.g. from .prm files")
         action.set_state(self.show_unref_tgts)
         action.add_callback('activated', self.list_prm_cb)
         self.w.list_prm_targets = action
+
+        action = m.add_name("Plot solar system objects", checkable=True)
+        action.set_tooltip("Plot sun, moon and planets")
+        action.set_state(self.plot_ss_objects)
+        action.add_callback('activated', self.plot_ss_cb)
+        self.w.plot_ss_setting = action
+
+        action = m.add_name("Rotate target colors", checkable=True)
+        action.set_tooltip("Rotate target colors for each file loaded")
+        action.set_state(self.settings.get('rotate_target_colors', True))
+        action.add_callback('activated', self.rotate_target_colors_cb)
+        self.w.rotate_target_colors = action
+
         action = m.add_name("Enable DateTime setting", checkable=True)
         action.set_tooltip("Allow DateTime column in target CSV to set fixed time")
         action.set_state(self.settings.get('enable_datetime_setting', False))
@@ -321,7 +369,7 @@ class Targets(GingaPlugin.LocalPlugin):
         hbox.add_widget(btn, stretch=0)
         top.add_widget(hbox, stretch=0)
 
-        self.w.tgt_tbl = Widgets.TreeView(auto_expand=True,
+        self.w.tgt_tbl = Widgets.TreeView(auto_expand=False,
                                           selection='multiple',
                                           sortable=True,
                                           use_alt_row_color=True)
@@ -330,7 +378,9 @@ class Targets(GingaPlugin.LocalPlugin):
 
         self.w.tgt_tbl.set_optimal_column_widths()
         self.w.tgt_tbl.add_callback('selected', self.target_selection_cb)
-        self.w.tgt_tbl.add_callback('activated', self.target_single_cb)
+        # self.w.tgt_tbl.add_callback('activated', self.target_single_cb)
+        self.w.tgt_tbl.add_callback('collapsed', self.targets_collapse_cb)
+        self.w.tgt_tbl.add_callback('expanded', self.targets_collapse_cb)
 
         hbox = Widgets.HBox()
         btn = Widgets.Button("Tag")
@@ -343,33 +393,35 @@ class Targets(GingaPlugin.LocalPlugin):
         btn.add_callback('activated', self.untag_cb)
         hbox.add_widget(btn, stretch=0)
         self.w.btn_untag = btn
-        btn = Widgets.Button("Tag All")
-        btn.set_tooltip("Add all targets to tagged targets")
-        btn.add_callback('activated', self.tag_all_cb)
+        btn = Widgets.Button("Select All")
+        btn.set_tooltip("Select all targets")
+        btn.add_callback('activated', self.select_all_cb)
         hbox.add_widget(btn, stretch=0)
-        self.w.btn_tag_all = btn
-        btn = Widgets.Button("Untag All")
-        btn.set_tooltip("Clear all targets from tagged targets")
-        btn.add_callback('activated', self.untag_all_cb)
-        hbox.add_widget(btn, stretch=0)
-        self.w.btn_untag_all = btn
+        self.w.btn_select_all = btn
         btn = Widgets.Button("Delete")
         btn.set_tooltip("Delete selected target from targets")
         btn.add_callback('activated', self.delete_cb)
         hbox.add_widget(btn, stretch=0)
         self.w.btn_delete = btn
+        btn = Widgets.Button("Collapse All")
+        btn.set_tooltip("Collapse all loaded files")
+        btn.add_callback('activated', self.collapse_all_cb)
+        hbox.add_widget(btn, stretch=0)
+        self.w.btn_collapse_all = btn
+
+        # TODO: figure out a better way to handle this!!!
+        if self.fv.gpmon.has_plugin('Gen2Int'):
+            btn = Widgets.Button("Sync integgui2")
+            obj = self.fv.gpmon.get_plugin('Gen2Int')
+            btn.add_callback('activated', obj.sync_targets, self.channel)
+            hbox.add_widget(btn, stretch=0)
 
         hbox.add_widget(Widgets.Label(''), stretch=1)
-
-        self.w.plot_ss = Widgets.CheckBox("Plot Solar Sys")
-        self.w.plot_ss.set_state(self.plot_ss_objects)
-        self.w.plot_ss.add_callback('activated', self.plot_ss_cb)
-        hbox.add_widget(self.w.plot_ss, stretch=0)
 
         hbox.add_widget(Widgets.Label('Plot:'), stretch=0)
         plot = Widgets.ComboBox()
         hbox.add_widget(plot, stretch=0)
-        for option in ['All', 'Tagged+selected', 'Selected']:
+        for option in ['All', 'Uncollapsed', 'Tagged+selected', 'Selected']:
             plot.append_text(option)
         plot.set_text(self.plot_which.capitalize())
         plot.add_callback('activated', self.configure_plot_cb)
@@ -444,6 +496,11 @@ class Targets(GingaPlugin.LocalPlugin):
     def filter_targets(self, tgt_df):
         if self.plot_which == 'all':
             shown_tgt_lst = tgt_df
+        elif self.plot_which == 'uncollapsed':
+            tgts = self.uncollapsed.union(self.selected.union(self.tagged))
+            mask = np.array([tgt in tgts
+                             for tgt in self.full_tgt_list], dtype=bool)
+            shown_tgt_lst = tgt_df[mask]
         elif self.plot_which == 'tagged+selected':
             tagged_and_selected = self.selected.union(self.tagged)
             mask = np.array([tgt in tagged_and_selected
@@ -598,7 +655,7 @@ class Targets(GingaPlugin.LocalPlugin):
             dct_all = cres.get_dict()
 
             # add additional columns
-            _addl_str_cols = np.asarray([(tgt.get('color', self.settings['color_normal']),
+            _addl_str_cols = np.asarray([(tgt.get('color', self._tgt_color),
                                           tgt.category, tgt.get('comment', ''))
                                          for tgt in self.full_tgt_list]).T
             _addl_bool_cols = np.array([(tgt in self.tagged,
@@ -699,30 +756,34 @@ class Targets(GingaPlugin.LocalPlugin):
             self._last_tgt_update_dt = time_utc
             self.update_all()
 
-    def load_file_cb(self, w):
-        # Needs to be updated for multiple selections
-        self.w.fileselect.popup("Load File", self.file_select_cb, self.home)
+    def load_file_cb(self, w, paths):
+        self.load_files(paths)
 
     def file_setpath_cb(self, w):
         file_path = w.get_text().strip()
-        if file_path.lower().endswith(".ope"):
-            self.process_ope_file_for_targets(file_path)
-        else:
-            self.process_csv_file_for_targets(file_path)
+        self.load_files([file_path])
 
-    def file_select_cb(self, paths):
+    def load_files(self, paths):
         if len(paths) == 0:
             return
 
-        # Needs to be updated for multiple selections
-        self.w.file_path.set_text(paths[0])
-        file_path = paths[0].strip()
-        if file_path.lower().endswith(".ope"):
-            self.process_ope_file_for_targets(file_path)
-        else:
-            self.process_csv_file_for_targets(file_path)
+        for file_path in paths:
+            file_path = file_path.strip()
+            if file_path.lower().endswith(".ope"):
+                self.process_ope_file_for_targets(file_path)
+            else:
+                self.process_csv_file_for_targets(file_path)
 
-        self.w.tgt_tbl.set_optimal_column_widths()
+            if (not self.settings.get('merge_targets', False) and
+                self.settings.get('rotate_target_colors', False)):
+                self._tgt_color_idx = (self._tgt_color_idx + 1) % len(self.tgt_colors)
+                self._tgt_color = self.tgt_colors[self._tgt_color_idx]
+
+        self.w.file_path.set_text(file_path)
+        hex_color = colors.lookup_color(self._tgt_color, format='hex')
+        self.w.colorselect.set_color(hex_color)
+        self.w.color.set_color(bg=hex_color, fg='black')
+        #self.w.tgt_tbl.set_optimal_column_widths()
 
     def add_targets(self, category, tgt_df, merge=False):
         """Add targets from a Pandas dataframe."""
@@ -750,7 +811,8 @@ class Targets(GingaPlugin.LocalPlugin):
                        equinox=eq,
                        comment=comment,
                        category=category)
-            t.set(is_ref=row.get('IsRef', True))
+            t.set(is_ref=row.get('IsRef', True),
+                  color=row.get('color', self._tgt_color))
             # get all column values as metadata
             t.set(**row.to_dict())
             new_targets.append(t)
@@ -785,7 +847,7 @@ class Targets(GingaPlugin.LocalPlugin):
         if 'Comment' not in tgt_df:
             tgt_df['Comment'] = [os.path.basename(csv_path)] * len(tgt_df)
 
-        merge = self.w.merge_targets.get_state()
+        merge = self.settings.get('merge_targets', False)
         category = csv_path if not merge else "Targets"
         self.add_targets(category, tgt_df, merge=merge)
         self.w.tgt_tbl.set_optimal_column_widths()
@@ -828,7 +890,7 @@ class Targets(GingaPlugin.LocalPlugin):
 
         tgt_df = pd.DataFrame(new_targets,
                               columns=["Name", "RA", "DEC", "Equinox", "Comment", "IsRef"])
-        merge = self.w.merge_targets.get_state()
+        merge = self.settings.get('merge_targets', False)
         category = ope_file if not merge else "Targets"
         self.add_targets(category, tgt_df, merge=merge)
         self.w.tgt_tbl.set_optimal_column_widths()
@@ -871,13 +933,16 @@ class Targets(GingaPlugin.LocalPlugin):
         # prevent that from happening and restore the selections.
         self._updating_table_flag = True
         try:
-            self.w.tgt_tbl.set_tree(tree_dict)
+            self.w.tgt_tbl.update_tree(tree_dict, expand_new=True)
         finally:
             self._updating_table_flag = False
 
-        paths = [[tgt.category, tgt.name] for tgt in self.selected]
-        self.w.tgt_tbl.select_paths(paths)
+        # NOTE: seems not to be necessary any more, since selected items
+        # remain selected after the update
+        # paths = [[tgt.category, tgt.name] for tgt in self.selected]
+        # self.w.tgt_tbl.select_paths(paths)
 
+        self._update_uncollapsed_targets()
         self._update_selection_buttons()
 
     def target_tagged_update(self):
@@ -892,7 +957,7 @@ class Targets(GingaPlugin.LocalPlugin):
         elif tgt in self.tagged:
             color = self.settings['color_tagged']
         else:
-            color = self.settings['color_normal']
+            color = tgt.get('color', self._tgt_color)
         return color
 
     def _update_target_colors(self, targets):
@@ -934,7 +999,7 @@ class Targets(GingaPlugin.LocalPlugin):
         updated_tgts = (self.selected - new_highlighted).union(
             new_highlighted - self.selected)
         self.selected = new_highlighted
-        if self.plot_which in ['selected', 'tagged+selected']:
+        if self.plot_which in ['selected', 'tagged+selected', 'uncollapsed']:
             self.update_all(targets_changed=False)
         else:
             self._update_target_colors(updated_tgts)
@@ -956,12 +1021,26 @@ class Targets(GingaPlugin.LocalPlugin):
 
         self.cb.make_callback('selection-changed', self.selected)
 
-    def target_single_cb(self, w, sel_dct):
-        selected = set([self.target_dict[(category, name)]
-                        for category, dct in sel_dct.items()
-                        for name in dct.keys()])
-        self.tagged = selected
-        self.target_tagged_update()
+    # def target_single_cb(self, w, sel_dct):
+    #     selected = set([self.target_dict[(category, name)]
+    #                     for category, dct in sel_dct.items()
+    #                     for name in dct.keys()])
+    #     self.tagged = selected
+    #     self.target_tagged_update()
+
+    def _update_uncollapsed_targets(self):
+        res_dct = self.w.tgt_tbl.get_children(status='expanded')
+        self.uncollapsed = set([self.target_dict[(category, name)]
+                                for category, dct in res_dct.items()
+                                for name in dct.keys()])
+
+        if self.tgt_df is not None:
+            self.update_targets(self.tgt_df, 'targets')
+
+        self.cb.make_callback('uncollapsed-changed', self.uncollapsed)
+
+    def targets_collapse_cb(self, w, path):
+        self._update_uncollapsed_targets()
 
     def list_prm_cb(self, w, tf):
         self.show_unref_tgts = tf
@@ -986,6 +1065,9 @@ class Targets(GingaPlugin.LocalPlugin):
     def get_selected_targets(self):
         return self.selected
 
+    def get_uncollapsed_targets(self):
+        return self.uncollapsed
+
     def issue_targets_changed(self):
         self.cb.make_callback('targets-changed', self.get_targets())
 
@@ -1009,12 +1091,25 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def delete_cb(self, w):
         sel_dct = self.w.tgt_tbl.get_selected()
-        selected = set([self.target_dict[(category, name)]
-                        for category, dct in sel_dct.items()
-                        for name in dct.keys()])
+        selected = [self.target_dict[(category, name)]
+                    for category, dct in sel_dct.items()
+                    for name in dct.keys()]
+        if len(selected) > 0:
+            self.delete_targets(selected)
+            return
+        # <-- no leaf items selected. check for selected branches
+        paths = self.w.tgt_tbl.get_selected_paths()
+        if len(paths) > 0:
+            categories = [path[0] for path in paths]
+            self.delete_categories(categories)
+
+    def delete_targets(self, targets):
+        selected = set(targets)
         # TODO: have confirmation dialog
         # remove any items from tagged that were deleted
         self.tagged = self.tagged.difference(selected)
+        # remove any items from uncollapsed that were deleted
+        self.uncollapsed = self.tagged.difference(selected)
         # remove any items from selection that were deleted
         _selected = self.selected
         self.selected = self.selected.difference(selected)
@@ -1034,15 +1129,24 @@ class Targets(GingaPlugin.LocalPlugin):
         if _selected != self.selected:
             self.cb.make_callback('selection-changed', self.selected)
 
-    def tag_all_cb(self, w):
-        self.tagged = set(self.target_dict.values())
-        self.target_tagged_update()
-        self._update_selection_buttons()
+    def delete_categories(self, categories):
+        selected = [self.target_dict[(category, name)]
+                    for category, name in self.target_dict.keys()
+                    if category in categories]
+        self.delete_targets(selected)
 
-    def untag_all_cb(self, w):
-        self.tagged = set([])
-        self.target_tagged_update()
-        self._update_selection_buttons()
+    def select_all_cb(self, w):
+        self.w.tgt_tbl.select_all(True)
+        # NOTE: have to do this because programatically selecting items
+        # doesn't invoke callback
+        sel_dct = self.w.tgt_tbl.get_selected()
+        self.target_selection_cb(self.w.tgt_tbl, sel_dct)
+
+    def collapse_all_cb(self, w):
+        self.w.tgt_tbl.expand_all(False)
+        # NOTE: have to do this because programatically selecting items
+        # doesn't invoke callback
+        self._update_uncollapsed_targets()
 
     def _update_selection_buttons(self):
         # enable or disable the selection buttons as needed
@@ -1053,7 +1157,8 @@ class Targets(GingaPlugin.LocalPlugin):
                         if (category, name) in self.target_dict])
         self.w.btn_tag.set_enabled(len(selected - self.tagged) > 0)
         self.w.btn_untag.set_enabled(len(selected & self.tagged) > 0)
-        self.w.btn_delete.set_enabled(len(selected) > 0)
+        sel_lst = self.w.tgt_tbl.get_selected_paths()
+        self.w.btn_delete.set_enabled(len(selected) > 0 or len(sel_lst) > 0)
 
     def plot_ss_cb(self, w, tf):
         self.plot_ss_objects = tf
@@ -1075,6 +1180,17 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def enable_datetime_cb(self, w, tf):
         self.settings.set(enable_datetime_setting=tf)
+
+    def rotate_target_colors_cb(self, w, tf):
+        self.settings.set(rotate_target_colors=tf)
+
+    def merge_targets_cb(self, w, tf):
+        self.settings.set(merge_targets=tf)
+
+    def color_select_cb(self, w, color):
+        hex_color = w.get_color(format='hex')
+        self._tgt_color = hex_color
+        self.w.color.set_color(bg=hex_color, fg='black')
 
     def get_datetime(self):
         # TODO: work with self.site directly, not observer

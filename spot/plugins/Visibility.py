@@ -89,9 +89,11 @@ class Visibility(GingaPlugin.LocalPlugin):
 
     The drop down menu by "Plot:" controls which targets are plotted on the
     visibility plot. Selecting "All" will show all of the targets,
+    selecting "Uncollapsed" will show any targets that are not collapsed
+    (hidden) in the Target table as well as tagged and selected targets,
     selecting "Tagged+Selected" will show all of the targets which have been
     tagged or are selected, and selecting "Selected" will show only the
-    target which is selected.
+    targets which are selected.
     """
     def __init__(self, fv, fitsimage):
         super().__init__(fv, fitsimage)
@@ -117,6 +119,7 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.full_tgt_list = []
         self.tagged = set([])
         self.selected = set([])
+        self.uncollapsed = set([])
         self._targets = []
         self._last_tgt_update_dt = None
         self._columns = ['ut', 'alt_deg', 'az_deg', 'airmass',
@@ -171,6 +174,8 @@ class Visibility(GingaPlugin.LocalPlugin):
         obj.cb.add_callback('tagged-changed', self.tagged_changed_cb)
         self.selected = set(obj.get_selected_targets())
         obj.cb.add_callback('selection-changed', self.selection_changed_cb)
+        self.uncollapsed = set(obj.get_uncollapsed_targets())
+        obj.cb.add_callback('uncollapsed-changed', self.uncollapsed_changed_cb)
         self.tgts_obj = obj
 
         top = Widgets.VBox()
@@ -206,7 +211,7 @@ class Visibility(GingaPlugin.LocalPlugin):
         b.mode.set_tooltip("Set time axis for visibility plot")
         b.mode.add_callback('activated', self.set_time_axis_mode_cb)
 
-        for option in ['All', 'Tagged+selected', 'Selected']:
+        for option in ['All', 'Uncollapsed', 'Tagged+selected', 'Selected']:
             b.plot.append_text(option)
         b.plot.set_text(self.plot_which.capitalize())
         b.plot.add_callback('activated', self.configure_plot_cb)
@@ -483,7 +488,7 @@ class Visibility(GingaPlugin.LocalPlugin):
             zorder = 5.0
             textbg = '#FFFFFF00'
         else:
-            color = self.settings['color_normal']
+            color = tgt.get('color', self.settings['color_normal'])
             alpha = 0.75
             zorder = 1.0
             textbg = '#FFFFFF00'
@@ -516,6 +521,8 @@ class Visibility(GingaPlugin.LocalPlugin):
         with self.lock:
             if self.plot_which == 'all':
                 self._targets = self.full_tgt_list
+            elif self.plot_which == 'uncollapsed':
+                self._targets = list(self.uncollapsed.union(self.tagged.union(self.selected)))
             elif self.plot_which == 'tagged+selected':
                 self._targets = list(self.tagged.union(self.selected))
             elif self.plot_which == 'selected':
@@ -538,6 +545,12 @@ class Visibility(GingaPlugin.LocalPlugin):
 
     def tagged_changed_cb(self, cb, tagged):
         self.tagged = tagged
+
+        self._set_target_subset()
+        #self.fv.gui_do(self.replot)
+
+    def uncollapsed_changed_cb(self, cb, uncollapsed):
+        self.uncollapsed = uncollapsed
 
         self._set_target_subset()
         #self.fv.gui_do(self.replot)

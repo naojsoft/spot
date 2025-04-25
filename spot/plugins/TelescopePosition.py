@@ -69,6 +69,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         prefs = self.fv.get_preferences()
         self.settings = prefs.create_category('plugin_TelescopePosition')
         self.settings.add_defaults(rotate_view_to_az=False,
+                                   pan_to_telescope_position=False,
                                    tel_fov_deg=1.5,
                                    color_telescope='skyblue1',
                                    color_slew='thistle1',
@@ -184,7 +185,8 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
 
         captions = (("Plot telescope position", 'checkbox',
                      "Target follows telescope", 'checkbox'),
-                    ("Rotate view to azimuth", 'checkbox'),
+                    ("Rotate view to azimuth", 'checkbox',
+                     "Pan to telescope position", 'checkbox'),
                     )
 
         w, b = Widgets.build_info(captions)
@@ -204,6 +206,11 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         b.target_follows_telescope.add_callback('activated',
                                                 self.follow_target_cb)
         b.target_follows_telescope.set_tooltip("Track target by telescope position")
+        b.pan_to_telescope_position.set_state(self.settings.get('pan_to_telescope_position',
+                                                                False))
+        b.pan_to_telescope_position.set_tooltip("Pan to the position of the target")
+        b.pan_to_telescope_position.add_callback('activated',
+                                                 self.pan_to_tel_pos_cb)
 
         btns = Widgets.HBox()
         btns.set_border_width(4)
@@ -329,12 +336,16 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         bcurve.points = self.get_arc_points(origin, dest, direction)
 
         with self.fitsimage.suppress_redraw:
-            if self.w.rotate_view_to_azimuth.get_state():
+            if self.settings.get('rotate_view_to_az', False):
                 # rotate view to telescope azimuth
                 rot_deg = - az
             else:
                 rot_deg = 0.0
             self.fitsimage.rotate(rot_deg)
+
+            if self.settings.get('pan_to_telescope_position', False):
+                self.fitsimage.set_pan(x2, y2, coord='data')
+
             self.canvas.update_canvas(whence=3)
 
     def update_info(self, status):
@@ -431,6 +442,11 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         self.fv.gui_do(self.update_telescope_plot)
 
     def rotate_view_to_azimuth_cb(self, w, tf):
+        self.settings.set(rotate_view_to_az=tf)
+        self.fv.gui_do(self.update_telescope_plot)
+
+    def pan_to_tel_pos_cb(self, w, tf):
+        self.settings.set(pan_to_telescope_position=tf)
         self.fv.gui_do(self.update_telescope_plot)
 
     def p2r(self, r, t):

@@ -2,10 +2,34 @@
 What's New
 ++++++++++
 
-Ver 0.4.1 (unreleased)
+Ver 0.5.0 (unreleased)
+======================
+- NOTE: requires development version of Ginga (https://github.com/ejeschke/ginga)
+- Targets plugin: added ability to color targets by file loaded, including
+  a button for user to manually select a color if desired
+- Targets plugin: Added ability to select and delete an entire category of
+  targets--if just the header is selected in the targets tree then all
+  targets under that will be deleted
+- Targets plugin: Removed "Tag All" and "Untag All" buttons; replaced with
+  "Select All" and "Collapse All"
+- Targets plugin: the "Plot solar system objects" option is moved under the
+  Settings menu
+- TelescopePosition plugin: Added an option "Pan to telescope position".
+  This will pan the _TGTS window to the telescope position
+- Added options to plot only uncollapsed targets (targets that are showing
+  in the targets tree) both in _TGTS window (using Targets plugin) and in
+  the Visibility plot (using Visibility plugin)
+- Targets plugin: added "DateTime" column processing--if such a column
+  exists in the CSV file loaded, and the setting "Enable DateTime setting"
+  is checked, then the date/time in the column will be used to set the
+  date/time in the SiteSelector plugin when you select that target.
+- Added CFHT Nana ao visible and IR sky cameras to the list of all sky cameras
+
+Ver 0.4.1 (2025-03-14)
 ======================
 - Added a Help menu with an About function--shows banner with version
 - Fixed a bug with the Workspace menu items
+- Documentation updates by E.M. Dailey
 
 Ver 0.4.0 (2024-11-07)
 ======================
