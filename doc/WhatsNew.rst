@@ -2,7 +2,7 @@
 What's New
 ++++++++++
 
-Ver 0.5.0 (unreleased)
+Ver 1.0.0 (unreleased)
 ======================
 - NOTE: requires development version of Ginga (https://github.com/ejeschke/ginga)
 - Targets plugin: added ability to color targets by file loaded, including
@@ -24,6 +24,12 @@ Ver 0.5.0 (unreleased)
   is checked, then the date/time in the column will be used to set the
   date/time in the SiteSelector plugin when you select that target.
 - Added CFHT Nana ao visible and IR sky cameras to the list of all sky cameras
+- InsFov plugin gets a "Reset" button to reset the _FIND window to the original
+  target position if it has changed (e.g. by panning)
+- Subaru/HDS_NO_IMR FOV now shows the correct position angle
+- Subaru/MOIRCS FOV and Subaru/FOCAS FOV now have detectors labeled
+- Pan and Zoom plugins now open into workspaces below the Control panel
+- Added --version option to show SPOT version
 
 Ver 0.4.1 (2025-03-14)
 ======================

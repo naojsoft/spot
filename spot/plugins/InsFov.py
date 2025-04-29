@@ -16,9 +16,10 @@ from ginga import GingaPlugin, trcalc
 from ginga.util import wcs
 from ginga.canvas.coordmap import BaseMapper
 
+from spot.util.target import Target, normalize_ra_dec_equinox
+from spot.util.rot import normalize_angle
 # get all overlays
 from spot.instruments import inst_dict
-
 
 class InsFov(GingaPlugin.LocalPlugin):
     """
@@ -70,7 +71,8 @@ class InsFov(GingaPlugin.LocalPlugin):
         # get FOV preferences
         prefs = self.fv.get_preferences()
         self.settings = prefs.create_category('plugin_InsFov')
-        self.settings.add_defaults(sky_radius_arcmin=3)
+        self.settings.add_defaults(sky_radius_arcmin=3,
+                                   fov_update_interval=60.0)
         self.settings.load(onError='silent')
 
         self.viewer = self.fitsimage
@@ -84,19 +86,33 @@ class InsFov(GingaPlugin.LocalPlugin):
         canvas.set_surface(self.viewer)
         self.canvas = canvas
 
-        self.cur_fov = None
-        self.xflip = False
-        self.rot_deg = 0.0
-        self.mount_offset_rot_deg = 0.0
+        # these are set via callbacks from the SiteSelector plugin
+        self.site = None
+        self.dt_utc = None
+        self.cur_tz = None
+        self._last_update_dt = None
+
+        self.cur_fov = FOV(self, self.canvas, (0, 0))
         # user's chosen flip and PA
         self.flip = False
         self.pa_deg = 0.0
+        self.coord = (0.0, 0.0)
+        self.init_coord = self.coord
+        self.target = None
+        self._updating = False
         self.gui_up = False
 
     def build_gui(self, container):
 
         if not self.chname.endswith('_FIND'):
             raise Exception(f"This plugin is not designed to run in channel {self.chname}")
+        wsname, _ = self.chname.split('_')
+        channel = self.fv.get_channel(wsname + '_TGTS')
+        obj = channel.opmon.get_plugin('SiteSelector')
+        self.site = obj.get_site()
+        obj.cb.add_callback('site-changed', self.site_changed_cb)
+        self.dt_utc, self.cur_tz = obj.get_datetime()
+        obj.cb.add_callback('time-changed', self.time_changed_cb)
 
         top = Widgets.VBox()
         top.set_border_width(4)
@@ -130,7 +146,7 @@ class InsFov(GingaPlugin.LocalPlugin):
                               lambda w: self.w.insmenu.popup(widget=w))
         b.choose.set_tooltip("Choose instrument overlay")
 
-        b.pa.set_text("0.00")
+        b.pa.set_text(f"{self.pa_deg:.2f}")
         b.pa.add_callback('activated', self.set_pa_cb)
         b.pa.set_tooltip("Set desired position angle")
         b.flip.set_state(self.flip)
@@ -141,7 +157,8 @@ class InsFov(GingaPlugin.LocalPlugin):
 
         captions = (('RA:', 'label', 'ra', 'entry', 'DEC:', 'label',
                      'dec', 'entry'),
-                    ('Equinox:', 'label', 'equinox', 'entry'),
+                    ('Equinox:', 'label', 'equinox', 'entry',
+                     '_sp0', 'spacer', 'Reset', 'button'),
                     )
 
         w, b = Widgets.build_info(captions)
@@ -149,7 +166,15 @@ class InsFov(GingaPlugin.LocalPlugin):
         fr.set_widget(w)
         top.add_widget(fr, stretch=0)
 
-        top.add_widget(Widgets.Label(''), stretch=1)
+        b.ra.add_callback('activated', self.set_coord_cb)
+        b.ra.set_tooltip("The Right Ascension at the target")
+        b.dec.add_callback('activated', self.set_coord_cb)
+        b.dec.set_tooltip("The Declination at the target")
+
+        b.reset.add_callback('activated', self.reset_cb)
+        b.reset.set_tooltip("Reset to target initial position")
+
+        #top.add_widget(Widgets.Label(''), stretch=1)
 
         btns = Widgets.HBox()
         btns.set_border_width(4)
@@ -187,6 +212,11 @@ class InsFov(GingaPlugin.LocalPlugin):
 
     def stop(self):
         self.gui_up = False
+        self.coord = (0.0, 0.0)
+        self.init_coord = (0.0, 0.0)
+        self.target = None
+        self.cur_fov = FOV(self, self.canvas, (0, 0))
+        self.canvas.delete_all_objects()
         # remove the canvas from the image
         p_canvas = self.viewer.get_canvas()
         p_canvas.delete_object(self.canvas)
@@ -197,105 +227,207 @@ class InsFov(GingaPlugin.LocalPlugin):
         """
         if not self.gui_up:
             return
+
+        self.redo_image()
+        self.init_coord = self.coord
+
+    def redo_image(self):
         image = self.viewer.get_image()
         if image is None:
             return
+
+        pan_pt = self.viewer.get_pan(coord='data')[:2]
+        data_x, data_y = pan_pt
+
+        ra_deg, dec_deg = image.pixtoradec(data_x, data_y)
+        self.coord = (ra_deg, dec_deg)
+        self.target = Target(name="insfov", ra=ra_deg, dec=dec_deg,
+                             equinox=2000.0)
+        ra_str = wcs.ra_deg_to_str(ra_deg)
+        dec_str = wcs.dec_deg_to_str(dec_deg)
+        self.w.ra.set_text(ra_str)
+        self.w.dec.set_text(dec_str)
         header = image.get_header()
-        rot, scale = wcs.get_xy_rotation_and_scale(header)
-        scale_x, scale_y = scale
+        self.w.equinox.set_text(str(header.get('EQUINOX', '2000.0')))
 
-        # rot_x, rot_y = rot
-        # # the image rotation necessary to show 0 deg position angle
-        # self.rot_deg = np.mean((rot_x, rot_y))
-        xflip, rot_deg = self.calc_ang(image, righthand=self.flip)
-        self.xflip = xflip
-        self.rot_deg = rot_deg
+        # the image rotation necessary to show 0 deg position angle
+        self.cur_fov.init_image(image, pan_pt, self.pa_deg, righthand=self.flip)
 
-        if self.flip:
-            img_rot_deg = self.rot_deg - self.mount_offset_rot_deg + self.pa_deg
-        else:
-            img_rot_deg = self.rot_deg + self.mount_offset_rot_deg - self.pa_deg
-        # adjust image flip and rotation for desired position angle
-        self.viewer.transform(xflip, False, False)
-        self.viewer.rotate(img_rot_deg)
-
-        if self.cur_fov is not None:
-            self.cur_fov.set_scale(scale_x, scale_y)
-
-            self.viewer.redraw(whence=3)
+        self.cur_fov.update_viewer(self.viewer)
 
     def select_inst_cb(self, w, telname, insname):
         with self.viewer.suppress_redraw:
             # changing instrument: remove old FOV
-            if self.cur_fov is not None:
-                self.cur_fov.remove()
+            self.cur_fov.remove()
 
             if telname == 'None':
                 # 'None' selected
-                self.cur_fov = None
-                self.mount_offset_rot_deg = 0.0
+                klass = FOV
                 self.w.instrument.set_text(telname)
             else:
                 klass = inst_dict[telname][insname]
-                pt = self.viewer.get_pan(coord='data')
-                self.cur_fov = klass(self.canvas, pt[:2])
                 self.w.instrument.set_text(f"{telname}/{insname}")
-                self.mount_offset_rot_deg = self.cur_fov.mount_offset_rot_deg
 
-                # this should change the size setting in FindImage
-                self.settings.set(sky_radius_arcmin=self.cur_fov.sky_radius_arcmin)
+            pt = self.viewer.get_pan(coord='data')
+            self.cur_fov = klass(self, self.canvas, pt[:2])
 
-            self.redo()
+            # this should change the size setting in FindImage
+            self.settings.set(sky_radius_arcmin=self.cur_fov.sky_radius_arcmin)
+
+            self.redo_image()
 
     def set_pa_cb(self, w):
         self.pa_deg = float(w.get_text().strip())
-        self.redo()
+        self.update_fov()
+
+    def update_fov(self):
+        self.cur_fov.set_pa(self.pa_deg)
+        self.cur_fov.update_viewer(self.viewer)
 
     def toggle_flip_cb(self, w, tf):
         self.flip = tf
-        self.redo()
+        self.redo_image()
 
     def redraw_cb(self, viewer, whence):
-        if not self.gui_up or whence >= 3:
+        if not self.gui_up or whence >= 3 or self._updating:
             return
+
         # check pan location
         pos = viewer.get_pan(coord='data')[:2]
-        if self.cur_fov is not None:
-            self.cur_fov.set_pos(pos)
 
         data_x, data_y = pos[:2]
         image = viewer.get_image()
-        if image is not None:
-            ra_deg, dec_deg = image.pixtoradec(data_x, data_y)
+        if image is None:
+            return
+
+        # user might have panned somewhere else, so check our location
+        # at the pan position
+        ra_deg, dec_deg = image.pixtoradec(data_x, data_y)
+        if (not np.isclose(ra_deg, self.coord[0]) or
+            not np.isclose(dec_deg, self.coord[1])):
+            # location changed
+            self.coord = (ra_deg, dec_deg)
+            self.target = Target(name="insfov", ra=ra_deg, dec=dec_deg,
+                                 equinox=2000.0)
             ra_str = wcs.ra_deg_to_str(ra_deg)
             dec_str = wcs.dec_deg_to_str(dec_deg)
             self.w.ra.set_text(ra_str)
             self.w.dec.set_text(dec_str)
             header = image.get_header()
-            self.w.equinox.set_text(str(header.get('EQUINOX', '')))
+            self.w.equinox.set_text(str(header.get('EQUINOX', '2000.0')))
 
-        img_rot_deg = viewer.get_rotation()
-        if not self.flip:
-            pa_deg = self.rot_deg + self.mount_offset_rot_deg - img_rot_deg
-        else:
-            pa_deg = -self.rot_deg + self.mount_offset_rot_deg + img_rot_deg
-        self.logger.info(f"PA is now {pa_deg} deg")
-        self.w.pa.set_text("%.2f" % (pa_deg))
-        self.pa_deg = pa_deg
+            self._updating = True
+            try:
+                # update graphics for new position
+                self.cur_fov.set_pos(pos)
+            finally:
+                self._updating = False
 
-    def calc_ang(self, image, righthand=False):
-        data_x, data_y = self.viewer.get_pan(coord='data')[:2]
+        # check if rotation has changed
+        cur_rot_deg = viewer.get_rotation()
+        pa_deg = self.cur_fov.update_pa_from_rotation(cur_rot_deg)
+        if not np.isclose(pa_deg, self.pa_deg):
+            self.logger.info(f"PA is now {pa_deg} deg")
+            self.w.pa.set_text("%.2f" % (pa_deg))
+            self.pa_deg = pa_deg
+
+    def site_changed_cb(self, cb, site_obj):
+        self.logger.debug("site has changed")
+        self.site = site_obj
+
+        if not self.gui_up:
+            return
+        self.update_fov()
+
+    def time_changed_cb(self, cb, time_utc, cur_tz):
+        old_dt_utc = self.dt_utc
+        self.dt_utc = time_utc
+        self.cur_tz = cur_tz
+        if not self.gui_up:
+            return
+
+        if (self._last_update_dt is None or
+            abs((self.dt_utc - self._last_update_dt).total_seconds()) >
+            self.settings.get('fov_update_interval')):
+            self.logger.info("updating FOV")
+            self._last_update_dt = time_utc
+            self.update_fov()
+
+    def get_cres(self):
+        cres = self.target.calc(self.site.observer, self.dt_utc)
+        return cres
+
+    def get_site(self):
+        return self.site
+
+    def set_coord_cb(self, w):
+        ra = self.w.ra.get_text().strip()
+        dec = self.w.dec.get_text().strip()
+        eq = self.w.equinox.get_text().strip()
+        if len(eq) == 0:
+            eq = '2000.0'
+        ra_deg, dec_deg, equinox = normalize_ra_dec_equinox(ra, dec, eq)
+
+        image = self.viewer.get_image()
+        if image is None:
+            return
+        data_x, data_y = image.radectopix(ra_deg, dec_deg)
+        self.viewer.set_pan(data_x, data_y, coord='data')
+
+    def reset_cb(self, w):
+        ra_deg, dec_deg = self.init_coord
+        self.viewer.set_pan(ra_deg, dec_deg, coord='wcs')
+
+    def __str__(self):
+        return 'insfov'
+
+
+class FOV:
+    def __init__(self, pl_obj, canvas, pt):
+        super().__init__()
+
+        self.pl_obj = pl_obj
+        self.canvas = canvas
+        self.dc = canvas.get_draw_classes()
+
+        # instrument mounting offset angle that needs to be taken into account
+        self.mount_offset_rot_deg = 0.0
+        # default sky radius
+        self.sky_radius_arcmin = 5
+
+        # flip, rotation of supplied image to achieve a 0 deg PA
+        self.img_flip_x = False
+        self.img_rot_deg = 0.0
+        self.scale_x = 1.0
+        self.scale_y = 1.0
+        # user desired Position Angle
+        self.pa_deg = 0.0
+        # calculated rotation of image to achieve desired PA
+        self.pa_rot_deg = 0.0
+        # user desires a flip of the image
+        self.flip_tf = False
+
+    def init_image(self, image, pt, pa_deg, righthand=False):
+        """Initialize FOV from an image and a pan position on that image.
+        """
+        header = image.get_header()
+        rot, scale = wcs.get_xy_rotation_and_scale(header)
+
+        # figure out the orientation of the image from its WCS, and whether
+        # we need to flip it and how much to rotate it to get a 0 deg PA
+        data_x, data_y = pt[:2]
         (x, y, xn, yn, xe, ye) = wcs.calc_compass(image, data_x, data_y,
                                                   1.0, 1.0)
         degn = np.degrees(np.arctan2(xn - x, yn - y))
-        self.logger.info("degn=%f xe=%f ye=%f" % (
-            degn, xe, ye))
+        # self.logger.info("degn=%f xe=%f ye=%f" % (
+        #     degn, xe, ye))
         # rotate east point also by degn
         xe2, ye2 = trcalc.rotate_pt(xe, ye, degn, xoff=x, yoff=y)
         dege = np.degrees(np.arctan2(xe2 - x, ye2 - y))
-        self.logger.info("dege=%f xe2=%f ye2=%f" % (
-            dege, xe2, ye2))
+        # self.logger.info("dege=%f xe2=%f ye2=%f" % (
+        #     dege, xe2, ye2))
 
+        self.flip_tf = righthand
         # if right-hand image, flip it to make left hand
         xflip = righthand
         if dege > 0.0:
@@ -303,25 +435,115 @@ class InsFov(GingaPlugin.LocalPlugin):
         if xflip:
             degn = - degn
 
-        return (xflip, degn)
+        # store the flip of the image and the rotation needed to get 0 deg
+        # Position Angle on the sky
+        self.img_flip_x = xflip
+        self.img_rot_deg = degn
 
-    def __str__(self):
-        return 'insfov'
+        scale_x, scale_y = scale
+        self.set_scale(scale_x, scale_y)
+        self.set_pos(pt)
+        self.set_pa(pa_deg)
 
+        # NOTE: need to do an update_viewer() after this
 
-class FOV:
-    def __init__(self, canvas, pt):
-        super().__init__()
+    def update_viewer(self, viewer):
+        # adjust image flip and rotation for desired position angle
+        with viewer.suppress_redraw:
+            viewer.transform(self.img_flip_x, False, False)
+            viewer.rotate(self.pa_rot_deg)
 
-        self.canvas = canvas
-        self.dc = canvas.get_draw_classes()
+        #viewer.redraw(whence=0)
 
-        self.mount_offset_rot_deg = 0.0
+    def set_pa(self, pa_deg):
+        """Set the desired Position Angle of the FOV.
+
+        NOTE: need to do an update_viewer() after this
+
+        Parameters
+        ----------
+        pa_deg : float
+            Desired position angle in deg
+        """
+        if self.flip_tf:
+            self.pa_rot_deg = self.img_rot_deg - self.mount_offset_rot_deg + pa_deg
+        else:
+            self.pa_rot_deg = self.img_rot_deg + self.mount_offset_rot_deg - pa_deg
+
+        self.pa_deg = normalize_angle(pa_deg, limit='half')
+
+    def get_pa(self):
+        """Return the Position Angle of the field.
+
+        Returns
+        -------
+        pa_deg : float
+            The position angle of the field
+        """
+        return self.pa_deg
+
+    def set_scale(self, scale_x, scale_y):
+        """How the FOV object is told to update its graphics when the scale changes.
+
+        This is usually a result of an image with a different scale being loaded.
+        Normally, the FOV should redraw itself by updating the canvas.
+
+        Parameters
+        ----------
+        scale_x : float
+            Scale in the X direction
+
+        scale_y : float
+            Scale in the Y direction
+
+        """
+        pass
 
     def set_pos(self, pt):
+        """How the FOV object is told to update its graphics when the position changes.
+
+        Normally, the FOV should redraw itself by updating the canvas.
+
+        Parameters
+        ----------
+        pt : tuple of (float, float)
+            X and Y position (in pixels) on the image
+        """
+        pass
+
+    def update_pa_from_rotation(self, rot_deg):
+        """How the FOV object is told the image has rotated.
+
+        It should update its idea of the new Position Angle.
+
+        Parameters
+        ----------
+        rot_deg : float
+            The current rotation of the viewer.
+
+        Returns
+        -------
+        pa_deg : float
+            The new Position Angle of the field.
+        """
+        self.pa_rot_deg = rot_deg
+
+        if not self.flip_tf:
+            pa_deg = self.img_rot_deg + self.mount_offset_rot_deg - rot_deg
+        else:
+            pa_deg = - self.img_rot_deg + self.mount_offset_rot_deg + rot_deg
+
+        self.pa_deg = normalize_angle(pa_deg, limit='half')
+        return self.pa_deg
+
+    def rotate(self, rot_deg):
         pass
 
     def remove(self):
+        """How the FOV object is told to remove its graphics from the canvas.
+
+        Typically, because a different instrument FOV is being loaded.
+        """
         pass
 
 

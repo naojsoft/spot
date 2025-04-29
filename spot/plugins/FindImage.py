@@ -195,9 +195,10 @@ class FindImage(GingaPlugin.LocalPlugin):
         wsname, _ = self.channel.name.split('_')
         channel = self.fv.get_channel(wsname + '_TGTS')
         self.targets = channel.opmon.get_plugin('Targets')
-        self.telpos = channel.opmon.get_plugin('TelescopePosition')
-        self.telpos.cb.add_callback('telescope-status-changed',
-                                    self.telpos_changed_cb)
+        if channel.opmon.has_plugin('TelescopePosition'):
+            self.telpos = channel.opmon.get_plugin('TelescopePosition')
+            self.telpos.cb.add_callback('telescope-status-changed',
+                                        self.telpos_changed_cb)
 
         top = Widgets.VBox()
         top.set_border_width(4)

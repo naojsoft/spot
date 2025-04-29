@@ -18,11 +18,13 @@ from ginga.misc.Bunch import Bunch
 
 import spot.plugins
 import spot.icons
+import spot.version as version
+
 icondir = os.path.split(spot.icons.__file__)[0]
 paths.set_icon(os.path.join(icondir, "spot.svg"))
 
 default_layout = ['seq', {},
-                   ['vbox', dict(name='top', width=1400, height=700),  # noqa
+                   ['vbox', dict(name='top', width=1400, height=750),  # noqa
                     dict(row=['ws', dict(name='menubar', wstype='stack',
                                          group=99)],
                          stretch=0),
@@ -46,7 +48,17 @@ default_layout = ['seq', {},
                       [("Dialogs", ['ws', dict(name='dialogs', wstype='tabs',
                                                group=2)
                                     ]
-                        )]
+                        ),
+                       ("Control", ['vpanel', {},
+                                    ['ws', dict(name='uright', wstype='stack',
+                                                height=250, group=3)],
+                                    ['ws', dict(name='mright', wstype='stack',
+                                                height=250, group=3)],
+                                    ['ws', dict(name='lright', wstype='stack',
+                                                height=250, group=3)],
+                                    ]
+                        ),
+                       ],
                       ],
                      ], stretch=1),  # noqa
                     dict(row=['ws', dict(name='toolbar', wstype='stack',
@@ -81,10 +93,11 @@ if __name__ == "__main__":
                            ('Histogram', dict(workspace='dialogs')),
                            ('Preferences', dict(workspace='dialogs')),
                            ('FBrowser', dict(workspace='dialogs')),
-                           ('Pan', dict(workspace='dialogs', start=False,
+                           ('Pan', dict(workspace='mright', start=False,
+                                        category='Utils', hidden=False)),
+                           ('Zoom', dict(workspace='lright', start=False,
                                         category='Utils', hidden=False)),
                            ('Header', dict(workspace='dialogs')),
-                           ('Zoom', dict(workspace='dialogs')),
                            ('LoaderConfig', dict(workspace='channels')),
                            ('PluginConfig', dict(workspace='channels'))]:
         specs = g_main.get_plugin_spec(module=modname)
@@ -102,9 +115,9 @@ if __name__ == "__main__":
         Bunch(module='SPOTToolbar', klass='SPOTToolbar_Ginga_Image',
               hidden=True, category='System', ptype='local',
               enabled=True, exclusive=False),
-        Bunch(module='CPanel', ptype='global', workspace='right',
-              category="System", menu="Spot Control Panel", tab='CPanel',
-              start=True, enabled=True),
+        Bunch(module='CPanel', ptype='global', workspace='uright',
+              category="System", tab='CPanel',
+              start=True, enabled=True, hidden=True),
         Bunch(module='SiteSelector', ptype='local', workspace='dialogs',
               category="Planning", menu="Site Selector", tab='Site',
               ch_sfx='_TGTS', index=0.0, enabled=True, exclusive=False),
@@ -140,6 +153,8 @@ if __name__ == "__main__":
 
     argprs = ArgumentParser(description="Site Planning and Observation Tools")
     viewer.add_default_options(argprs)
+    argprs.add_argument('-V', '--version', action='version',
+                        version='%(prog)s {}'.format(version.version))
 
     (options, args) = argprs.parse_known_args(sys.argv[1:])
 

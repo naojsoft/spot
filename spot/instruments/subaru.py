@@ -10,8 +10,8 @@ from spot.plugins.InsFov import FOV
 
 
 class AO188_FOV(FOV):
-    def __init__(self, canvas, pt):
-        super().__init__(canvas, pt)
+    def __init__(self, pl_obj, canvas, pt):
+        super().__init__(pl_obj, canvas, pt)
 
         #self.ao_fov = 0.0166667 # 1 arcmin
         self.ao_fov = 0.0333333
@@ -61,8 +61,8 @@ class AO188_FOV(FOV):
 
 
 class IRCS_FOV(AO188_FOV):
-    def __init__(self, canvas, pt):
-        super().__init__(canvas, pt)
+    def __init__(self, pl_obj, canvas, pt):
+        super().__init__(pl_obj, canvas, pt)
 
         self.ircs_fov = 0.015   # 54 arcsec
         self.ircs_radius = 54 * 0.5
@@ -111,8 +111,8 @@ class IRCS_FOV(AO188_FOV):
 
 
 class IRD_FOV(AO188_FOV):
-    def __init__(self, canvas, pt):
-        super().__init__(canvas, pt)
+    def __init__(self, pl_obj, canvas, pt):
+        super().__init__(pl_obj, canvas, pt)
 
         self.ird_fov = (0.00555556, 0.00277778)   # 20x10 arcsec
         self.ird_radius = (20 * 0.5, 10 * 0.5)
@@ -163,8 +163,8 @@ class IRD_FOV(AO188_FOV):
 
 
 class CS_FOV(FOV):
-    def __init__(self, canvas, pt):
-        super().__init__(canvas, pt)
+    def __init__(self, pl_obj, canvas, pt):
+        super().__init__(pl_obj, canvas, pt)
 
         self.cs_fov = 0.1   # 6 arcmin
         self.scale = 1.0
@@ -213,8 +213,8 @@ class CS_FOV(FOV):
 
 
 class COMICS_FOV(CS_FOV):
-    def __init__(self, canvas, pt):
-        super().__init__(canvas, pt)
+    def __init__(self, pl_obj, canvas, pt):
+        super().__init__(pl_obj, canvas, pt)
 
         self.comics_fov = (0.00833333, 0.0111111)   # 30x40 arcsec
         self.comics_radius = (30 * 0.5, 40 * 0.5)
@@ -262,11 +262,12 @@ class COMICS_FOV(CS_FOV):
 
 
 class MOIRCS_FOV(CS_FOV):
-    def __init__(self, canvas, pt):
-        super().__init__(canvas, pt)
+    def __init__(self, pl_obj, canvas, pt):
+        super().__init__(pl_obj, canvas, pt)
 
         self.moircs_fov = (0.0666667, 0.116667)   # 4x7 arcmin
         self.moircs_radius = (4 * 0.5, 7 * 0.5)
+        self.text_off = 0.75
 
         self.moircs_color = 'red'
 
@@ -281,7 +282,14 @@ class MOIRCS_FOV(CS_FOV):
                          color=self.moircs_color,
                          rot_deg=self.rot_deg),
             self.dc.Line(x - xr, y, x + xr, y,
-                         color=self.moircs_color, linewidth=2))
+                         color=self.moircs_color, linewidth=2),
+            self.dc.Text(x, y - (yr * self.text_off), text='Det 1',
+                         color=self.cs_color,
+                         bgcolor='white', bgalpha=0.75),
+            self.dc.Text(x, y + (yr * self.text_off), text='Det 2',
+                         color=self.cs_color,
+                         bgcolor='white', bgalpha=0.75),
+        )
         self.canvas.add(self.moircs_box)
 
     def set_scale(self, scale_x, scale_y):
@@ -307,6 +315,10 @@ class MOIRCS_FOV(CS_FOV):
         self.moircs_box.objects[2].x2 = x + xr
         self.moircs_box.objects[2].y1 = y
         self.moircs_box.objects[2].y2 = y
+        self.moircs_box.objects[3].x = x
+        self.moircs_box.objects[3].y = y - (yr * self.text_off)
+        self.moircs_box.objects[4].x = x
+        self.moircs_box.objects[4].y = y + (yr * self.text_off)
 
         self.canvas.update_canvas()
 
@@ -317,8 +329,8 @@ class MOIRCS_FOV(CS_FOV):
 
 
 class SWIMS_FOV(CS_FOV):
-    def __init__(self, canvas, pt):
-        super().__init__(canvas, pt)
+    def __init__(self, pl_obj, canvas, pt):
+        super().__init__(pl_obj, canvas, pt)
 
         self.swims_fov = (0.11, 0.055)   # 6.6x3.3 arcmin
         self.swims_radius = (6.6 * 0.5, 3.3 * 0.5)
@@ -375,16 +387,24 @@ class SWIMS_FOV(CS_FOV):
 
 
 class FOCAS_FOV(CS_FOV):
-    def __init__(self, canvas, pt):
-        super().__init__(canvas, pt)
+    def __init__(self, pl_obj, canvas, pt):
+        super().__init__(pl_obj, canvas, pt)
 
         self.cs_circ.objects[1].text = "FOCAS FOV (6 arcmin)"
+        self.text_off = 0.90
 
         x, y = self.cs_circ.objects[0].points[0][:2]
         xr = self.cs_radius
         self.focas_info = self.dc.CompoundObject(
             self.dc.Line(x - xr, y, x + xr, y,
-                         color=self.cs_color, linewidth=2))
+                         color=self.cs_color, linewidth=2),
+            self.dc.Text(x, y - (xr * self.text_off), text='Chip 1',
+                         color=self.cs_color,
+                         bgcolor='white', bgalpha=0.75),
+            self.dc.Text(x, y + (xr * self.text_off),
+                         text='Chip 2', color=self.cs_color,
+                         bgcolor='white', bgalpha=0.75),
+        )
         self.canvas.add(self.focas_info)
 
     def set_scale(self, scale_x, scale_y):
@@ -401,6 +421,10 @@ class FOCAS_FOV(CS_FOV):
         self.focas_info.objects[0].x2 = x + xr
         self.focas_info.objects[0].y1 = y
         self.focas_info.objects[0].y2 = y
+        self.focas_info.objects[1].x = x
+        self.focas_info.objects[1].y = y - (xr * self.text_off)
+        self.focas_info.objects[2].x = x
+        self.focas_info.objects[2].y = y + (xr * self.text_off)
 
         self.canvas.update_canvas()
 
@@ -411,8 +435,8 @@ class FOCAS_FOV(CS_FOV):
 
 
 class HDS_FOV(FOV):
-    def __init__(self, canvas, pt):
-        super().__init__(canvas, pt)
+    def __init__(self, pl_obj, canvas, pt):
+        super().__init__(pl_obj, canvas, pt)
 
         self.hds_fov = 0.0166667
         self.scale = 1.0
@@ -468,10 +492,26 @@ class HDS_FOV(FOV):
 
 
 class HDS_FOV_no_IMR(HDS_FOV):
-    def __init__(self, canvas, pt):
-        super().__init__(canvas, pt)
+    def __init__(self, pl_obj, canvas, pt):
+        super().__init__(pl_obj, canvas, pt)
 
-    def calc_pa_noimr(dec_deg, ha_hr, lat_deg):
+    def set_pa(self, pa_deg):
+        # HDS without the image rotator cannot set the position angle
+        site = self.pl_obj.get_site()
+        status = site.get_status()
+        lat_deg = status['latitude_deg']
+
+        cres = self.pl_obj.get_cres()
+        ha_hrs = np.degrees(cres.ha) / 15
+        pa_deg = self.calc_pa_hds_noimr(cres.dec_deg, ha_hrs, lat_deg)
+
+        super().set_pa(pa_deg)
+
+    def update_pa_from_rotation(self, rot_deg):
+        # HDS without the image rotator cannot set the position angle
+        return self.pa_deg
+
+    def calc_pa_hds_noimr(self, dec_deg, ha_hr, lat_deg):
         lat_rad = np.radians(lat_deg)
         dec_rad = np.radians(dec_deg)
         ha_rad = np.radians(ha_hr * 15.0)
@@ -488,8 +528,8 @@ class HDS_FOV_no_IMR(HDS_FOV):
 
 
 class PF_FOV(FOV):
-    def __init__(self, canvas, pt):
-        super().__init__(canvas, pt)
+    def __init__(self, pl_obj, canvas, pt):
+        super().__init__(pl_obj, canvas, pt)
 
         self.pf_fov = 1.5   # 1.5 deg
         self.scale = 1.0
