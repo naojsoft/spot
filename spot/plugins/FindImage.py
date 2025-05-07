@@ -30,7 +30,7 @@ from ginga import GingaPlugin
 from ginga.util import wcs, catalog, dp
 from ginga.AstroImage import AstroImage
 
-from spot.util.target import normalize_ra_dec_equinox
+from spot.util import target as spot_target
 
 image_sources = {
     'SkyView: DSS1 Blue': dict(),
@@ -141,7 +141,10 @@ class FindImage(GingaPlugin.LocalPlugin):
         self.settings.add_defaults(name_sources=catalog.default_name_sources,
                                    sky_radius_arcmin=3,
                                    follow_telescope=False,
+                                   mark_target=False,
                                    telescope_update_interval=3.0,
+                                   targets_update_interval=10.0,
+                                   nonsidereal_plot_local_time=True,
                                    color_map='ds9_cool')
         self.settings.load(onError='silent')
 
@@ -149,6 +152,8 @@ class FindImage(GingaPlugin.LocalPlugin):
         self.dc = fv.get_draw_classes()
         canvas = self.dc.DrawingCanvas()
         canvas.set_surface(self.viewer)
+        canvas.register_for_cursor_drawing(self.viewer)
+        canvas.set_draw_mode('pick')
         self.canvas = canvas
 
         compass = self.dc.Compass(0.15, 0.15, 0.08,
@@ -181,10 +186,19 @@ class FindImage(GingaPlugin.LocalPlugin):
             if obj is not None:
                 bank.add_name_server(obj)
 
-        self.size = (3, 3)
+        # these are set via callbacks from the SiteSelector plugin
+        self.site = None
+        self.dt_utc = None
+        self.cur_tz = None
+        self._last_tgt_update_dt = None
 
+        self.size = (3, 3)
         self.targets = None
         self._cur_target = None
+
+        settings = self.viewer.get_settings()
+        settings.get_setting('scale').add_callback('set', self.scale_set_cb)
+        settings.get_setting('rot_deg').add_callback('set', self.scale_set_cb)
         self.gui_up = False
 
     def build_gui(self, container):
@@ -194,8 +208,15 @@ class FindImage(GingaPlugin.LocalPlugin):
 
         wsname, _ = self.channel.name.split('_')
         channel = self.fv.get_channel(wsname + '_TGTS')
+        obj = channel.opmon.get_plugin('SiteSelector')
+        self.site = obj.get_site()
+        obj.cb.add_callback('site-changed', self.site_changed_cb)
+        self.dt_utc, self.cur_tz = obj.get_datetime()
+        obj.cb.add_callback('time-changed', self.time_changed_cb)
+
         self.targets = channel.opmon.get_plugin('Targets')
-        if channel.opmon.has_plugin('TelescopePosition'):
+        have_telpos = channel.opmon.has_plugin('TelescopePosition')
+        if have_telpos:
             self.telpos = channel.opmon.get_plugin('TelescopePosition')
             self.telpos.cb.add_callback('telescope-status-changed',
                                         self.telpos_changed_cb)
@@ -209,8 +230,8 @@ class FindImage(GingaPlugin.LocalPlugin):
                      'dec', 'llabel'),
                     ('Equinox:', 'label', 'equinox', 'llabel',
                      'Name:', 'label', 'tgt_name', 'llabel'),
-                    ('Get Selected', 'button', '_sp1', 'spacer',
-                     "Follow telescope", 'checkbox')
+                    ('Get Selected', 'button', "Follow telescope", 'checkbox',
+                     'Mark target', 'checkbox', 'Reset pan', 'button'),
                     )
 
         w, b = Widgets.build_info(captions)
@@ -219,10 +240,24 @@ class FindImage(GingaPlugin.LocalPlugin):
         b.dec.set_text('')
         b.equinox.set_text('')
         b.tgt_name.set_text('')
+
+        follow_telescope = self.settings.get('follow_telescope', False)
+        if not have_telpos:
+            follow_telescope = False
+            b.follow_telescope.set_enabled(False)
+        else:
+            b.follow_telescope.set_state(follow_telescope)
+        b.follow_telescope.set_tooltip("Set pan position to telescope position")
+        b.follow_telescope.add_callback('activated', self.follow_telescope_cb)
         b.get_selected.set_tooltip("Get the coordinates from the selected target in Targets table")
         b.get_selected.add_callback('activated', self.get_selected_target_cb)
-        b.follow_telescope.set_tooltip("Set pan position to telescope position")
-        b.follow_telescope.set_state(self.settings['follow_telescope'])
+        b.get_selected.set_enabled(not follow_telescope)
+        b.reset_pan.add_callback('activated', self.reset_pan_cb)
+        b.reset_pan.set_tooltip("Center on target position")
+        b.mark_target.set_tooltip("Mark the target position")
+        b.mark_target.set_state(self.settings['mark_target'])
+        b.mark_target.add_callback('activated', self.mark_target_cb)
+
         self.w.update(b)
         fr.set_widget(w)
         top.add_widget(fr, stretch=0)
@@ -304,9 +339,10 @@ class FindImage(GingaPlugin.LocalPlugin):
         p_canvas = self.viewer.get_canvas()
         if self.canvas not in p_canvas:
             p_canvas.add(self.canvas)
-        self.canvas.ui_set_active(False)
+        self.canvas.ui_set_active(True)
 
     def stop(self):
+        self.canvas.ui_set_active(False)
         self.gui_up = False
         # remove the canvas from the image
         p_canvas = self.viewer.get_canvas()
@@ -530,8 +566,8 @@ class FindImage(GingaPlugin.LocalPlugin):
                            chname=self.channel.name)
 
     def create_blank_image(self):
-        self.fitsimage.onscreen_message("Creating blank field...",
-                                        delay=1.0)
+        self.viewer.onscreen_message("Creating blank field...",
+                                     delay=1.0)
         self.fv.update_pending()
 
         arcmin = self.w.size.get_value()
@@ -545,7 +581,7 @@ class FindImage(GingaPlugin.LocalPlugin):
                                       cdbase=[-1, 1],
                                       logger=self.logger)
         image.set(nothumb=True, path=None)
-        self.fitsimage.set_image(image)
+        self.viewer.set_image(image)
 
     def load_fits_image(self):
         self.fv.start_local_plugin(self.chname, "FBrowser")
@@ -563,7 +599,7 @@ class FindImage(GingaPlugin.LocalPlugin):
         ra_sgm, dec_sgm = wcs.ra_deg_to_str(ra_deg), wcs.dec_deg_to_str(dec_deg)
         lbl = f"{name} (RA: {ra_sgm} / DEC: {dec_sgm})"
         self.lbl_obj.text = lbl
-        self.fitsimage.redraw(whence=3)
+        self.viewer.redraw(whence=3)
 
     def get_radec(self):
         try:
@@ -572,8 +608,9 @@ class FindImage(GingaPlugin.LocalPlugin):
             if len(ra_str) == 0 or len(dec_str) == 0:
                 self.fv.show_error("Please select a target and click 'Get Selected'")
 
-            ra_deg, dec_deg, eq = normalize_ra_dec_equinox(ra_str, dec_str,
-                                                           2000.0)
+            ra_deg, dec_deg, eq = spot_target.normalize_ra_dec_equinox(ra_str,
+                                                                       dec_str,
+                                                                       2000.0)
         except Exception as e:
             self.logger.error(f"error getting coordinate: {e}", exc_info=True)
             self.fv.show_error("Error getting coordinate: please check selected target")
@@ -600,7 +637,7 @@ class FindImage(GingaPlugin.LocalPlugin):
 
     def telpos_changed_cb(self, cb, status, target):
         self.fv.assert_gui_thread()
-        if not self.gui_up or not self.w.follow_telescope.get_state():
+        if not self.gui_up or not self.settings.get('follow_telescope', False):
             return
         tel_status = status.tel_status.lower()
         self.logger.info(f"telescope status is '{tel_status}'")
@@ -624,10 +661,11 @@ class FindImage(GingaPlugin.LocalPlugin):
             # set target info and try to download the image
             self._cur_target = target
             self.set_pointing(target.ra, target.dec, target.equinox, target.name)
+            self.plot_target()
             self.find_image()
 
     def get_selected_target_cb(self, w):
-        if self.w.follow_telescope.get_state():
+        if self.settings.get('follow_telescope', False):
             # target is following telescope
             self.fv.show_error("uncheck 'Follow telescope' to get selection")
             return
@@ -637,7 +675,44 @@ class FindImage(GingaPlugin.LocalPlugin):
             self.fv.show_error("Please select exactly one target in the Targets table!")
             return
         tgt = list(selected)[0]
+        self._cur_target = tgt
         self.set_pointing(tgt.ra, tgt.dec, tgt.equinox, tgt.name)
+
+        self.plot_target()
+
+    def mark_target_cb(self, w, tf):
+        self.settings.set(mark_target=tf)
+        self.plot_target()
+
+    def follow_telescope_cb(self, w, tf):
+        self.settings.set(follow_telescope=tf)
+        self.w.get_selected.set_enabled(not tf)
+
+    def reset_pan_cb(self, w):
+        if self._cur_target is None:
+            return
+
+        ra_deg, dec_deg = self._cur_target.ra, self._cur_target.dec
+        self.viewer.set_pan(ra_deg, dec_deg, coord='wcs')
+
+    def site_changed_cb(self, cb, site_obj):
+        self.logger.debug("site has changed")
+        self.site = site_obj
+        # TODO: not sure how to alter plot for site changing
+        # probably need to signal that non-sidereal targets are inaccurate
+
+    def time_changed_cb(self, cb, time_utc, cur_tz):
+        self.dt_utc = time_utc
+        self.cur_tz = cur_tz
+        if not self.gui_up:
+            return
+
+        if (self._last_tgt_update_dt is None or
+            abs((self.dt_utc - self._last_tgt_update_dt).total_seconds()) >
+            self.settings.get('targets_update_interval')):
+            self.logger.info("updating targets")
+            self._last_tgt_update_dt = time_utc
+            self.plot_target()
 
     def set_pointing(self, ra_deg, dec_deg, equinox, tgt_name):
         if not self.gui_up:
@@ -646,6 +721,116 @@ class FindImage(GingaPlugin.LocalPlugin):
         self.w.dec.set_text(wcs.dec_deg_to_str(dec_deg))
         self.w.equinox.set_text(str(equinox))
         self.w.tgt_name.set_text(tgt_name)
+
+    def plot_target(self):
+        self.canvas.delete_object_by_tag('target')
+
+        image = self.viewer.get_image()
+        if image is None:
+            return
+
+        tgt = self._cur_target
+        if not self.settings.get('mark_target', False) or tgt is None:
+            return
+        name = tgt.name
+
+        scale = self.get_scale()
+        skip = max(1, int(50 * (1 / scale)))
+        pt_radius = max(5, min(scale * 10, 30))
+        cl_radius = pt_radius * 2
+        color = tgt.get('color', 'seagreen2')
+        alpha = 1.0
+        objs = []
+
+        if tgt.get('nonsidereal', False):
+            # <-- non-sidereal target
+            track = tgt.get('track', None)
+            if track is None:
+                raise ValueError("nonsidereal target does not contain a tracking table")
+
+            # update current target position, if necessary
+            spot_target.update_nonsidereal_targets([tgt], self.dt_utc)
+
+            coord = np.array((track['RA'], track['DEC'])).T
+            pts = image.wcs.wcspt_to_datapt(coord)
+            path = self.dc.Path(pts, color=color, linewidth=2, alpha=alpha)
+            path.pickable = True
+            path.add_callback('pick-enter', self._show_time, tgt)
+            objs.append(path)
+
+            dt = track['DateTime'][0]
+            tzname = dt.tzinfo.tzname(dt)
+            plot_local_time = self.settings.get('nonsidereal_plot_local_time',
+                                                False)
+            cur_rot_deg = self.viewer.get_rotation()
+            x1, y1 = pts[0]
+            x2, y2 = pts[-1]
+            m = (y2 - y1) / (x2 - x1)   # find slope
+            ang = np.arctan(-1 / m)
+            _c, _s = np.cos(ang), np.sin(ang)
+            l = pt_radius * 0.5 # length of perpendicular lines
+            text_rot_deg = cur_rot_deg + np.degrees(ang)
+            k = 5
+            for i, pt in enumerate(pts[::skip]):
+                x, y = pt[:2]
+                objs.append(self.dc.Line(x + l * _c, y + l * _s,
+                                         x - l * _c, y - l * _s,
+                                         color=color, linewidth=1, alpha=alpha))
+                if i % k == 0:
+                    # label the time every Kth element
+                    dt = track['DateTime'][i * skip]
+                    if plot_local_time:
+                        dt = dt.astimezone(self.cur_tz)
+                        tzname = self.cur_tz.tzname(dt)
+                    text = dt.strftime("%m-%d %H:%M " + tzname)
+                    objs.append(self.dc.Text(x + l * _c, y + l * _s,
+                                             text=text,
+                                             rot_deg=text_rot_deg,
+                                             color=color, alpha=alpha,
+                                             font="Roboto condensed bold",
+                                             fontscale=True,
+                                             fontsize=None, fontsize_min=12,
+                                             fontsize_max=16))
+            if not (track['DateTime'][0] < self.dt_utc < track['DateTime'][-1]):
+                # signal that target is out of time range
+                color = 'orangered2'
+
+        x, y = image.radectopix(tgt.ra, tgt.dec)
+        point = self.dc.Point(x, y, radius=pt_radius,
+                              style='cross',
+                              color=color, fillcolor=color,
+                              linewidth=2, alpha=alpha,
+                              fill=False)
+        objs.append(point)
+        circle = self.dc.Circle(x, y, cl_radius, color=color,
+                                linewidth=1, alpha=alpha,
+                                fill=False)
+        objs.append(circle)
+        text = self.dc.Text(x, y + cl_radius, name,
+                            color=color, alpha=alpha,
+                            font="Roboto condensed bold",
+                            fontscale=True,
+                            fontsize=None, fontsize_min=12,
+                            fontsize_max=16)
+        objs.append(text)
+
+        star = self.dc.CompoundObject(*objs)
+        star.opaque = False
+        #star.pickable = False
+        self.canvas.add(star, tag='target', redraw=True)
+
+    def _show_time(self, path, canvas, event, pt, tgt):
+        # TODO: show tooltip with time, ra, dec
+        pass
+
+    def get_scale(self):
+        return self.viewer.get_scale()
+
+    def scale_set_cb(self, setting, scale):
+        if not self.gui_up:
+            return
+
+        self.plot_target()
 
     def __str__(self):
         return 'findimage'

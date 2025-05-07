@@ -187,3 +187,241 @@ VLT:
   timezone_offset_min: -240
   humidity: 10
   wavelength: {'observing': 3500., 'guiding': 6500.}
+
+Palomar:
+  fullname: Palomar (CA, USA)
+  azimuth_start_direction: N
+  elevation_m: 1706
+  fov_deg: 1.0
+  latitude_deg: 33.356278
+  longitude_deg: -116.864944
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: PST
+  timezone_offset_min: -480
+  humidity: 10
+  wavelength: {'observing': 4000., 'guiding': 6500.}
+
+Lick:
+  fullname: Lick (CA, USA)
+  azimuth_start_direction: N
+  elevation_m: 1290
+  fov_deg: 1.0
+  latitude_deg: 37.343022
+  longitude_deg: -121.637256
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: PST
+  timezone_offset_min: -480
+  humidity: 10
+  wavelength: {'observing': 4000., 'guiding': 6500.}
+
+Kitt Peak:
+  fullname: Kitt Peak (AZ, USA)
+  azimuth_start_direction: N
+  elevation_m: 2120
+  fov_deg: 1.0
+  latitude_deg: 31.964133
+  longitude_deg: -111.599997
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: MST
+  timezone_offset_min: -420
+  humidity: 10
+  wavelength: {'observing': 4000., 'guiding': 6500.}
+
+MMT:
+  fullname: MMT (Mt. Hopkins, AZ, USA)
+  azimuth_start_direction: N
+  elevation_m: 2606
+  fov_deg: 1.0
+  latitude_deg: 31.688889,
+  longitude_deg: -110.885156
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: MST
+  timezone_offset_min: -420
+  humidity: 10
+  wavelength: {'observing': 4000., 'guiding': 6500.}
+
+LBT:
+  fullname: LBT (Mt. Graham, AZ, USA)
+  azimuth_start_direction: N
+  elevation_m: 3221
+  fov_deg: 1.0
+  latitude_deg: 32.70131
+  longitude_deg: -109.88906
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: MST
+  timezone_offset_min: -420
+  humidity: 10
+  wavelength: {'observing': 4000., 'guiding': 6500.}
+
+Apache:
+  fullname: Apache Point (NM, USA)
+  azimuth_start_direction: N
+  elevation_m: 2798
+  fov_deg: 1.0
+  latitude_deg: 32.78
+  longitude_deg: -105.82
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: MST
+  timezone_offset_min: -420
+  humidity: 10
+  wavelength: {'observing': 4000., 'guiding': 6500.}
+
+McDonald:
+  fullname: McDonald Observatory (TX, USA)
+  azimuth_start_direction: N
+  elevation_m: 2026
+  fov_deg: 1.0
+  latitude_deg: 30.68144
+  longitude_deg: -104.01472
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: CST
+  timezone_offset_min: -360
+  humidity: 10
+  wavelength: {'observing': 4000., 'guiding': 6500.}
+
+Cerro Tololo:
+  fullname: Cerro Tololo (Chile)
+  azimuth_start_direction: N
+  elevation_m: 2241
+  fov_deg: 1.0
+  latitude_deg: -30.169661
+  longitude_deg: -70.806525
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: PRT
+  timezone_offset_min: -240
+  humidity: 10
+  wavelength: {'observing': 4000., 'guiding': 6500.}
+
+La Silla:
+  fullname: La Silla (Chile)
+  azimuth_start_direction: N
+  elevation_m: 2375
+  fov_deg: 1.0
+  latitude_deg: -29.261211
+  longitude_deg: -70.7317
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: PRT
+  timezone_offset_min: -240
+  humidity: 10
+  wavelength: {'observing': 4000., 'guiding': 6500.}
+
+CAO:
+  fullname: Calar Alto Observatory (Spain)
+  azimuth_start_direction: N
+  elevation_m: 2168
+  fov_deg: 1.0
+  latitude_deg: 37.2236
+  longitude_deg: -2.54625
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: ECT
+  timezone_offset_min: 60
+  humidity: 10
+  wavelength: {'observing': 4000., 'guiding': 6500.}
+
+LAMOST:
+  fullname: LAMOST (Xinglong, China)
+  azimuth_start_direction: N
+  elevation_m: 656
+  fov_deg: 1.0
+  latitude_deg: 40.389094
+  longitude_deg: 117.489433
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: CST
+  timezone_offset_min: 480
+  humidity: 10
+  wavelength: {'observing': 4000., 'guiding': 6500.}
+
+KANATA:
+  fullname: Kanata (Higashi-Hiroshima, Japan)
+  azimuth_start_direction: N
+  elevation_m: 511
+  fov_deg: 1.0
+  latitude_deg: 34.3775
+  longitude_deg: 132.7767
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: JST
+  timezone_offset_min: 540
+  humidity: 10
+  wavelength: {'observing': 4000., 'guiding': 6500.}
+
+OAO:
+  fullname: Okayama Astrophysical Observatory (Japan)
+  azimuth_start_direction: N
+  elevation_m: 390
+  fov_deg: 1.0
+  latitude_deg: 34.5771
+  longitude_deg: 133.5940
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: JST
+  timezone_offset_min: 540
+  humidity: 10
+  wavelength: {'observing': 4000., 'guiding': 6500.}
+
+Seimei:
+  fullname: Kyoto U. Seimei Observatory (Japan)
+  azimuth_start_direction: N
+  elevation_m: 370
+  fov_deg: 1.0
+  latitude_deg: 34.576850
+  longitude_deg: 133.596685
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: JST
+  timezone_offset_min: 540
+  humidity: 10
+  wavelength: {'observing': 4000., 'guiding': 6500.}
+
+NHAO:
+  fullname: Nishi-Harima (Nayuta, Japan)
+  azimuth_start_direction: N
+  elevation_m: 418
+  fov_deg: 1.0
+  latitude_deg: 35.025272
+  longitude_deg: 134.33556
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: JST
+  timezone_offset_min: 540
+  humidity: 10
+  wavelength: {'observing': 4000., 'guiding': 6500.}
+
+KISO:
+  fullname: Kiso Observatory (U. of Tokyo)
+  azimuth_start_direction: N
+  elevation_m: 1130
+  fov_deg: 1.0
+  latitude_deg: 35.797290
+  longitude_deg: 137.625352
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: JST
+  timezone_offset_min: 540
+  humidity: 10
+  wavelength: {'observing': 4000., 'guiding': 6500.}
+
+GAO:
+  fullname: Gunma Astronomical Observatory (Japan)
+  azimuth_start_direction: N
+  elevation_m: 885
+  fov_deg: 1.0
+  latitude_deg: 36.596806
+  longitude_deg: 138.972917
+  pressure_mbar: 1015
+  temperature_c: 10
+  timezone_name: JST
+  timezone_offset_min: 540
+  humidity: 10
+  wavelength: {'observing': 4000., 'guiding': 6500.}

@@ -8,15 +8,20 @@ naojsoft packages
 -----------------
 - ginga
 """
+from datetime import UTC
+from dateutil.parser import parse as parse_date
 import numpy as np
 import pandas as pd
+
+import astropy.units as u
+from astroquery.jplhorizons import Horizons
 
 # ginga
 from ginga.gw import Widgets
 from ginga import GingaPlugin
 from ginga.util import wcs
 
-from spot.util.target import normalize_ra_dec_equinox
+from spot.util import target as spot_target
 
 
 class TargetGenerator(GingaPlugin.LocalPlugin):
@@ -167,6 +172,28 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
         combobox.set_tooltip("Choose the object name resolver")
 
         top.add_widget(fr, stretch=0)
+
+        # fr = Widgets.Frame("JPL Horizons (Non-sidereal)")
+
+        # captions = (('Name:', 'label', 'ns_name', 'entry'),
+        #             ('Start time:', 'label', 'ns_start', 'entry',
+        #              'Stop time:', 'label', 'ns_stop', 'entry'),
+        #             ('Step:', 'label', 'ns_step', 'entry',
+        #              'Lookup name', 'button'),
+        #             )
+
+        # w, b = Widgets.build_info(captions)
+        # self.w.update(b)
+        # b.ns_name.set_tooltip("Name or code as known to JPL Horizons")
+        # b.ns_start.set_tooltip("Start time of observation (YYYY-MM-DD HH:MM:SS) in OBSERVER's time")
+        # b.ns_stop.set_tooltip("Stop time of observation (YYYY-MM-DD HH:MM:SS) in OBSERVER's time")
+        # b.ns_step.set_text("Step time of observation")
+        # b.ns_step.set_text('1m')
+        # b.lookup_name.add_callback('activated', self.get_nonsidereal_cb)
+        # b.lookup_name.set_tooltip("Lookup non-sidereal target at JPL Horizons")
+        # fr.set_widget(w)
+        # top.add_widget(fr, stretch=0)
+
         btns = Widgets.HBox()
         btns.set_border_width(4)
         btns.set_spacing(3)
@@ -247,8 +274,9 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
         dec_str = self.w.dec.get_text().strip()
         eq_str = self.w.equinox.get_text().strip()
 
-        ra_deg, dec_deg, equinox = normalize_ra_dec_equinox(ra_str, dec_str,
-                                                            eq_str)
+        ra_deg, dec_deg, equinox = spot_target.normalize_ra_dec_equinox(ra_str,
+                                                                        dec_str,
+                                                                        eq_str)
         return (ra_deg, dec_deg, equinox)
 
     def add_target_cb(self, w):
@@ -260,6 +288,45 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
                               columns=["Name", "RA", "DEC", "Equinox", "IsRef"])
         obj = self.channel.opmon.get_plugin('Targets')
         obj.add_targets("Targets", tgt_df, merge=True)
+
+    def get_nonsidereal_cb(self, w):
+        # prepare location and epochs as astroquery/JPL Horizons wants them
+        status = self.site.get_status()
+        location = dict(lat=status['latitude_deg'] * u.deg,
+                        lon=status['longitude_deg'] * u.deg,
+                        elevation=status['elevation_m'] * u.m)
+
+        try:
+            name = self.w.ns_name.get_text().strip()
+
+            dt_start = parse_date(self.w.ns_start.get_text().strip())
+            if dt_start.tzinfo is None:
+                dt_start = dt_start.replace(tzinfo=self.cur_tz)
+            dt_start = dt_start.astimezone(UTC)
+
+            dt_stop = parse_date(self.w.ns_stop.get_text().strip())
+            if dt_stop.tzinfo is None:
+                dt_stop = dt_stop.replace(tzinfo=self.cur_tz)
+            dt_stop = dt_stop.astimezone(UTC)
+
+            step = self.w.ns_step.get_text().strip()
+
+            # Don't add timezone info to 'stop' element or query fails
+            epochs = dict(start=dt_start.strftime('%Y-%m-%d %H:%M:%S UT'),
+                          stop=dt_stop.strftime('%Y-%m-%d %H:%M:%S'),
+                          step=step)
+
+            obj = Horizons(id=name, location=location, epochs=epochs)
+            # returns an astropy Table
+            eph_tbl = obj.ephemerides()
+
+            obj = self.channel.opmon.get_plugin('Targets')
+            obj.process_eph_table_for_target(name, eph_tbl)
+
+        except Exception as e:
+            errmsg = f"Exception looking up name '{name}': {e}"
+            self.logger.error(errmsg, exc_info=True)
+            self.fv.show_error(errmsg)
 
     def site_changed_cb(self, cb, site_obj):
         self.logger.debug("site has changed")

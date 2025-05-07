@@ -956,5 +956,9 @@ Uranus = SSBody('Uranus', ssbodies['uranus barycenter'])
 Neptune = SSBody('Neptune', ssbodies['neptune barycenter'])
 Pluto = SSBody('Pluto', ssbodies['pluto barycenter'])
 
+def get_ssbody(lookup_name, myname=None):
+    if myname is None:
+        myname = lookup_name
+    return SSBody(myname, ssbodies[lookup_name.lower()])
 
 #END

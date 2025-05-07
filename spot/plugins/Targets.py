@@ -40,9 +40,6 @@ from ginga.util.paths import ginga_home, home as user_home
 from ginga.util import wcs
 from ginga.misc import Bunch, Callback
 
-# local
-from spot.util import calcpos
-
 # oscript (optional, for loading OPE files)
 try:
     from oscript.parse import ope
@@ -50,7 +47,9 @@ try:
 except ImportError:
     have_oscript = False
 
-from spot.util.target import Target, normalize_ra_dec_equinox
+# local
+from spot.util import calcpos
+from spot.util import target as spot_target
 
 # where our icons are stored
 from spot import __file__
@@ -304,6 +303,7 @@ class Targets(GingaPlugin.LocalPlugin):
         self.w.fileselect.set_directory(self.home)
         self.w.fileselect.add_ext_filter("CSV", ".csv")
         self.w.fileselect.add_ext_filter("OPE", ".ope")
+        #self.w.fileselect.add_ext_filter("EPH", ".eph")
 
         self.w.fileselect.add_callback('activated', self.load_file_cb)
         b.file_path.set_text(self.home)
@@ -646,6 +646,13 @@ class Targets(GingaPlugin.LocalPlugin):
         if len(self.target_dict) == 0:
             self.w.tgt_tbl.clear()
         else:
+            # update non-sidereal targets
+            non_sd = [tgt for tgt in self.full_tgt_list
+                      if tgt.get('nonsidereal', False)]
+            non_sd_changed = spot_target.update_nonsidereal_targets(non_sd,
+                                                                    start_time)
+            targets_changed = targets_changed or non_sd_changed
+
             # create multi-coordinate body if not yet created
             if targets_changed or self._mbody is None:
                 self._create_multicoord_body()
@@ -743,17 +750,16 @@ class Targets(GingaPlugin.LocalPlugin):
         self.update_plots()
 
     def time_changed_cb(self, cb, time_utc, cur_tz):
-        if not self.gui_up:
-            return
-        old_dt_utc = self.dt_utc
         self.dt_utc = time_utc
         self.cur_tz = cur_tz
+        if not self.gui_up:
+            return
 
         if (self._last_tgt_update_dt is None or
             abs((self.dt_utc - self._last_tgt_update_dt).total_seconds()) >
             self.settings.get('targets_update_interval')):
             self.logger.info("updating targets")
-            self._last_tgt_update_dt = time_utc
+            #self._last_tgt_update_dt = time_utc
             self.update_all()
 
     def load_file_cb(self, w, paths):
@@ -769,10 +775,16 @@ class Targets(GingaPlugin.LocalPlugin):
 
         for file_path in paths:
             file_path = file_path.strip()
-            if file_path.lower().endswith(".ope"):
+            _pfx, ext = os.path.splitext(file_path.lower())
+            if ext == ".ope":
                 self.process_ope_file_for_targets(file_path)
-            else:
+            elif ext == ".csv":
                 self.process_csv_file_for_targets(file_path)
+            # elif ext == ".eph":
+            #     self.process_eph_file_for_target(file_path)
+            else:
+                self.fv.show_error(f"I don't know how to load files of type '{ext}'")
+                return
 
             if (not self.settings.get('merge_targets', False) and
                 self.settings.get('rotate_target_colors', False)):
@@ -792,7 +804,7 @@ class Targets(GingaPlugin.LocalPlugin):
             name = row.get('Name', 'none')
             try:
                 ra, dec, eqx = row['RA'], row['DEC'], row['Equinox']
-                ra_deg, dec_deg, eq = normalize_ra_dec_equinox(ra, dec, eqx)
+                ra_deg, dec_deg, eq = spot_target.normalize_ra_dec_equinox(ra, dec, eqx)
                 # these will check angles and force an exception if there is
                 # a bad angle
                 ra_str = wcs.ra_deg_to_str(ra_deg)
@@ -805,17 +817,17 @@ class Targets(GingaPlugin.LocalPlugin):
 
             comment = row.get('Comment', '')
 
-            t = Target(name=name,
-                       ra=ra_deg,
-                       dec=dec_deg,
-                       equinox=eq,
-                       comment=comment,
-                       category=category)
-            t.set(is_ref=row.get('IsRef', True),
-                  color=row.get('color', self._tgt_color))
+            tgt = spot_target.Target(name=name,
+                                     ra=ra_deg,
+                                     dec=dec_deg,
+                                     equinox=eq,
+                                     comment=comment,
+                                     category=category)
+            tgt.set(is_ref=row.get('IsRef', True),
+                    color=row.get('color', self._tgt_color))
             # get all column values as metadata
-            t.set(**row.to_dict())
-            new_targets.append(t)
+            tgt.set(**row.to_dict())
+            new_targets.append(tgt)
 
         self.add_target_list(category, new_targets, merge=merge)
 
@@ -850,6 +862,27 @@ class Targets(GingaPlugin.LocalPlugin):
         merge = self.settings.get('merge_targets', False)
         category = csv_path if not merge else "Targets"
         self.add_targets(category, tgt_df, merge=merge)
+        self.w.tgt_tbl.set_optimal_column_widths()
+
+    def process_eph_file_for_target(self, eph_path):
+        merge = self.settings.get('merge_targets', False)
+        category = eph_path if not merge else "Targets"
+        target = spot_target.load_jplephem_target(eph_path, dt=self.dt_utc)
+        target.set(IsRef=True, color=self._tgt_color)
+
+        self.add_target_list(category, [target], merge=merge)
+        self.w.tgt_tbl.set_optimal_column_widths()
+
+    def process_eph_table_for_target(self, name, eph_tbl):
+        merge = self.settings.get('merge_targets', False)
+        # TODO: category
+        category = "Non-sidereal"
+        target = spot_target.make_jplhorizons_target(name, eph_tbl,
+                                                     category=category,
+                                                     dt=self.dt_utc)
+        target.set(IsRef=True, color=self._tgt_color)
+
+        self.add_target_list(category, [target], merge=merge)
         self.w.tgt_tbl.set_optimal_column_widths()
 
     def process_ope_file_for_targets(self, ope_file):

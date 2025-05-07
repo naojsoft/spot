@@ -1,9 +1,14 @@
 from collections.abc import Mapping
+from datetime import UTC
+
+import numpy as np
+from astropy.time import Time
+from astropy.table import Table
 
 from ginga.util.wcs import hmsStrToDeg, dmsStrToDeg
 from ginga.misc import Bunch
 
-from spot.util.calcpos import Body
+from spot.util.calcpos import Body, SSBody
 
 try:
     from oscript.util import ope
@@ -12,11 +17,9 @@ except ImportError:
     have_oscript = False
 
 
-class Target(Body):
+class TargetMixin:
 
-    def __init__(self, name=None, ra=None, dec=None, equinox=2000.0,
-                 comment='', category=None):
-        super().__init__(name, ra, dec, equinox, comment=comment)
+    def __init__(self, category=None):
         self.category = category
         self.metadata = None
 
@@ -26,29 +29,8 @@ class Target(Body):
         self.metadata.update(kwargs)
 
     def get(self, *args):
-        if len(args) == 1:
-            key = args[0]
-            if self.metadata is None:
-                raise KeyError(key)
-            return self.metadata[key]
-        elif len(args) == 2:
-            key, default_val = args
-            if self.metadata is None:
-                return default_val
-            return self.metadata.get(key, default_val)
-        else:
-            raise RuntimeError("Invalid number of parameters to get()")
-
-    def import_record(self, rec):
-        self.name = rec['Name']
-        self.ra, self.dec, self.equinox = normalize_ra_dec_equinox(rec['RA'],
-                                                                   rec['DEC'],
-                                                                   rec['Equinox'])
-        self.comment = rec.get('Comment', '').strip()
-
-    def get(self, *args):
         if len(args) not in [1, 2]:
-            raise ValueError("Wrong number of parameters to get()")
+            raise RuntimeError("Wrong number of parameters to get()")
         elif len(args) == 1:
             key = args[0]
             if self.metadata is None:
@@ -74,6 +56,29 @@ class Target(Body):
         if self.metadata is None or key not in self.metadata:
             raise KeyError(key)
         del self.metadata[key]
+
+
+class Target(TargetMixin, Body):
+
+    def __init__(self, name=None, ra=None, dec=None, equinox=2000.0,
+                 comment='', category=None):
+        TargetMixin.__init__(self, category=category)
+        Body.__init__(self, name, ra, dec, equinox, comment=comment)
+
+    def import_record(self, rec):
+        self.name = rec['Name']
+        self.ra, self.dec, self.equinox = normalize_ra_dec_equinox(rec['RA'],
+                                                                   rec['DEC'],
+                                                                   rec['Equinox'])
+        self.comment = rec.get('Comment', '').strip()
+
+
+class NSTarget(TargetMixin, SSBody):
+
+    def __init__(self, name=None, body=None, comment='', category=None):
+        TargetMixin.__init__(self, category=category)
+        # TODO: take care of comment
+        SSBody.__init__(self, name, body)
 
 
 def normalize_ra_dec_equinox(ra, dec, eq):
@@ -143,3 +148,94 @@ def normalize_ra_dec_equinox(ra, dec, eq):
         raise ValueError(f"don't understand format/type of 'EQ': {eq}")
 
     return (ra_deg, dec_deg, equinox)
+
+
+def get_closest_ra_dec(dt, track_tbl):
+
+    # find closest time to current one. `idx` will be the index of the value
+    # just greater than the value we are passing
+    dt_jd = Time(dt).jd
+    idx = np.searchsorted(track_tbl['datetime_jd'], dt_jd, side='left')
+    if idx == 0:
+        # time is before our non-sidereal track starts
+        return (False, track_tbl['RA'][0], track_tbl['DEC'][0])
+    if idx == len(track_tbl):
+        # time is after our non-sidereal track stops
+        return (False, track_tbl['RA'][-1], track_tbl['DEC'][-1])
+
+    # interpolate between the two closest dates to find the percentage
+    # difference
+    jd = track_tbl['datetime_jd']
+    pct = (dt_jd  - jd[idx - 1]) / (jd[idx] - jd[idx - 1])
+
+    ra, dec = track_tbl['RA'], track_tbl['DEC']
+    ra_deg = ra[idx - 1] + (ra[idx] - ra[idx - 1]) * pct
+    dec_deg = dec[idx - 1] + (dec[idx] - dec[idx - 1]) * pct
+    return (True, ra_deg, dec_deg)
+
+
+def update_nonsidereal_targets(targets, dt):
+    changed = False
+    dt_utc = dt.astimezone(UTC)
+    for target in targets:
+        track_tbl = target.get('track', None)
+        if track_tbl is None:
+            raise ValueError("nonsidereal target does not contain a tracking table")
+
+        valid, ra_deg, dec_deg = get_closest_ra_dec(dt_utc, track_tbl)
+        if (not np.isclose(ra_deg, target.ra, rtol=1e-10) or
+            not np.isclose(dec_deg, target.dec, rtol=1e-10)):
+            changed = True
+            target.ra, target.dec = ra_deg, dec_deg
+        if not valid:
+            # Time is outside of our tracking range. Indicate this by
+            # changing the color of the target
+            #target.set(color='red')
+            pass
+    return changed
+
+def load_jplephem_target(eph_path, dt=None):
+    from Gen2.astro.jplHorizonsIF import JPLHorizonsEphem
+    with open(eph_path, 'r') as eph_f:
+        buf = eph_f.read()
+        eph = JPLHorizonsEphem(buf)
+
+    hist = eph.trackInfo['timeHistory']
+    dts = np.array([tup[0].replace(tzinfo=UTC) for tup in hist])
+    dt_jds = Time(dts).jd
+    ras = np.array([tup[1] for tup in hist])
+    decs = np.array([tup[2] for tup in hist])
+    tbl = Table(data=[dt_jds, dts, ras, decs],
+                names=['datetime_jd', 'DateTime', 'RA', 'DEC'])
+
+    # TODO: proper name
+    name = "Target"
+    target = Target(name=name, ra=ras[0], dec=decs[0], equinox=2000.0,
+                    category=eph_path)
+    target.set(nonsidereal=True, track=tbl)
+
+    if dt is not None:
+        update_nonsidereal_targets([target], dt)
+    return target
+
+def make_jplhorizons_target(name, eph_table, dt=None, category='Non-sidereal'):
+    """Make a non-sidereal target from a JPL Horizons ephemeris from
+    astroquery.
+    """
+
+    dt_jds = Time(eph_table['datetime_jd'], format='jd', scale='utc')
+    dts = np.array([t_jd.datetime.replace(tzinfo=UTC) for t_jd in dt_jds])
+    dt_jds = dt_jds.value
+    ras = eph_table['RA']
+    decs = eph_table['DEC']
+    deltas = eph_table['delta']
+    tbl = Table(data=[dt_jds, dts, ras, decs, deltas],
+                names=['datetime_jd', 'DateTime', 'RA', 'DEC', 'delta'])
+
+    target = Target(name=name, ra=ras[0], dec=decs[0], equinox=2000.0,
+                    category=category)
+    target.set(nonsidereal=True, track=tbl)
+
+    if dt is not None:
+        update_nonsidereal_targets([target], dt)
+    return target

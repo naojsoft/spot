@@ -16,7 +16,7 @@ from ginga import GingaPlugin, trcalc
 from ginga.util import wcs
 from ginga.canvas.coordmap import BaseMapper
 
-from spot.util.target import Target, normalize_ra_dec_equinox
+from spot.util import target as spot_target
 from spot.util.rot import normalize_angle
 # get all overlays
 from spot.instruments import inst_dict
@@ -78,7 +78,9 @@ class InsFov(GingaPlugin.LocalPlugin):
         self.viewer = self.fitsimage
         self.crdmap = UnRotatedDataMapper(self.viewer)
         self.viewer.set_coordmap('insfov', self.crdmap)
-        self.viewer.add_callback('redraw', self.redraw_cb)
+        t_ = self.viewer.get_settings()
+        t_.get_setting('pan').add_callback('set', self.set_pan_cb)
+        t_.get_setting('rot_deg').add_callback('set', self.set_rot_cb)
 
         self.dc = fv.get_draw_classes()
         canvas = self.dc.DrawingCanvas()
@@ -97,7 +99,6 @@ class InsFov(GingaPlugin.LocalPlugin):
         self.flip = False
         self.pa_deg = 0.0
         self.coord = (0.0, 0.0)
-        self.init_coord = self.coord
         self.target = None
         self._updating = False
         self.gui_up = False
@@ -157,8 +158,7 @@ class InsFov(GingaPlugin.LocalPlugin):
 
         captions = (('RA:', 'label', 'ra', 'entry', 'DEC:', 'label',
                      'dec', 'entry'),
-                    ('Equinox:', 'label', 'equinox', 'entry',
-                     '_sp0', 'spacer', 'Reset', 'button'),
+                    ('Equinox:', 'label', 'equinox', 'entry'),
                     )
 
         w, b = Widgets.build_info(captions)
@@ -170,9 +170,6 @@ class InsFov(GingaPlugin.LocalPlugin):
         b.ra.set_tooltip("The Right Ascension at the target")
         b.dec.add_callback('activated', self.set_coord_cb)
         b.dec.set_tooltip("The Declination at the target")
-
-        b.reset.add_callback('activated', self.reset_cb)
-        b.reset.set_tooltip("Reset to target initial position")
 
         #top.add_widget(Widgets.Label(''), stretch=1)
 
@@ -213,7 +210,6 @@ class InsFov(GingaPlugin.LocalPlugin):
     def stop(self):
         self.gui_up = False
         self.coord = (0.0, 0.0)
-        self.init_coord = (0.0, 0.0)
         self.target = None
         self.cur_fov = FOV(self, self.canvas, (0, 0))
         self.canvas.delete_all_objects()
@@ -229,7 +225,6 @@ class InsFov(GingaPlugin.LocalPlugin):
             return
 
         self.redo_image()
-        self.init_coord = self.coord
 
     def redo_image(self):
         image = self.viewer.get_image()
@@ -241,8 +236,8 @@ class InsFov(GingaPlugin.LocalPlugin):
 
         ra_deg, dec_deg = image.pixtoradec(data_x, data_y)
         self.coord = (ra_deg, dec_deg)
-        self.target = Target(name="insfov", ra=ra_deg, dec=dec_deg,
-                             equinox=2000.0)
+        self.target = spot_target.Target(name="insfov", ra=ra_deg,
+                                         dec=dec_deg, equinox=2000.0)
         ra_str = wcs.ra_deg_to_str(ra_deg)
         dec_str = wcs.dec_deg_to_str(dec_deg)
         self.w.ra.set_text(ra_str)
@@ -288,27 +283,27 @@ class InsFov(GingaPlugin.LocalPlugin):
         self.flip = tf
         self.redo_image()
 
-    def redraw_cb(self, viewer, whence):
-        if not self.gui_up or whence >= 3 or self._updating:
+    def set_pan_cb(self, setting, val):
+        if not self.gui_up or self._updating:
             return
 
         # check pan location
-        pos = viewer.get_pan(coord='data')[:2]
-
+        pos = self.viewer.get_pan(coord='data')[:2]
         data_x, data_y = pos[:2]
-        image = viewer.get_image()
+
+        image = self.viewer.get_image()
         if image is None:
             return
 
         # user might have panned somewhere else, so check our location
         # at the pan position
         ra_deg, dec_deg = image.pixtoradec(data_x, data_y)
-        if (not np.isclose(ra_deg, self.coord[0]) or
-            not np.isclose(dec_deg, self.coord[1])):
+        if (not np.isclose(ra_deg, self.coord[0], rtol=1e-10) or
+            not np.isclose(dec_deg, self.coord[1], rtol=1e-10)):
             # location changed
             self.coord = (ra_deg, dec_deg)
-            self.target = Target(name="insfov", ra=ra_deg, dec=dec_deg,
-                                 equinox=2000.0)
+            self.target = spot_target.Target(name="insfov", ra=ra_deg,
+                                             dec=dec_deg, equinox=2000.0)
             ra_str = wcs.ra_deg_to_str(ra_deg)
             dec_str = wcs.dec_deg_to_str(dec_deg)
             self.w.ra.set_text(ra_str)
@@ -323,10 +318,14 @@ class InsFov(GingaPlugin.LocalPlugin):
             finally:
                 self._updating = False
 
+    def set_rot_cb(self, setting, val):
+        if not self.gui_up:
+            return
+
         # check if rotation has changed
-        cur_rot_deg = viewer.get_rotation()
+        cur_rot_deg = self.viewer.get_rotation()
         pa_deg = self.cur_fov.update_pa_from_rotation(cur_rot_deg)
-        if not np.isclose(pa_deg, self.pa_deg):
+        if not np.isclose(pa_deg, self.pa_deg, rtol=1e-10):
             self.logger.info(f"PA is now {pa_deg} deg")
             self.w.pa.set_text("%.2f" % (pa_deg))
             self.pa_deg = pa_deg
@@ -366,17 +365,13 @@ class InsFov(GingaPlugin.LocalPlugin):
         eq = self.w.equinox.get_text().strip()
         if len(eq) == 0:
             eq = '2000.0'
-        ra_deg, dec_deg, equinox = normalize_ra_dec_equinox(ra, dec, eq)
+        ra_deg, dec_deg, equinox = spot_target.normalize_ra_dec_equinox(ra, dec, eq)
 
         image = self.viewer.get_image()
         if image is None:
             return
         data_x, data_y = image.radectopix(ra_deg, dec_deg)
         self.viewer.set_pan(data_x, data_y, coord='data')
-
-    def reset_cb(self, w):
-        ra_deg, dec_deg = self.init_coord
-        self.viewer.set_pan(ra_deg, dec_deg, coord='wcs')
 
     def __str__(self):
         return 'insfov'
