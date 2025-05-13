@@ -199,8 +199,8 @@ class Targets(GingaPlugin.LocalPlugin):
             self.cb.enable_callback(name)
 
         self._tgt_color = self.settings['color_normal']
-        self.tgt_colors = [self._tgt_color, 'chocolate', 'slateblue2',
-                           'cyan', 'coral', 'olivedrab', 'darkorange2',
+        self.tgt_colors = [self._tgt_color, 'slateblue2',
+                           'coral', 'olivedrab', 'chocolate', 'darkorange2',
                            'khaki4', 'deeppink2', 'purple']
         self._tgt_color_idx = 0
         self.base_circ = None
@@ -303,7 +303,7 @@ class Targets(GingaPlugin.LocalPlugin):
         self.w.fileselect.set_directory(self.home)
         self.w.fileselect.add_ext_filter("CSV", ".csv")
         self.w.fileselect.add_ext_filter("OPE", ".ope")
-        #self.w.fileselect.add_ext_filter("EPH", ".eph")
+        self.w.fileselect.add_ext_filter("EPH", ".eph")
 
         self.w.fileselect.add_callback('activated', self.load_file_cb)
         b.file_path.set_text(self.home)
@@ -639,13 +639,17 @@ class Targets(GingaPlugin.LocalPlugin):
         self._mbody = calcpos.Body(names, arr[0], arr[1], arr[2])
 
     def update_all(self, targets_changed=False):
+        # Run target calculations and table building in a separate thread
+        # (seems to keep GUI responsive)
+        self.fv.nongui_do(self._update_calc, targets_changed=targets_changed)
+
+    def _update_calc(self, targets_changed=False):
+        self.fv.assert_nongui_thread()
         start_time = self.get_datetime()
         self._last_tgt_update_dt = start_time
         self.logger.info("update time: {}".format(start_time.strftime(
                          "%Y-%m-%d %H:%M:%S [%z]")))
-        if len(self.target_dict) == 0:
-            self.w.tgt_tbl.clear()
-        else:
+        if len(self.target_dict) > 0:
             # update non-sidereal targets
             non_sd = [tgt for tgt in self.full_tgt_list
                       if tgt.get('nonsidereal', False)]
@@ -678,18 +682,6 @@ class Targets(GingaPlugin.LocalPlugin):
             # make pandas dataframe from result
             self.tgt_df = pd.DataFrame.from_dict(dct_all, orient='columns')
 
-            # update the target table
-            if self.gui_up:
-                self.targets_to_table(self.tgt_df)
-
-                local_time = (self._last_tgt_update_dt.astimezone(self.cur_tz))
-                tzname = self.cur_tz.tzname(local_time)
-                self.w.update_time.set_text("Last updated at: " +
-                                            local_time.strftime("%H:%M:%S") +
-                                            f" [{tzname}]")
-
-            self.update_targets(self.tgt_df, 'targets')
-
         ss_df = pd.DataFrame(columns=['az_deg', 'alt_deg', 'name', 'color'])
         if self.plot_ss_objects:
             # TODO: until we learn how to do vector calculations for SS bodies
@@ -701,7 +693,27 @@ class Targets(GingaPlugin.LocalPlugin):
                 ss_df.loc[len(ss_df)] = dct
             self.ss_df = ss_df
 
-        self.update_targets(ss_df, 'ss')
+        if self.gui_up:
+            self.fv.gui_do(self._update_gui, self.tgt_df, self.ss_df)
+
+    def _update_gui(self, tgt_df, ss_df):
+        self.fv.assert_gui_thread()
+        if len(self.target_dict) == 0:
+            self.w.tgt_tbl.clear()
+        else:
+            # update the target table
+            self.targets_to_table(tgt_df)
+
+            local_time = (self._last_tgt_update_dt.astimezone(self.cur_tz))
+            tzname = self.cur_tz.tzname(local_time)
+            self.w.update_time.set_text("Last updated at: " +
+                                        local_time.strftime("%H:%M:%S") +
+                                        f" [{tzname}]")
+
+            self.update_targets(tgt_df, 'targets')
+
+        if self.plot_ss_objects:
+            self.update_targets(ss_df, 'ss')
 
     def update_plots(self):
         """Just update plots, targets and info haven't changed."""
@@ -780,8 +792,8 @@ class Targets(GingaPlugin.LocalPlugin):
                 self.process_ope_file_for_targets(file_path)
             elif ext == ".csv":
                 self.process_csv_file_for_targets(file_path)
-            # elif ext == ".eph":
-            #     self.process_eph_file_for_target(file_path)
+            elif ext == ".eph":
+                self.process_eph_file_for_target(file_path)
             else:
                 self.fv.show_error(f"I don't know how to load files of type '{ext}'")
                 return
@@ -816,11 +828,15 @@ class Targets(GingaPlugin.LocalPlugin):
                 continue
 
             comment = row.get('Comment', '')
+            pmra = row.get('pmRA', None)
+            pmdec = row.get('pmDEC', None)
 
             tgt = spot_target.Target(name=name,
                                      ra=ra_deg,
                                      dec=dec_deg,
                                      equinox=eq,
+                                     pmra=pmra,
+                                     pmdec=pmdec,
                                      comment=comment,
                                      category=category)
             tgt.set(is_ref=row.get('IsRef', True),
@@ -868,7 +884,7 @@ class Targets(GingaPlugin.LocalPlugin):
         merge = self.settings.get('merge_targets', False)
         category = eph_path if not merge else "Targets"
         target = spot_target.load_jplephem_target(eph_path, dt=self.dt_utc)
-        target.set(IsRef=True, color=self._tgt_color)
+        target.set(IsRef=True)
 
         self.add_target_list(category, [target], merge=merge)
         self.w.tgt_tbl.set_optimal_column_widths()
@@ -880,7 +896,7 @@ class Targets(GingaPlugin.LocalPlugin):
         target = spot_target.make_jplhorizons_target(name, eph_tbl,
                                                      category=category,
                                                      dt=self.dt_utc)
-        target.set(IsRef=True, color=self._tgt_color)
+        target.set(IsRef=True)
 
         self.add_target_list(category, [target], merge=merge)
         self.w.tgt_tbl.set_optimal_column_widths()
@@ -919,10 +935,12 @@ class Targets(GingaPlugin.LocalPlugin):
             dec_str = tgt_info.dec
             eq_str = tgt_info.eq
             is_ref = tgt_info.is_referenced
-            new_targets.append((objname, ra_str, dec_str, eq_str, comment, is_ref))
+            new_targets.append((objname, ra_str, dec_str, eq_str,
+                                comment, is_ref))
 
         tgt_df = pd.DataFrame(new_targets,
-                              columns=["Name", "RA", "DEC", "Equinox", "Comment", "IsRef"])
+                              columns=["Name", "RA", "DEC", "Equinox",
+                                       "Comment", "IsRef"])
         merge = self.settings.get('merge_targets', False)
         category = ope_file if not merge else "Targets"
         self.add_targets(category, tgt_df, merge=merge)

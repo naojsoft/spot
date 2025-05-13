@@ -197,8 +197,9 @@ class FindImage(GingaPlugin.LocalPlugin):
         self._cur_target = None
 
         settings = self.viewer.get_settings()
-        settings.get_setting('scale').add_callback('set', self.scale_set_cb)
-        settings.get_setting('rot_deg').add_callback('set', self.scale_set_cb)
+        settings.get_setting('scale').add_callback('set', self.redraw_cb)
+        settings.get_setting('pan').add_callback('set', self.redraw_cb)
+        settings.get_setting('rot_deg').add_callback('set', self.redraw_cb)
         self.gui_up = False
 
     def build_gui(self, container):
@@ -735,7 +736,6 @@ class FindImage(GingaPlugin.LocalPlugin):
         name = tgt.name
 
         scale = self.get_scale()
-        skip = max(1, int(50 * (1 / scale)))
         pt_radius = max(5, min(scale * 10, 30))
         cl_radius = pt_radius * 2
         color = tgt.get('color', 'seagreen2')
@@ -743,7 +743,8 @@ class FindImage(GingaPlugin.LocalPlugin):
         objs = []
 
         if tgt.get('nonsidereal', False):
-            # <-- non-sidereal target
+            # <-- non-sidereal target.  We will show the track annotated
+            # with dates/times
             track = tgt.get('track', None)
             if track is None:
                 raise ValueError("nonsidereal target does not contain a tracking table")
@@ -751,6 +752,7 @@ class FindImage(GingaPlugin.LocalPlugin):
             # update current target position, if necessary
             spot_target.update_nonsidereal_targets([tgt], self.dt_utc)
 
+            # mark track with a path
             coord = np.array((track['RA'], track['DEC'])).T
             pts = image.wcs.wcspt_to_datapt(coord)
             path = self.dc.Path(pts, color=color, linewidth=2, alpha=alpha)
@@ -758,39 +760,59 @@ class FindImage(GingaPlugin.LocalPlugin):
             path.add_callback('pick-enter', self._show_time, tgt)
             objs.append(path)
 
+            x1, y1 = pts[0]
+            x2, y2 = pts[-1]
+            # convoluted way of trying to find a consistently spaced set
+            # of points annotating the track
+            path_len = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+            path_len_px = path_len * self.viewer.get_scale()
+            # as length of track becomes shorter, skip size should increase
+            skip = max(5, int(1 / (path_len_px / len(pts)) * 10))
+
+            # find range of view and don't plot annotations outside of that
+            (x_min, y_min, x_max, y_max) = self.viewer.get_data_rect()
+            ann_pts = np.array([i for i in range(0, len(track), skip)
+                                if x_min < pts[i][0] < x_max and
+                                y_min < pts[i][1] < y_max], dtype=int)
+
             dt = track['DateTime'][0]
             tzname = dt.tzinfo.tzname(dt)
             plot_local_time = self.settings.get('nonsidereal_plot_local_time',
                                                 False)
+            # figure out angles to plot text so that it doesn't obscure
             cur_rot_deg = self.viewer.get_rotation()
-            x1, y1 = pts[0]
-            x2, y2 = pts[-1]
             m = (y2 - y1) / (x2 - x1)   # find slope
             ang = np.arctan(-1 / m)
             _c, _s = np.cos(ang), np.sin(ang)
             l = pt_radius * 0.5 # length of perpendicular lines
-            text_rot_deg = cur_rot_deg + np.degrees(ang)
+            ang_deg = np.degrees(ang)
+            flip_x, flip_y, swap_xy = self.viewer.get_transforms()
+            ll = l
+            if flip_x:
+                ang_deg = -ang_deg
+                ll = -l
+            text_rot_deg = cur_rot_deg + ang_deg
             k = 5
-            for i, pt in enumerate(pts[::skip]):
-                x, y = pt[:2]
+            for j, i in enumerate(ann_pts):
+                x, y = pts[i]
                 objs.append(self.dc.Line(x + l * _c, y + l * _s,
                                          x - l * _c, y - l * _s,
                                          color=color, linewidth=1, alpha=alpha))
-                if i % k == 0:
+                if j % k == 0:
                     # label the time every Kth element
-                    dt = track['DateTime'][i * skip]
+                    dt = track['DateTime'][i]
                     if plot_local_time:
                         dt = dt.astimezone(self.cur_tz)
                         tzname = self.cur_tz.tzname(dt)
                     text = dt.strftime("%m-%d %H:%M " + tzname)
-                    objs.append(self.dc.Text(x + l * _c, y + l * _s,
+                    objs.append(self.dc.Text(x + ll * _c, y + ll * _s,
                                              text=text,
                                              rot_deg=text_rot_deg,
                                              color=color, alpha=alpha,
                                              font="Roboto condensed bold",
                                              fontscale=True,
-                                             fontsize=None, fontsize_min=12,
-                                             fontsize_max=16))
+                                             fontsize=None, fontsize_min=8,
+                                             fontsize_max=12))
             if not (track['DateTime'][0] < self.dt_utc < track['DateTime'][-1]):
                 # signal that target is out of time range
                 color = 'orangered2'
@@ -824,12 +846,24 @@ class FindImage(GingaPlugin.LocalPlugin):
         pass
 
     def get_scale(self):
-        return self.viewer.get_scale()
+        v_scale = self.viewer.get_scale()
+        image = self.viewer.get_image()
+        if image is None:
+            scale = 1.0
+            return scale
 
-    def scale_set_cb(self, setting, scale):
+        header = image.get_header()
+        # get scale of image in deg/pix
+        rot, iscale_dim1, iscale_dim2 = wcs.get_rotation_and_scale(header)
+        # adjust by viewer scale
+        scale = max(iscale_dim1, iscale_dim2) / v_scale
+        return scale
+
+    def redraw_cb(self, setting, scale):
         if not self.gui_up:
             return
 
+        # scale, pan or rotation has changed--need to redraw our overlay
         self.plot_target()
 
     def __str__(self):

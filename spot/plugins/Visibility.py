@@ -275,21 +275,23 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.plot.clear()
         self.canvas.delete_object_by_tag('targets')
 
-    def plot_targets(self, targets):
-        """Plot targets.
-        """
+    def calc_targets(self, targets):
+        """Calculate target visibility and replot."""
+        # Although this is calculation-bound, running it in a different
+        # thread seems to leave our GUI a little more reponsive
+        self.fv.assert_nongui_thread()
+
         # remove no longer used targets
-        new_tgts = set(targets)
         with self.lock:
+            self._targets = targets
+            if not self.gui_up:
+                return
             dt_utc = self.dt_utc
             cur_tz = self.cur_tz
             satellite_barh_data = self._satellite_barh_data
             collision_barh_data = self._collision_barh_data
-            self._targets = targets
 
-        if not self.gui_up:
-            return
-
+        new_tgts = set(targets)
         # TODO: work with site object directly, not observer
         site = self.site.observer
 
@@ -331,8 +333,18 @@ class Visibility(GingaPlugin.LocalPlugin):
         stop_time = stop_time.replace(minute=stop_minute,
                                       second=0, microsecond=0)
 
+        # this does the heavy lifting
         target_data = self.get_target_data(targets, start_time, stop_time,
                                            interval_min)
+
+        # plot results back in the GUI thread
+        self.fv.gui_do(self._plot_targets, site, target_data, dt_utc, cur_tz,
+                       center_time, satellite_barh_data, collision_barh_data)
+
+    def _plot_targets(self, site, target_data, dt_utc, cur_tz,
+                      center_time, satellite_barh_data, collision_barh_data):
+        """Plot visibility results."""
+        self.fv.assert_gui_thread()
         # make altitude plot
         self.clear_plot()
 
@@ -474,7 +486,7 @@ class Visibility(GingaPlugin.LocalPlugin):
         with self.lock:
             targets = self._targets
         if targets is not None:
-            self.plot_targets(targets)
+            self.fv.nongui_do(self.calc_targets, targets)
 
     def _get_target_color(self, tgt):
         if tgt in self.selected:

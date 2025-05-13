@@ -30,6 +30,10 @@ Ver 1.0.0 (unreleased)
 - Subaru/MOIRCS FOV and Subaru/FOCAS FOV now have detectors labeled
 - Pan and Zoom plugins now open into workspaces below the Control panel
 - Added --version option to show SPOT version
+- Added non-sidereal targets loaded from JPL Horizons ephemeris files
+- Now properly support epoch/equinox values in CSV and OPE files
+- Now support proper motion in CSV files (columns "pmRA" and "pmDEC" specified
+  in milliarcsec / year
 
 Ver 0.4.1 (2025-03-14)
 ======================

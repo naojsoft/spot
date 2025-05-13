@@ -32,7 +32,7 @@ from skyfield.api import Star, Loader, wgs84
 from skyfield.earthlib import refraction
 from skyfield import almanac
 # don't download ephemeris to the CWD
-load = Loader(os.path.join(datadir))
+load = Loader(datadir)
 
 # Constants
 earth_radius_m = 6378136.6
@@ -516,9 +516,10 @@ class Observer:
     __str__ = __repr__
 
 
-class Body(object):
+class Body:
 
-    def __init__(self, name, ra, dec, equinox, comment=''):
+    def __init__(self, name, ra, dec, equinox, comment='',
+                 pmra=None, pmdec=None):
         super(Body, self).__init__()
 
         self.name = name
@@ -526,6 +527,9 @@ class Body(object):
         self.dec = dec
         self.equinox = equinox
         self.comment = comment
+        # specify in mas/yr
+        self.pmra = pmra
+        self.pmdec = pmdec
 
     def _get_epoch(self, eq):
         if isinstance(eq, str):
@@ -544,12 +548,22 @@ class Body(object):
             else:
                 ra_deg, dec_deg = self.ra.astype(float), self.dec.astype(float)
 
-            #epoch = np.array([self._get_epoch(eq) for eq in self.equinox])
-            epoch = [2000.0] * len(self.ra)
-            df = pd.DataFrame(dict(names=self.name, ra_degrees=ra_deg,
-                                   ra_hours=ra_deg / 15.0,
-                                   dec_degrees=dec_deg,
-                                   epoch_year=epoch))
+            if isinstance(self.equinox, np.ndarray):
+                epoch = [self._get_epoch(eq) for eq in self.equinox]
+            else:
+                epoch = [self._get_epoch(self.equinox)] * len(self.ra)
+            #epoch = timescale.tt(np.array(epoch))
+            epoch = np.array(epoch)
+
+            contents = dict(names=self.name, ra_degrees=ra_deg,
+                            ra_hours=ra_deg / 15.0, dec_degrees=dec_deg,
+                            epoch_year=epoch)
+            if self.pmra is not None:
+                contents['ra_mas_per_year'] = self.pmra
+            if self.pmdec is not None:
+                contents['dec_mas_per_year'] = self.pmdec
+
+            df = pd.DataFrame(contents)
             coord = Star.from_dataframe(df)
         else:
             if isinstance(self.ra, str):
@@ -559,8 +573,20 @@ class Body(object):
                 ra_deg, dec_deg = coord.ra.degree, coord.dec.degree
             else:
                 ra_deg, dec_deg = float(self.ra), float(self.dec)
-            # TODO: equinox
-            coord = Star(ra_hours=ra_deg / 15.0, dec_degrees=dec_deg)
+
+            epoch = self._get_epoch(self.equinox)
+
+            # NOTE: when you are initializing from kwargs, the kwarg is "epoch"
+            # but from a Pandas table it is "epoch_year"
+            kwargs = dict()
+            # Cannot pass None for optional parameters ra_mas_per_year or
+            # dec_mas_per_year--it tries to use the value
+            if self.pmra is not None:
+                kwargs['ra_mas_per_year'] = self.pmra
+            if self.pmdec is not None:
+                kwargs['dec_mas_per_year'] = self.pmdec
+            coord = Star(ra_hours=ra_deg / 15.0, dec_degrees=dec_deg,
+                         epoch=epoch, **kwargs)
 
         return coord
 

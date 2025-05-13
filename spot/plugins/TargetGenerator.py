@@ -173,26 +173,26 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
 
         top.add_widget(fr, stretch=0)
 
-        # fr = Widgets.Frame("JPL Horizons (Non-sidereal)")
+        fr = Widgets.Frame("JPL Horizons (Non-sidereal)")
 
-        # captions = (('Name:', 'label', 'ns_name', 'entry'),
-        #             ('Start time:', 'label', 'ns_start', 'entry',
-        #              'Stop time:', 'label', 'ns_stop', 'entry'),
-        #             ('Step:', 'label', 'ns_step', 'entry',
-        #              'Lookup name', 'button'),
-        #             )
+        captions = (('Name:', 'label', 'ns_name', 'entry'),
+                    ('Start time:', 'label', 'ns_start', 'entry',
+                     'Stop time:', 'label', 'ns_stop', 'entry'),
+                    ('Step:', 'label', 'ns_step', 'entry',
+                     'Lookup name', 'button'),
+                    )
 
-        # w, b = Widgets.build_info(captions)
-        # self.w.update(b)
-        # b.ns_name.set_tooltip("Name or code as known to JPL Horizons")
-        # b.ns_start.set_tooltip("Start time of observation (YYYY-MM-DD HH:MM:SS) in OBSERVER's time")
-        # b.ns_stop.set_tooltip("Stop time of observation (YYYY-MM-DD HH:MM:SS) in OBSERVER's time")
-        # b.ns_step.set_text("Step time of observation")
-        # b.ns_step.set_text('1m')
-        # b.lookup_name.add_callback('activated', self.get_nonsidereal_cb)
-        # b.lookup_name.set_tooltip("Lookup non-sidereal target at JPL Horizons")
-        # fr.set_widget(w)
-        # top.add_widget(fr, stretch=0)
+        w, b = Widgets.build_info(captions)
+        self.w.update(b)
+        b.ns_name.set_tooltip("Name or code as known to JPL Horizons")
+        b.ns_start.set_tooltip("Start time of observation (YYYY-MM-DD HH:MM:SS) in OBSERVER's time")
+        b.ns_stop.set_tooltip("Stop time of observation (YYYY-MM-DD HH:MM:SS) in OBSERVER's time")
+        b.ns_step.set_text("Step time of observation")
+        b.ns_step.set_text('1m')
+        b.lookup_name.add_callback('activated', self.get_nonsidereal_cb)
+        b.lookup_name.set_tooltip("Lookup non-sidereal target at JPL Horizons")
+        fr.set_widget(w)
+        top.add_widget(fr, stretch=0)
 
         btns = Widgets.HBox()
         btns.set_border_width(4)

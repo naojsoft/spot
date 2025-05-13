@@ -61,15 +61,20 @@ class TargetMixin:
 class Target(TargetMixin, Body):
 
     def __init__(self, name=None, ra=None, dec=None, equinox=2000.0,
-                 comment='', category=None):
+                 comment='', category=None, pmra=None, pmdec=None):
         TargetMixin.__init__(self, category=category)
-        Body.__init__(self, name, ra, dec, equinox, comment=comment)
+        Body.__init__(self, name, ra, dec, equinox, comment=comment,
+                      pmra=pmra, pmdec=pmdec)
 
     def import_record(self, rec):
         self.name = rec['Name']
         self.ra, self.dec, self.equinox = normalize_ra_dec_equinox(rec['RA'],
                                                                    rec['DEC'],
                                                                    rec['Equinox'])
+        if 'pmRA' in rec:
+            self.pmra = rec['pmRA']
+        if 'pmDEC' in rec:
+            self.pmdec = rec['pmDEC']
         self.comment = rec.get('Comment', '').strip()
 
 
@@ -190,8 +195,9 @@ def update_nonsidereal_targets(targets, dt):
         if not valid:
             # Time is outside of our tracking range. Indicate this by
             # changing the color of the target
-            #target.set(color='red')
-            pass
+            target.set(color='orangered')
+        else:
+            target.set(color='cyan')
     return changed
 
 def load_jplephem_target(eph_path, dt=None):
@@ -212,7 +218,7 @@ def load_jplephem_target(eph_path, dt=None):
     name = "Target"
     target = Target(name=name, ra=ras[0], dec=decs[0], equinox=2000.0,
                     category=eph_path)
-    target.set(nonsidereal=True, track=tbl)
+    target.set(color='cyan', nonsidereal=True, track=tbl)
 
     if dt is not None:
         update_nonsidereal_targets([target], dt)
@@ -234,7 +240,7 @@ def make_jplhorizons_target(name, eph_table, dt=None, category='Non-sidereal'):
 
     target = Target(name=name, ra=ras[0], dec=decs[0], equinox=2000.0,
                     category=category)
-    target.set(nonsidereal=True, track=tbl)
+    target.set(color='cyan', nonsidereal=True, track=tbl)
 
     if dt is not None:
         update_nonsidereal_targets([target], dt)
