@@ -349,20 +349,29 @@ class FindImage(GingaPlugin.LocalPlugin):
         p_canvas = self.viewer.get_canvas()
         p_canvas.delete_object(self.canvas)
 
+    def get_target(self):
+        return self._cur_target
+
     def redo(self):
         """This is called when a new image arrives or the data in the
         existing image changes.
         """
-        pass
+        tgt = self._cur_target
+        if tgt is not None:
+            # if we have a target set, then pan to that position
+            # since image center may not be that
+            image = self.viewer.get_image()
+            data_x, data_y = image.radectopix(tgt.ra, tgt.dec)
+            self.viewer.set_pan(data_x, data_y)
 
     def set_size_cb(self, w, val):
         self.size = (val, val)
 
     def change_skyradius_cb(self, setting, radius_arcmin):
-        radius = int(np.ceil(radius_arcmin) * 1.5)
-        self.size = (radius, radius)
+        length = int(np.ceil(radius_arcmin * 2))
+        self.size = (length, length)
         if self.gui_up:
-            self.w.size.set_value(radius)
+            self.w.size.set_value(length)
 
     def find_image(self):
         try:

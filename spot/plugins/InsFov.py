@@ -14,6 +14,7 @@ import numpy as np
 from ginga.gw import Widgets
 from ginga import GingaPlugin, trcalc
 from ginga.util import wcs
+from ginga.misc import Bunch
 from ginga.canvas.coordmap import BaseMapper
 
 from spot.util import target as spot_target
@@ -81,6 +82,7 @@ class InsFov(GingaPlugin.LocalPlugin):
         t_ = self.viewer.get_settings()
         t_.get_setting('pan').add_callback('set', self.set_pan_cb)
         t_.get_setting('rot_deg').add_callback('set', self.set_rot_cb)
+        t_.get_setting('flip_x').add_callback('set', self.set_tfm_cb)
 
         self.dc = fv.get_draw_classes()
         canvas = self.dc.DrawingCanvas()
@@ -96,11 +98,11 @@ class InsFov(GingaPlugin.LocalPlugin):
 
         self.cur_fov = FOV(self, self.canvas, (0, 0))
         # user's chosen flip and PA
-        self.flip = False
+        t_ = self.viewer.get_settings()
+        self.flip = t_['flip_x']
         self.pa_deg = 0.0
         self.coord = (0.0, 0.0)
         self.target = None
-        self._updating = False
         self.gui_up = False
 
     def build_gui(self, container):
@@ -158,7 +160,6 @@ class InsFov(GingaPlugin.LocalPlugin):
 
         captions = (('RA:', 'label', 'ra', 'entry', 'DEC:', 'label',
                      'dec', 'entry'),
-                    ('Equinox:', 'label', 'equinox', 'entry'),
                     )
 
         w, b = Widgets.build_info(captions)
@@ -171,7 +172,13 @@ class InsFov(GingaPlugin.LocalPlugin):
         b.dec.add_callback('activated', self.set_coord_cb)
         b.dec.set_tooltip("The Declination at the target")
 
-        #top.add_widget(Widgets.Label(''), stretch=1)
+        sw = Widgets.ScrollArea()
+        vbox = Widgets.VBox()
+        vbox.set_border_width(4)
+        vbox.set_spacing(2)
+        sw.set_widget(vbox)
+        self.w.fov_gui_box = vbox
+        top.add_widget(sw, stretch=1)
 
         btns = Widgets.HBox()
         btns.set_border_width(4)
@@ -224,6 +231,22 @@ class InsFov(GingaPlugin.LocalPlugin):
         if not self.gui_up:
             return
 
+        self.update_pointing()
+
+        # check pan location
+        pos = self.viewer.get_pan(coord='data')[:2]
+        data_x, data_y = pos[:2]
+
+        image = self.viewer.get_image()
+        if image is None:
+            return
+
+        ra_deg, dec_deg = image.pixtoradec(data_x, data_y)
+        ra_str = wcs.ra_deg_to_str(ra_deg)
+        dec_str = wcs.dec_deg_to_str(dec_deg)
+        self.w.ra.set_text(ra_str)
+        self.w.dec.set_text(dec_str)
+
         self.redo_image()
 
     def redo_image(self):
@@ -231,19 +254,8 @@ class InsFov(GingaPlugin.LocalPlugin):
         if image is None:
             return
 
-        pan_pt = self.viewer.get_pan(coord='data')[:2]
-        data_x, data_y = pan_pt
-
-        ra_deg, dec_deg = image.pixtoradec(data_x, data_y)
-        self.coord = (ra_deg, dec_deg)
-        self.target = spot_target.Target(name="insfov", ra=ra_deg,
-                                         dec=dec_deg, equinox=2000.0)
-        ra_str = wcs.ra_deg_to_str(ra_deg)
-        dec_str = wcs.dec_deg_to_str(dec_deg)
-        self.w.ra.set_text(ra_str)
-        self.w.dec.set_text(dec_str)
-        header = image.get_header()
-        self.w.equinox.set_text(str(header.get('EQUINOX', '2000.0')))
+        ra_deg, dec_deg = self.coord
+        pan_pt = image.radectopix(ra_deg, dec_deg)
 
         # the image rotation necessary to show 0 deg position angle
         self.cur_fov.init_image(image, pan_pt, self.pa_deg, righthand=self.flip)
@@ -254,6 +266,8 @@ class InsFov(GingaPlugin.LocalPlugin):
         with self.viewer.suppress_redraw:
             # changing instrument: remove old FOV
             self.cur_fov.remove()
+            # remove FOV GUI
+            self.w.fov_gui_box.remove_all(delete=True)
 
             if telname == 'None':
                 # 'None' selected
@@ -271,6 +285,9 @@ class InsFov(GingaPlugin.LocalPlugin):
 
             self.redo_image()
 
+            self.cur_fov.build_gui(self.w.fov_gui_box)
+
+
     def set_pa_cb(self, w):
         self.pa_deg = float(w.get_text().strip())
         self.update_fov()
@@ -284,7 +301,7 @@ class InsFov(GingaPlugin.LocalPlugin):
         self.redo_image()
 
     def set_pan_cb(self, setting, val):
-        if not self.gui_up or self._updating:
+        if not self.gui_up:
             return
 
         # check pan location
@@ -298,25 +315,11 @@ class InsFov(GingaPlugin.LocalPlugin):
         # user might have panned somewhere else, so check our location
         # at the pan position
         ra_deg, dec_deg = image.pixtoradec(data_x, data_y)
-        if (not np.isclose(ra_deg, self.coord[0], rtol=1e-10) or
-            not np.isclose(dec_deg, self.coord[1], rtol=1e-10)):
-            # location changed
-            self.coord = (ra_deg, dec_deg)
-            self.target = spot_target.Target(name="insfov", ra=ra_deg,
-                                             dec=dec_deg, equinox=2000.0)
-            ra_str = wcs.ra_deg_to_str(ra_deg)
-            dec_str = wcs.dec_deg_to_str(dec_deg)
-            self.w.ra.set_text(ra_str)
-            self.w.dec.set_text(dec_str)
-            header = image.get_header()
-            self.w.equinox.set_text(str(header.get('EQUINOX', '2000.0')))
-
-            self._updating = True
-            try:
-                # update graphics for new position
-                self.cur_fov.set_pos(pos)
-            finally:
-                self._updating = False
+        # location changed
+        ra_str = wcs.ra_deg_to_str(ra_deg)
+        dec_str = wcs.dec_deg_to_str(dec_deg)
+        self.w.ra.set_text(ra_str)
+        self.w.dec.set_text(dec_str)
 
     def set_rot_cb(self, setting, val):
         if not self.gui_up:
@@ -329,6 +332,16 @@ class InsFov(GingaPlugin.LocalPlugin):
             self.logger.info(f"PA is now {pa_deg} deg")
             self.w.pa.set_text("%.2f" % (pa_deg))
             self.pa_deg = pa_deg
+
+    def set_tfm_cb(self, setting, x_flipped):
+        prev_flip, self.flip = self.flip, x_flipped
+        if not self.gui_up:
+            return
+
+        if prev_flip != self.flip:
+            self.w.flip.set_state(self.flip)
+            # needed to prevent recursive callback
+            self.redo_image()
 
     def site_changed_cb(self, cb, site_obj):
         self.logger.debug("site has changed")
@@ -359,12 +372,21 @@ class InsFov(GingaPlugin.LocalPlugin):
     def get_site(self):
         return self.site
 
+    def update_pointing(self):
+        obj = self.channel.opmon.get_plugin('FindImage')
+        target = obj.get_target()
+
+        self.target = target
+        if target is None:
+            self.coord = (0.0, 0.0)
+        else:
+            ra_deg, dec_deg = target.ra, target.dec
+            self.coord = (ra_deg, dec_deg)
+
     def set_coord_cb(self, w):
         ra = self.w.ra.get_text().strip()
         dec = self.w.dec.get_text().strip()
-        eq = self.w.equinox.get_text().strip()
-        if len(eq) == 0:
-            eq = '2000.0'
+        eq = 2000.0
         ra_deg, dec_deg, equinox = spot_target.normalize_ra_dec_equinox(ra, dec, eq)
 
         image = self.viewer.get_image()
@@ -401,6 +423,8 @@ class FOV:
         self.pa_rot_deg = 0.0
         # user desires a flip of the image
         self.flip_tf = False
+
+        self.w = Bunch.Bunch()
 
     def init_image(self, image, pt, pa_deg, righthand=False):
         """Initialize FOV from an image and a pan position on that image.
@@ -450,6 +474,9 @@ class FOV:
 
         #viewer.redraw(whence=0)
 
+    def build_gui(self, container):
+        pass
+
     def set_pa(self, pa_deg):
         """Set the desired Position Angle of the FOV.
 
@@ -475,6 +502,31 @@ class FOV:
         pa_deg : float
             The position angle of the field
         """
+        return self.pa_deg
+
+    def update_pa_from_rotation(self, rot_deg):
+        """How the FOV object is told the image has rotated.
+
+        It should update its idea of the new Position Angle.
+
+        Parameters
+        ----------
+        rot_deg : float
+            The current rotation of the viewer.
+
+        Returns
+        -------
+        pa_deg : float
+            The new Position Angle of the field.
+        """
+        self.pa_rot_deg = rot_deg
+
+        if not self.flip_tf:
+            pa_deg = self.img_rot_deg + self.mount_offset_rot_deg - rot_deg
+        else:
+            pa_deg = - self.img_rot_deg + self.mount_offset_rot_deg + rot_deg
+
+        self.pa_deg = normalize_angle(pa_deg, limit='half')
         return self.pa_deg
 
     def set_scale(self, scale_x, scale_y):
@@ -505,31 +557,6 @@ class FOV:
             X and Y position (in pixels) on the image
         """
         pass
-
-    def update_pa_from_rotation(self, rot_deg):
-        """How the FOV object is told the image has rotated.
-
-        It should update its idea of the new Position Angle.
-
-        Parameters
-        ----------
-        rot_deg : float
-            The current rotation of the viewer.
-
-        Returns
-        -------
-        pa_deg : float
-            The new Position Angle of the field.
-        """
-        self.pa_rot_deg = rot_deg
-
-        if not self.flip_tf:
-            pa_deg = self.img_rot_deg + self.mount_offset_rot_deg - rot_deg
-        else:
-            pa_deg = - self.img_rot_deg + self.mount_offset_rot_deg + rot_deg
-
-        self.pa_deg = normalize_angle(pa_deg, limit='half')
-        return self.pa_deg
 
     def rotate(self, rot_deg):
         pass

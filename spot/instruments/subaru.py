@@ -6,7 +6,19 @@ import numpy as np
 from astropy.coordinates import Angle
 from astropy import units as u
 
+from ginga.util import wcs
+from ginga.gw import Widgets
+
 from spot.plugins.InsFov import FOV
+from spot.util.rot import normalize_angle
+
+try:
+    from naoj.hsc import ccd_info, sdo
+    have_naojutils = True
+
+except ImportError:
+    have_naojutils = False
+
 
 
 class AO188_FOV(FOV):
@@ -18,7 +30,7 @@ class AO188_FOV(FOV):
         self.scale = 1.0
         self.ao_radius = 60 * 0.5
         self.rot_deg = 0.0
-        self.sky_radius_arcmin = self.ao_fov * 60
+        self.sky_radius_arcmin = 1.5
 
         self.ao_color = 'red'
 
@@ -170,7 +182,7 @@ class CS_FOV(FOV):
         self.scale = 1.0
         self.cs_radius = 6 * 0.5
         self.rot_deg = 0.0
-        self.sky_radius_arcmin = self.cs_fov * 60
+        self.sky_radius_arcmin = 5.0
 
         self.cs_color = 'red'
 
@@ -267,7 +279,7 @@ class MOIRCS_FOV(CS_FOV):
 
         self.moircs_fov = (0.0666667, 0.116667)   # 4x7 arcmin
         self.moircs_radius = (4 * 0.5, 7 * 0.5)
-        self.text_off = 0.75
+        self.text_off = 0.90
 
         self.moircs_color = 'red'
 
@@ -283,10 +295,10 @@ class MOIRCS_FOV(CS_FOV):
                          rot_deg=self.rot_deg),
             self.dc.Line(x - xr, y, x + xr, y,
                          color=self.moircs_color, linewidth=2),
-            self.dc.Text(x, y - (yr * self.text_off), text='Det 1',
+            self.dc.Text(x + xr, y - (yr * self.text_off), text='Det 1',
                          color=self.cs_color,
                          bgcolor='white', bgalpha=0.75),
-            self.dc.Text(x, y + (yr * self.text_off), text='Det 2',
+            self.dc.Text(x + xr, y + (yr * self.text_off), text='Det 2',
                          color=self.cs_color,
                          bgcolor='white', bgalpha=0.75),
         )
@@ -315,9 +327,9 @@ class MOIRCS_FOV(CS_FOV):
         self.moircs_box.objects[2].x2 = x + xr
         self.moircs_box.objects[2].y1 = y
         self.moircs_box.objects[2].y2 = y
-        self.moircs_box.objects[3].x = x
+        self.moircs_box.objects[3].x = x + xr
         self.moircs_box.objects[3].y = y - (yr * self.text_off)
-        self.moircs_box.objects[4].x = x
+        self.moircs_box.objects[4].x = x + xr
         self.moircs_box.objects[4].y = y + (yr * self.text_off)
 
         self.canvas.update_canvas()
@@ -391,17 +403,18 @@ class FOCAS_FOV(CS_FOV):
         super().__init__(pl_obj, canvas, pt)
 
         self.cs_circ.objects[1].text = "FOCAS FOV (6 arcmin)"
-        self.text_off = 0.90
+        self.text_off = 0.50
 
+        # center of FOV circle
         x, y = self.cs_circ.objects[0].points[0][:2]
         xr = self.cs_radius
         self.focas_info = self.dc.CompoundObject(
             self.dc.Line(x - xr, y, x + xr, y,
                          color=self.cs_color, linewidth=2),
-            self.dc.Text(x, y - (xr * self.text_off), text='Chip 1',
+            self.dc.Text(x + xr, y - (xr * self.text_off), text='Chip 1',
                          color=self.cs_color,
                          bgcolor='white', bgalpha=0.75),
-            self.dc.Text(x, y + (xr * self.text_off),
+            self.dc.Text(x + xr, y + (xr * self.text_off),
                          text='Chip 2', color=self.cs_color,
                          bgcolor='white', bgalpha=0.75),
         )
@@ -421,9 +434,9 @@ class FOCAS_FOV(CS_FOV):
         self.focas_info.objects[0].x2 = x + xr
         self.focas_info.objects[0].y1 = y
         self.focas_info.objects[0].y2 = y
-        self.focas_info.objects[1].x = x
+        self.focas_info.objects[1].x = x + xr
         self.focas_info.objects[1].y = y - (xr * self.text_off)
-        self.focas_info.objects[2].x = x
+        self.focas_info.objects[2].x = x + xr
         self.focas_info.objects[2].y = y + (xr * self.text_off)
 
         self.canvas.update_canvas()
@@ -442,7 +455,7 @@ class HDS_FOV(FOV):
         self.scale = 1.0
         self.hds_radius = 1 * 0.5
         self.rot_deg = 0.0
-        self.sky_radius_arcmin = self.hds_fov * 60
+        self.sky_radius_arcmin = 1.5
 
         self.hds_color = 'red'
 
@@ -534,7 +547,7 @@ class PF_FOV(FOV):
         self.pf_fov = 1.5   # 1.5 deg
         self.scale = 1.0
         self.pf_radius = self.pf_fov * 0.5
-        self.sky_radius_arcmin = self.pf_radius * 60
+        self.sky_radius_arcmin = 55
         self.rot_deg = 0.0
 
         self.pf_color = 'red'
@@ -545,7 +558,7 @@ class PF_FOV(FOV):
             self.dc.Circle(x, y, r,
                            color=self.pf_color, linewidth=2),
             self.dc.Text(x, y,
-                         text="PF FOV (1.5 deg)",
+                         text=f"PF FOV ({self.pf_fov:.2f} deg)",
                          color=self.pf_color,
                          rot_deg=self.rot_deg))
         self.canvas.add(self.pf_circ)
@@ -578,11 +591,390 @@ class PF_FOV(FOV):
 
 
 class HSC_FOV(PF_FOV):
-    pass
+
+    def __init__(self, pl_obj, canvas, pt):
+        super().__init__(pl_obj, canvas, pt)
+
+        self.pf_circ.objects[1].text = f"HSC FOV ({self.pf_fov:.2f} deg)"
+        self.paths = []
+        self.set_pos(pt)
+
+        # for the dithering GUI
+        self.dither_types = ['1', '5', 'N']
+        self.dither_type = '1'
+        self.dither_steps = 5
+
+        # default dra/ddec is 120"
+        self.dra = 120.0
+        self.ddec = 120.0
+        self.tdith = 15.0
+        self.rdith = 120.0
+
+        self.target_radius = 20
+
+    def calc_ccd_positions(self):
+        """Computes paths for all the CCD polygons."""
+        viewer = self.pl_obj.viewer
+        image = viewer.get_image()
+        if image is None:
+            return
+
+        ctr_ra, ctr_dec = self.pl_obj.coord
+        info = ccd_info.info
+
+        paths = []
+        keys = list(info.keys())
+        keys.sort()
+        for key in keys:
+            poly_coords = np.array([wcs.add_offset_radec(ctr_ra, ctr_dec,
+                                                         dra, ddec)
+                                    for dra, ddec in info[key]['polygon']])
+            path_points = image.wcs.wcspt_to_datapt(poly_coords)
+            paths.append((key, path_points))
+
+        self.paths = paths
+
+    def draw_ccds(self):
+        l = []
+        info = ccd_info.info
+
+        for key, points in self.paths:
+
+            showfill = False
+            if 'color' in info[key]:
+                color = info[key]['color']
+            else:
+                color = 'lightgreen'
+            if color == 'red':
+                showfill = True
+            p = self.dc.Polygon(points, color=color, fill=showfill,
+                                fillcolor='red', fillalpha=0.4,
+                                showcap=False, coord='insfov')
+
+            # annotate with the CCD name
+            # find center, which is geometric average of points
+            xs, ys = points.T
+            pcx, pcy = np.sum(xs) / len(xs), np.sum(ys) / len(ys)
+            name = sdo.sdo_map[key]
+            t = self.dc.Text(pcx, pcy, text=name, color=color, fontsize=12,
+                             coord='insfov')
+
+            l.append(self.dc.CompoundObject(p, t))
+
+        obj = self.dc.CompoundObject(*l)
+        obj.opaque = True
+        obj.editable = False
+
+        self.canvas.add(obj, tag='ccd_overlay')
+
+    def build_gui(self, container):
+        fr = Widgets.Frame("Dithering")
+
+        vbox2 = Widgets.VBox()
+        captions = (('Dither Type:', 'label', 'Dither Type', 'combobox',
+                     'Dither Steps:', 'label', 'Dither Steps', 'spinbutton'),
+                    ('RA Offset:', 'label', 'RA Offset', 'entry',
+                     'DEC Offset:', 'label', 'DEC Offset', 'entry',),
+                    ('Dith1:', 'label', 'Dith1', 'entry',
+                     'Dith2:', 'label', 'Dith2', 'entry',),
+                    ('Skip:', 'label', 'Skip', 'spinbutton',
+                     'Stop:', 'label', 'Stop', 'spinbutton'),
+                    ('Update View', 'button'),
+                    )
+        w, b = Widgets.build_info(captions, orientation='vertical')
+        self.w.update(b)
+
+        combobox = b.dither_type
+        for name in self.dither_types:
+            combobox.append_text(name)
+        index = self.dither_types.index(self.dither_type)
+        combobox.set_index(index)
+        combobox.add_callback('activated', lambda w, idx: self.set_dither_type_cb())
+        combobox.set_tooltip("Set dither type")
+        b.dither_steps.set_limits(1, 20)
+        b.dither_steps.add_callback('value-changed',
+                                    lambda w, idx: self.set_dither_steps_cb(idx))
+        b.dither_steps.set_tooltip("Number of dither steps")
+
+        b.ra_offset.set_text(str(0.0))
+        b.dec_offset.set_text(str(0.0))
+        b.ra_offset.set_tooltip("RA offset from center of field in arcsec")
+        b.dec_offset.set_tooltip("DEC offset from center of field in arcsec")
+        b.skip.set_value(0)
+        b.skip.set_tooltip("Skip over some dither steps")
+        b.stop.set_value(1)
+        b.stop.set_tooltip("Stop at a particular dither step")
+        b.update_view.add_callback('activated', lambda w: self.update_info_cb())
+        b.update_view.set_tooltip("Update the overlays after changing acquisition parameters")
+
+        vbox2.add_widget(w)
+        self.set_dither_type_cb()
+
+        fr.set_widget(vbox2)
+        container.add_widget(fr, stretch=0)
+
+        captions = (("Dither Pos:", 'label', 'Show Step', 'spinbutton'),
+                    )
+        w, b = Widgets.build_info(captions, orientation='vertical')
+        self.w.update(b)
+
+        b.show_step.add_callback('value-changed',
+                                 lambda w, idx: self.show_step_cb(idx))
+        b.show_step.set_tooltip("Show position of detectors at dither step")
+
+        container.add_widget(w, stretch=0)
+
+    def draw_dither_positions(self):
+        self.canvas.delete_object_by_tag('dither_positions')
+        image = self.pl_obj.viewer.get_image()
+
+        l = []
+        start, stop, posns = self.get_dither_positions()
+        i = start
+        for ra_deg, dec_deg in posns:
+            x, y = image.radectopix(ra_deg, dec_deg)
+            l.append(self.dc.Text(x, y, text="%d" % i, color='yellow',
+                                  fontscale=True, fontsize_min=14,
+                                  fontsize_max=18))
+            l.append(self.dc.Point(x, y, self.target_radius, color='yellow',
+                                   linewidth=2, style='plus'))
+            i += 1
+        obj = self.dc.CompoundObject(*l)
+        obj.opaque = True
+        obj.editable = False
+
+        self.canvas.add(obj, tag='dither_positions')
+
+    def set_dither_type_cb(self):
+        index = self.w.dither_type.get_index()
+        self.dither_type = self.dither_types[index]
+
+        if self.dither_type == '1':
+            self.w.dither_steps.set_value(1)
+            self.w.dither_steps.set_enabled(False)
+            ## self.w.show_step.set_limits(1, 1)
+            self.w.dith1.set_enabled(False)
+            self.w.dith2.set_enabled(False)
+            self.w.dith1.set_text('')
+            self.w.dith2.set_text('')
+            self.w.skip.set_enabled(False)
+            self.w.stop.set_enabled(False)
+
+        elif self.dither_type == '5':
+            self.w.dith1.set_text(str(self.dra))
+            self.w.dith2.set_text(str(self.ddec))
+            self.w.dither_steps.set_value(5)
+            self.w.dither_steps.set_enabled(False)
+            ## self.w.show_step.set_limits(1, 5)
+            self.w.dith1.set_enabled(True)
+            self.w.dith2.set_enabled(True)
+            self.w.lbl_dith1.set_text("Delta RA:")
+            self.w.lbl_dith2.set_text("Delta DEC:")
+            self.w.skip.set_enabled(True)
+            self.w.skip.set_limits(0, 4)
+            self.w.skip.set_value(0)
+            self.w.stop.set_enabled(True)
+            self.w.stop.set_limits(1, 5)
+            self.w.stop.set_value(5)
+
+        else:
+            N = self.dither_steps
+            self.w.dith1.set_text(str(self.rdith))
+            self.w.dith2.set_text(str(self.tdith))
+            self.w.dither_steps.set_value(N)
+            self.w.dither_steps.set_enabled(True)
+            ## self.w.show_step.set_limits(1, N)
+            self.w.dith1.set_enabled(True)
+            self.w.dith2.set_enabled(True)
+            self.w.lbl_dith1.set_text("RDITH:")
+            self.w.lbl_dith2.set_text("TDITH:")
+            self.w.skip.set_enabled(True)
+            self.w.skip.set_limits(0, N - 1)
+            self.w.skip.set_value(0)
+            self.w.stop.set_enabled(True)
+            self.w.stop.set_limits(1, N)
+            self.w.stop.set_value(N)
+
+        #self.pl_obj.fv.error_wrap(self.draw_dither_positions)
+        #self.show_step(1)
+
+        return True
+
+    def update_info_cb(self):
+        try:
+            # calculate center and target coordinates
+            ra_off_deg = float(self.w.ra_offset.get_text()) / 3600.0
+            dec_off_deg = float(self.w.dec_offset.get_text()) / 3600.0
+            self.ra_off_deg = ra_off_deg
+            self.dec_off_deg = dec_off_deg
+
+            # save dither params
+            if self.dither_type == '5':
+                self.dra = float(self.w.dith1.get_text())
+                self.ddec = float(self.w.dith2.get_text())
+
+            elif self.dither_type == 'N':
+                self.rdith = float(self.w.dith1.get_text())
+                self.tdith = float(self.w.dith2.get_text())
+
+            # add targets to canvas
+            #self.draw_targets()
+
+            self.draw_dither_positions()
+
+            # ctr_ra_deg, ctr_dec_deg = self.pl_obj.coord
+            # self.pl_obj.fv.error_wrap(self.draw_ccds,
+            #                           self.ctr_ra_deg, self.ctr_dec_deg)
+
+            start = int(self.w.skip.get_value()) + 1
+            stop = int(self.w.stop.get_value())
+            self.w.show_step.set_limits(start, stop)
+            self.w.show_step.set_value(start)
+
+            self.show_step(start)
+
+        except Exception as e:
+            self.pl_obj.fv.show_error(str(e))
+        return True
+
+    def calc_dither1(self, n):
+        ctr_ra_deg, ctr_dec_deg = self.pl_obj.coord
+        ctr_ra, ctr_dec = wcs.add_offset_radec(
+            ctr_ra_deg, ctr_dec_deg,
+            self.ra_off_deg, self.dec_off_deg)
+        return (ctr_ra, ctr_dec)
+
+    def calc_dither5(self, n):
+        idx = n - 1
+        l = ((0.0, 0.0), (1.0, -2.0), (2.0, 1.0), (-1.0, 2.0), (-2.0, -1.0))
+        mra, mdec = l[idx]
+
+        dra = float(self.w.dith1.get_text()) / 3600.0
+        ddec = float(self.w.dith2.get_text()) / 3600.0
+
+        ctr_ra_deg, ctr_dec_deg = self.pl_obj.coord
+        ctr_ra, ctr_dec = wcs.add_offset_radec(
+            ctr_ra_deg, ctr_dec_deg,
+            mra * dra + self.ra_off_deg, mdec * ddec + self.dec_off_deg)
+        return (ctr_ra, ctr_dec)
+
+    def calc_ditherN(self, n):
+        n = n - 1
+        rdith = float(self.w.dith1.get_text()) / 3600.0
+        tdith = float(self.w.dith2.get_text())
+        ndith = float(self.dither_steps)
+
+        sin_res = np.sin(np.radians(n * 360.0 / ndith + tdith))
+        cos_res = np.cos(np.radians(n * 360.0 / ndith + tdith))
+
+        ctr_ra_deg, ctr_dec_deg = self.pl_obj.coord
+        ctr_ra, ctr_dec = wcs.add_offset_radec(
+            ctr_ra_deg, ctr_dec_deg,
+            cos_res * rdith + self.ra_off_deg,
+            sin_res * rdith + self.dec_off_deg)
+        return (ctr_ra, ctr_dec)
+
+    def calc_dither(self, n):
+        dith_type = self.dither_type
+        if dith_type == '1':
+            ra, dec = self.calc_dither1(n)
+        elif dith_type == '5':
+            ra, dec = self.calc_dither5(n)
+        elif dith_type == 'N':
+            ra, dec = self.calc_ditherN(n)
+        return (ra, dec)
+
+    def get_dither_positions(self):
+        dith_type = self.dither_type
+        skip = self.w.skip.get_value()
+        stop = self.w.stop.get_value()
+
+        if dith_type == '1':
+            return 1, 1, [self.calc_dither1(n) for n in range(1, 2)]
+        elif dith_type == '5':
+            return skip + 1, stop, [self.calc_dither5(n)
+                                    for n in range(skip + 1, stop + 1)]
+        elif dith_type == 'N':
+            #N = self.dither_steps
+            return skip + 1, stop, [self.calc_ditherN(n)
+                                    for n in range(skip + 1, stop + 1)]
+
+    def set_dither_steps_cb(self, n):
+        self.dither_steps = n
+        ## self.w.show_step.set_limits(1, n)
+        self.w.skip.set_limits(0, n - 1)
+        self.w.skip.set_value(0)
+        self.w.stop.set_limits(1, n)
+        self.w.stop.set_value(n)
+        #self.pl_obj.fv.error_wrap(self.draw_dither_positions)
+        return True
+
+    def _show_step(self, n):
+        ra, dec = self.calc_dither(n)
+        viewer = self.pl_obj.viewer
+        image = viewer.get_image()
+        data_x, data_y = image.radectopix(ra, dec)
+        viewer.set_pan(data_x, data_y)
+        return True
+
+    def show_step(self, n):
+        #self.w.show_step.set_text(str(n))
+        self.w.show_step.set_value(n)
+        self._show_step(n)
+
+    def show_step_cb(self, n):
+        #n = int(strip(self.w.show_step.get_text()))
+        self.pl_obj.fv.error_wrap(self._show_step, n)
+        return True
+
+    def set_pos(self, pt):
+        super().set_pos(pt)
+
+        if not have_naojutils:
+            return
+        self.canvas.delete_object_by_tag('ccd_overlay')
+
+        self.calc_ccd_positions()
+        self.draw_ccds()
+
+        self.canvas.update_canvas()
+
+    def set_pa(self, pa_deg):
+        # *** NOTE ***: opposite of base class because camera at Prime focus
+        if self.flip_tf:
+            self.pa_rot_deg = self.img_rot_deg + self.mount_offset_rot_deg - pa_deg
+        else:
+            self.pa_rot_deg = self.img_rot_deg - self.mount_offset_rot_deg + pa_deg
+
+        self.pa_deg = normalize_angle(pa_deg, limit='half')
+
+    def update_pa_from_rotation(self, rot_deg):
+        self.pa_rot_deg = rot_deg
+
+        # *** NOTE ***: opposite of base class because camera at Prime focus
+        if not self.flip_tf:
+            pa_deg = - self.img_rot_deg + self.mount_offset_rot_deg + rot_deg
+        else:
+            pa_deg = self.img_rot_deg + self.mount_offset_rot_deg - rot_deg
+
+        self.pa_deg = normalize_angle(pa_deg, limit='half')
+        return self.pa_deg
+
+    def remove(self):
+        super().remove()
+        self.canvas.delete_object_by_tag('ccd_overlay')
+        self.canvas.delete_object_by_tag('dither_positions')
 
 
 class PFS_FOV(PF_FOV):
-    pass
+
+    def __init__(self, pl_obj, canvas, pt):
+        super().__init__(pl_obj, canvas, pt)
+
+        self.pf_fov = 1.37   # deg
+        self.pf_radius = self.pf_fov * 0.5
+
+        self.pf_circ.objects[1].text = f"PFS FOV ({self.pf_fov:.2f} deg)"
 
 
 # see spot/instruments/__init__.py

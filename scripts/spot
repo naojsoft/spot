@@ -46,7 +46,7 @@ default_layout = ['seq', {},
                                  width=400, height=-1, group=2),
                       # (tabname, layout), ...
                       [("Dialogs", ['ws', dict(name='dialogs', wstype='tabs',
-                                               group=2)
+                                               group=2),
                                     ]
                         ),
                        ("Control", ['vpanel', {},
@@ -85,7 +85,7 @@ if __name__ == "__main__":
                            # ('Colorbar', dict(workspace='colorbar')),
                            ('Cursor', dict(workspace='readout')),
                            ('Errors', dict(workspace='right')),
-                           ('Downloads', dict(workspace='right', start=True)),
+                           ('Downloads', dict(workspace='dialogs', start=True)),
                            ('Command', dict(workspace='dialogs')),
                            ('Log', dict(workspace='right')),
                            ('ScreenShot', dict(workspace='dialogs')),

@@ -131,8 +131,9 @@ class Targets(GingaPlugin.LocalPlugin):
 
     The "Select All" button will select all of the targets in the table.
 
-    Selecting targets and pressing "Delete" will remove those selected targets
-    from the list. .
+    Selecting targets and pressing "Delete" will remove selected targets
+    from the list.  If only a category row is selected (but no targets),
+    pressing this button will delete all targets in the category.
 
     The drop down menu next to "Plot:" changes which targets are plotted on
     the `<wsname>_TGTS` window. Selecting "All" will show all of the targets,
@@ -148,22 +149,24 @@ class Targets(GingaPlugin.LocalPlugin):
     settings.
 
     * If you check "Merge Targets" then all targets loaded *after that*
-      will be organized under a single heading of "Targets", instead of being grouped
-      by file name.
-    * "List Unreferenced Targets" is a setting that just affects OPE files.  Normally,
-      the Targets plugin will ignore targets that are not referenced in the commands.
-      Checking this setting will show all targets regardless of whether they are
-      referenced or not.  This can be used to show targets in PRM include files.
+      will be organized under a single heading of "Targets", instead of being
+      grouped by file name.
+    * "List Unreferenced Targets" is a setting that just affects OPE files.
+      Normally, the Targets plugin will ignore targets that are not referenced
+      in the commands. Checking this setting will show all targets regardless
+      of whether they are referenced or not.  This can be used to show targets
+      in PRM include files.
     * Checking the option for "Plot solar system objects" will plot the Sun,
       Earth's Moon, the planets, and pluto on the `<wsname>_TGTS` window.
 
     * The "Rotate target colors" option will mean that each file loaded will
       use a different automatically selected color for the targets (this will
       only take effect if "Merge targets" is turned off).
-    * "Enable DateTime setting" is a option to enable the setting of a fixed date/time
-      if the CSV file includes a "DateTime" column.  When enabled, selecting a single
-      target in the table will set the date/time in the SiteSelector plugin to that
-      date and time.  The format of this column should be: YYYY-MM-DD HH:MM:SS <TZ>
+    * "Enable DateTime setting" is a option to enable the setting of a fixed
+      date/time if the CSV file includes a "DateTime" column.  When enabled,
+      selecting a single target in the table will set the date/time in the
+      SiteSelector plugin to that date and time.  The format of this column
+      should be: YYYY-MM-DD HH:MM:SS <TZ>
       If the timezone string is omitted, UTC is assumed.
     """
     def __init__(self, fv, fitsimage):
@@ -325,6 +328,74 @@ class Targets(GingaPlugin.LocalPlugin):
 
         plot_update_text = "Please select file for list display"
 
+        self.w.toolbar1 = Widgets.Toolbar(orientation='horizontal')
+        # TODO: figure out a better way to handle this!!!
+        if self.fv.gpmon.has_plugin('Gen2Int'):
+            menu = self.w.toolbar1.add_menu("Gen2", mtype='menu')
+            btn = menu.add_name("Sync integgui2")
+            obj = self.fv.gpmon.get_plugin('Gen2Int')
+            btn.add_callback('activated', obj.sync_targets, self.channel)
+            self.w.toolbar1.add_separator()
+
+        hbox = Widgets.HBox()
+        hbox.set_spacing(5)
+        self.w.update_time = Widgets.Label(plot_update_text)
+        hbox.add_widget(self.w.update_time, stretch=0)
+        hbox.add_widget(Widgets.Label(''), stretch=1)
+        hbox.add_widget(self.w.toolbar1, stretch=0)
+        top.add_widget(hbox, stretch=0)
+
+        self.w.tgt_tbl = Widgets.TreeView(auto_expand=False,
+                                          selection='multiple',
+                                          sortable=True,
+                                          use_alt_row_color=True)
+        self.w.tgt_tbl.setup_table(self.columns, 2, 'name')
+        top.add_widget(self.w.tgt_tbl, stretch=1)
+
+        self.w.tgt_tbl.set_optimal_column_widths()
+        self.w.tgt_tbl.add_callback('selected', self.target_selection_cb)
+        # self.w.tgt_tbl.add_callback('activated', self.target_single_cb)
+        self.w.tgt_tbl.add_callback('collapsed', self.targets_collapse_cb)
+        self.w.tgt_tbl.add_callback('expanded', self.targets_collapse_cb)
+
+        self.w.toolbar2 = Widgets.Toolbar(orientation='horizontal')
+        btn = self.w.toolbar2.add_action("Tag")
+        btn.set_tooltip("Add highlighted items to tagged targets")
+        btn.add_callback('activated', self.tag_cb)
+        self.w.btn_tag = btn
+        btn = self.w.toolbar2.add_action("Untag")
+        btn.set_tooltip("Remove highlighted items from tagged targets")
+        btn.add_callback('activated', self.untag_cb)
+        self.w.btn_untag = btn
+        btn = self.w.toolbar2.add_action("Select All")
+        btn.set_tooltip("Select all targets")
+        btn.add_callback('activated', self.select_all_cb)
+        self.w.btn_select_all = btn
+        btn = self.w.toolbar2.add_action("Delete")
+        btn.set_tooltip("Delete selected target from targets")
+        btn.add_callback('activated', self.delete_cb)
+        self.w.btn_delete = btn
+        btn = self.w.toolbar2.add_action("Collapse All")
+        btn.set_tooltip("Collapse all loaded files")
+        btn.add_callback('activated', self.collapse_all_cb)
+        self.w.btn_collapse_all = btn
+
+        self.w.toolbar2.add_spacer()
+        #self.w.toolbar2.add_separator()
+
+        self.w.toolbar2.add_widget(Widgets.Label('Plot:'))
+        plot = Widgets.ComboBox()
+        for option in ['Selected', 'Tagged+selected', 'Uncollapsed', 'All']:
+            plot.append_text(option)
+        plot.set_text(self.plot_which.capitalize())
+        plot.add_callback('activated', self.configure_plot_cb)
+        plot.set_tooltip("Choose what is plotted")
+        self.w.toolbar2.add_widget(plot)
+
+        self._update_selection_buttons()
+
+        self.w.toolbar2.add_spacer()
+
         m = Widgets.Menu()
         self.w.menu_config = m
         action = m.add_name("Merge Targets", checkable=True)
@@ -357,78 +428,11 @@ class Targets(GingaPlugin.LocalPlugin):
         action.add_callback('activated', self.enable_datetime_cb)
         self.w.enable_datetime_setting = action
 
-        btn = Widgets.Button("Settings")
-        btn.set_tooltip("Configure some settings for this plugin")
-        btn.add_callback('activated', lambda wid: m.popup(widget=wid))
+        self.w.settings = self.w.toolbar2.add_menu("Settings", menu=m,
+                                                   mtype='menu')
+        self.w.settings.set_tooltip("Configure some settings for this plugin")
 
-        hbox = Widgets.HBox()
-        hbox.set_spacing(5)
-        self.w.update_time = Widgets.Label(plot_update_text)
-        hbox.add_widget(self.w.update_time, stretch=0)
-        hbox.add_widget(Widgets.Label(''), stretch=1)
-        hbox.add_widget(btn, stretch=0)
-        top.add_widget(hbox, stretch=0)
-
-        self.w.tgt_tbl = Widgets.TreeView(auto_expand=False,
-                                          selection='multiple',
-                                          sortable=True,
-                                          use_alt_row_color=True)
-        self.w.tgt_tbl.setup_table(self.columns, 2, 'name')
-        top.add_widget(self.w.tgt_tbl, stretch=1)
-
-        self.w.tgt_tbl.set_optimal_column_widths()
-        self.w.tgt_tbl.add_callback('selected', self.target_selection_cb)
-        # self.w.tgt_tbl.add_callback('activated', self.target_single_cb)
-        self.w.tgt_tbl.add_callback('collapsed', self.targets_collapse_cb)
-        self.w.tgt_tbl.add_callback('expanded', self.targets_collapse_cb)
-
-        hbox = Widgets.HBox()
-        btn = Widgets.Button("Tag")
-        btn.set_tooltip("Add highlighted items to tagged targets")
-        btn.add_callback('activated', self.tag_cb)
-        hbox.add_widget(btn, stretch=0)
-        self.w.btn_tag = btn
-        btn = Widgets.Button("Untag")
-        btn.set_tooltip("Remove highlighted items from tagged targets")
-        btn.add_callback('activated', self.untag_cb)
-        hbox.add_widget(btn, stretch=0)
-        self.w.btn_untag = btn
-        btn = Widgets.Button("Select All")
-        btn.set_tooltip("Select all targets")
-        btn.add_callback('activated', self.select_all_cb)
-        hbox.add_widget(btn, stretch=0)
-        self.w.btn_select_all = btn
-        btn = Widgets.Button("Delete")
-        btn.set_tooltip("Delete selected target from targets")
-        btn.add_callback('activated', self.delete_cb)
-        hbox.add_widget(btn, stretch=0)
-        self.w.btn_delete = btn
-        btn = Widgets.Button("Collapse All")
-        btn.set_tooltip("Collapse all loaded files")
-        btn.add_callback('activated', self.collapse_all_cb)
-        hbox.add_widget(btn, stretch=0)
-        self.w.btn_collapse_all = btn
-
-        # TODO: figure out a better way to handle this!!!
-        if self.fv.gpmon.has_plugin('Gen2Int'):
-            btn = Widgets.Button("Sync integgui2")
-            obj = self.fv.gpmon.get_plugin('Gen2Int')
-            btn.add_callback('activated', obj.sync_targets, self.channel)
-            hbox.add_widget(btn, stretch=0)
-
-        hbox.add_widget(Widgets.Label(''), stretch=1)
-
-        hbox.add_widget(Widgets.Label('Plot:'), stretch=0)
-        plot = Widgets.ComboBox()
-        hbox.add_widget(plot, stretch=0)
-        for option in ['All', 'Uncollapsed', 'Tagged+selected', 'Selected']:
-            plot.append_text(option)
-        plot.set_text(self.plot_which.capitalize())
-        plot.add_callback('activated', self.configure_plot_cb)
-        plot.set_tooltip("Choose what is plotted")
-
-        self._update_selection_buttons()
-        top.add_widget(hbox, stretch=0)
+        top.add_widget(self.w.toolbar2, stretch=0)
 
         btns = Widgets.HBox()
         btns.set_border_width(4)

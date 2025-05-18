@@ -63,29 +63,21 @@ class Visibility(GingaPlugin.LocalPlugin):
     blue region demarcates the time of Astronomical Twilight. The green region
     marks the next hour from the current time.
 
-    Setting time interval
-    =====================
+    Setting plot range
+    ==================
 
-    To change the plotted time interval, press the button next to "Centered on:"
+    To change the plotted time interval, press the button labeled "Time axis:"
     to open a drop down menu. Three options are available, Night Center,
-    Day Center, and Current. "Night Center" will center the time axis on the middle
-    of the night, which can be found in the :doc:`polarsky` window. The time axis
-    will extend from a little before sunset to a little after sunrise. "Day
-    Center" will center the time axis on the middle of the day, and the time
-    axis will extend from sunrise to sunset. "Current" will set the time axis
-    to extend from about -2 to +7 hours, and will automatically adjust as time
-    passes.
+    Day Center, and Current. "Night Center" will center the time axis on the
+    middle of the night, which can be found in the :doc:`polarsky` window.
+    The time axis will extend from a little before sunset to a little after
+    sunrise. "Day Center" will center the time axis on the middle of the day,
+    and the time axis will extend from sunrise to sunset. "Current" will set
+    the time axis to extend from about -2 to +7 hours, and will automatically
+    adjust as time passes.
 
-    Checking moon separation
-    ========================
-
-    The visibility window can display the moon-object separation by pressing the
-    checkbox next to "Plot moon sep" at the bottom left corner of the window.
-    Selecting this option will display the separation in degrees at every hour
-    while the object is above the horizon.
-
-    Plot Options
-    ============
+    Target Selection
+    ================
 
     The drop down menu by "Plot:" controls which targets are plotted on the
     visibility plot. Selecting "All" will show all of the targets,
@@ -94,6 +86,20 @@ class Visibility(GingaPlugin.LocalPlugin):
     selecting "Tagged+Selected" will show all of the targets which have been
     tagged or are selected, and selecting "Selected" will show only the
     targets which are selected.
+
+    Settings Menu
+    =============
+    Clicking the "Settings" button will invoke a pop-up menu to enable certain
+    settings.
+
+    * Plot moon separation.  Checking this option will display the separation
+      in degrees at every hour along each plot line while the object is above
+      the horizon.
+    * Plot polar Az/El.  Checking this option will create a line on the
+      "<wsname>_TGTS" viewer that marks the position of each target during
+      the period selected for the time axis (see above), and for the targets
+      selected by the plot target selection.  This allows you to see more
+      than the target's position according to the time in the SiteSelector.
     """
     def __init__(self, fv, fitsimage):
         super().__init__(fv, fitsimage)
@@ -189,37 +195,48 @@ class Visibility(GingaPlugin.LocalPlugin):
 
         top.add_widget(plot_w, stretch=1)
 
-        captions = (('Plot moon sep', 'checkbox',
-                     'Plot polar AzEl', 'checkbox',
-                     'Time axis:', 'label', 'mode', 'combobox',
-                     'Plot:', 'label', 'plot', 'combobox'),
-                    )
+        self.w.toolbar2 = Widgets.Toolbar(orientation='horizontal')
+        self.w.toolbar2.add_spacer()
 
-        w, b = Widgets.build_info(captions)
-        self.w = b
-        b.plot_moon_sep.set_state(self.plot_moon_sep)
-        b.plot_moon_sep.add_callback('activated', self.toggle_mon_sep_cb)
-        b.plot_moon_sep.set_tooltip("Show moon separation on plot lines")
-        b.plot_polar_azel.set_state(self.plot_polar_azel)
-        b.plot_polar_azel.add_callback('activated', self.plot_polar_azel_cb)
-        b.plot_polar_azel.set_tooltip("Plot Az/El paths on polar plot")
-
+        self.w.mode = Widgets.ComboBox()
         for name in self.time_axis_options:
-            b.mode.append_text(name)
-        b.mode.set_index(self.time_axis_default_index)
+            self.w.mode.append_text(name)
+        self.w.mode.set_index(self.time_axis_default_index)
         self.time_axis_mode = self.time_axis_default_mode.lower()
-        b.mode.set_tooltip("Set time axis for visibility plot")
-        b.mode.add_callback('activated', self.set_time_axis_mode_cb)
+        self.w.mode.set_tooltip("Set time axis for visibility plot")
+        self.w.mode.add_callback('activated', self.set_time_axis_mode_cb)
+        self.w.toolbar2.add_widget(Widgets.Label("Time axis:"))
+        self.w.toolbar2.add_widget(self.w.mode)
 
-        for option in ['All', 'Uncollapsed', 'Tagged+selected', 'Selected']:
-            b.plot.append_text(option)
-        b.plot.set_text(self.plot_which.capitalize())
-        b.plot.add_callback('activated', self.configure_plot_cb)
-        b.plot.set_tooltip("Choose what is plotted")
+        self.w.toolbar2.add_spacer()
+        #self.w.toolbar2.add_separator()
 
-        top.add_widget(w)
+        self.w.plot = Widgets.ComboBox()
+        for option in ['Selected', 'Tagged+selected', 'Uncollapsed', 'All']:
+            self.w.plot.append_text(option)
+        self.w.plot.set_text(self.plot_which.capitalize())
+        self.w.plot.add_callback('activated', self.configure_plot_cb)
+        self.w.plot.set_tooltip("Choose what is plotted")
+        self.w.toolbar2.add_widget(Widgets.Label("Plot:"))
+        self.w.toolbar2.add_widget(self.w.plot)
 
-        #top.add_widget(Widgets.Label(''), stretch=1)
+        self.w.toolbar2.add_spacer()
+
+        menu = self.w.toolbar2.add_menu("Settings", mtype='menu')
+        menu.set_tooltip("Configure some settings for this plugin")
+        self.w.settings = menu
+
+        plot_moon_sep = menu.add_name("Plot moon separation", checkable=True)
+        plot_moon_sep.set_state(self.plot_moon_sep)
+        plot_moon_sep.add_callback('activated', self.toggle_mon_sep_cb)
+        plot_moon_sep.set_tooltip("Show moon separation on plot lines")
+
+        plot_polar_azel = menu.add_name("Plot polar AzEl", checkable=True)
+        plot_polar_azel.set_state(self.plot_polar_azel)
+        plot_polar_azel.add_callback('activated', self.plot_polar_azel_cb)
+        plot_polar_azel.set_tooltip("Plot Az/El paths on polar plot")
+
+        top.add_widget(self.w.toolbar2, stretch=0)
 
         btns = Widgets.HBox()
         btns.set_border_width(4)
@@ -460,15 +477,16 @@ class Visibility(GingaPlugin.LocalPlugin):
                 t, r = self.map_azalt(az_data, alt_data)
                 x, y = self.p2r(r, t)
                 pts = np.array((x, y)).T
-                path = self.dc.Path(pts, color=info.color, linewidth=1, alpha=alpha)
+                path = self.dc.Path(pts, color='goldenrod1', # info.color,
+                                    linewidth=1, alpha=alpha)
                 objs.append(path)
                 tgtname = info.target.name
                 x, y = pts[-1]
                 text = self.dc.Text(x, y, tgtname,
-                                    color=info.color, alpha=alpha,
-                                    fill=True, fillcolor=info.color,
-                                    fillalpha=alpha, linewidth=0,
-                                    font="Roboto condensed bold",
+                                    color='goldenrod1', alpha=alpha,
+                                    fill=True, fillcolor='goldenrod1',
+                                    fillalpha=0.75, linewidth=0,
+                                    font="Roboto condensed",
                                     fontscale=True,
                                     fontsize=None, fontsize_min=12,
                                     fontsize_max=16)#,
