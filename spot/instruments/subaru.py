@@ -2,9 +2,11 @@
 subaru.py -- Subaru instrument overlays
 
 """
+import os.path
 import numpy as np
 from astropy.coordinates import Angle
 from astropy import units as u
+from astropy.io import fits
 
 from ginga.util import wcs
 from ginga.gw import Widgets
@@ -12,13 +14,9 @@ from ginga.gw import Widgets
 from spot.plugins.InsFov import FOV
 from spot.util.rot import normalize_angle
 
-try:
-    from naoj.hsc import ccd_info, sdo
-    have_naojutils = True
-
-except ImportError:
-    have_naojutils = False
-
+# where our config files are stored
+from spot import __file__
+cfgdir = os.path.join(os.path.dirname(__file__), 'config')
 
 
 class AO188_FOV(FOV):
@@ -549,55 +547,65 @@ class PF_FOV(FOV):
         self.pf_radius = self.pf_fov * 0.5
         self.sky_radius_arcmin = 55
         self.rot_deg = 0.0
-
         self.pf_color = 'red'
-
-        x, y = pt
-        r = self.pf_radius
-        self.pf_circ = self.dc.CompoundObject(
-            self.dc.Circle(x, y, r,
-                           color=self.pf_color, linewidth=2),
-            self.dc.Text(x, y,
-                         text=f"PF FOV ({self.pf_fov:.2f} deg)",
-                         color=self.pf_color,
-                         rot_deg=self.rot_deg))
-        self.canvas.add(self.pf_circ)
+        self.pt_ctr = pt
 
     def set_scale(self, scale_x, scale_y):
         # NOTE: sign of scale val indicates orientation
         self.scale = np.mean((abs(scale_x), abs(scale_y)))
 
         self.pf_radius = self.pf_fov * 0.5 / self.scale
-        pt = self.pf_circ.objects[0].points[0][:2]
-        self.set_pos(pt)
+        self.set_pos(self.pt_ctr)
 
     def set_pos(self, pt):
         super().set_pos(pt)
-        x, y = pt
-        r = self.pf_radius
-        self.pf_circ.objects[0].x = x
-        self.pf_circ.objects[0].y = y
-        self.pf_circ.objects[0].radius = r
-        self.pf_circ.objects[1].x = x
-        self.pf_circ.objects[1].y = y + r
-
-        self.canvas.update_canvas()
+        self.pt_ctr = pt
 
     def rotate(self, rot_deg):
         self.rot_deg = rot_deg
 
-    def remove(self):
-        self.canvas.delete_object(self.pf_circ)
-
 
 class HSC_FOV(PF_FOV):
+
+    hsc_info = None
+
+    @classmethod
+    def read_hsc_info(cls):
+        # read in HSC detector info
+        hsc_info_fits = os.path.join(cfgdir, 'hsc_info.fits')
+        with fits.open(hsc_info_fits, 'readonly') as hsc_f:
+            info_dct = dict()
+            sdo = hsc_f['SDO'].data
+            poly = hsc_f['DET_POLY'].data
+            for row in sdo:
+                det_num = row['DET_INDEX']
+                bad_ch_str = row['BAD_CHANNELS'].strip()
+                if len(bad_ch_str) == 0:
+                    bad_channels = []
+                else:
+                    bad_channels = list(map(int, bad_ch_str.split(',')))
+                if len(bad_channels) > 0:
+                    color = 'red'
+                elif row['BEES_UNIT'] == 0:
+                    color = 'skyblue'
+                else:
+                    color = 'violet'
+                offsets = np.array((poly['{}_OFFSET_RA'.format(det_num)],
+                                    poly['{}_OFFSET_DEC'.format(det_num)]),
+                                   dtype=float).T
+                det_dct = dict(bees=row['BEES_UNIT'],
+                               bees_det_id=row['BEES_ID'],
+                               color=color,
+                               bad_channels=bad_channels,
+                               polygon=offsets)
+                info_dct[det_num] = det_dct
+
+        HSC_FOV.hsc_info = info_dct
 
     def __init__(self, pl_obj, canvas, pt):
         super().__init__(pl_obj, canvas, pt)
 
-        self.pf_circ.objects[1].text = f"HSC FOV ({self.pf_fov:.2f} deg)"
-        self.paths = []
-        self.set_pos(pt)
+        self.det_poly_paths = []
 
         # for the dithering GUI
         self.dither_types = ['1', '5', 'N']
@@ -612,15 +620,29 @@ class HSC_FOV(PF_FOV):
 
         self.target_radius = 20
 
-    def calc_ccd_positions(self):
-        """Computes paths for all the CCD polygons."""
+        x, y = pt
+        r = self.pf_radius
+        self.pf_circ = self.dc.CompoundObject(
+            self.dc.Circle(x, y, r,
+                           color=self.pf_color, linewidth=2),
+            self.dc.Text(x, y,
+                         text=f"HSC FOV ({self.pf_fov:.2f} deg)",
+                         color=self.pf_color,
+                         rot_deg=self.rot_deg))
+        self.canvas.add(self.pf_circ)
+
+        if HSC_FOV.hsc_info is None:
+            self.read_hsc_info()
+
+    def calc_detector_positions(self):
+        """Computes paths for all the detector polygons."""
         viewer = self.pl_obj.viewer
         image = viewer.get_image()
         if image is None:
             return
 
         ctr_ra, ctr_dec = self.pl_obj.coord
-        info = ccd_info.info
+        info = HSC_FOV.hsc_info
 
         paths = []
         keys = list(info.keys())
@@ -628,17 +650,18 @@ class HSC_FOV(PF_FOV):
         for key in keys:
             poly_coords = np.array([wcs.add_offset_radec(ctr_ra, ctr_dec,
                                                          dra, ddec)
-                                    for dra, ddec in info[key]['polygon']])
+                                    for dra, ddec in info[key]['polygon']],
+                                   dtype=float)
             path_points = image.wcs.wcspt_to_datapt(poly_coords)
             paths.append((key, path_points))
 
-        self.paths = paths
+        self.det_poly_paths = paths
 
-    def draw_ccds(self):
+    def draw_detectors(self):
         l = []
-        info = ccd_info.info
+        info = HSC_FOV.hsc_info
 
-        for key, points in self.paths:
+        for key, points in self.det_poly_paths:
 
             showfill = False
             if 'color' in info[key]:
@@ -651,11 +674,12 @@ class HSC_FOV(PF_FOV):
                                 fillcolor='red', fillalpha=0.4,
                                 showcap=False, coord='insfov')
 
-            # annotate with the CCD name
+            # annotate with the detector name
             # find center, which is geometric average of points
             xs, ys = points.T
             pcx, pcy = np.sum(xs) / len(xs), np.sum(ys) / len(ys)
-            name = sdo.sdo_map[key]
+            name = "{:1d}_{:02d}".format(info[key]['bees'],
+                                         info[key]['bees_det_id'])
             t = self.dc.Text(pcx, pcy, text=name, color=color, fontsize=12,
                              coord='insfov')
 
@@ -665,7 +689,7 @@ class HSC_FOV(PF_FOV):
         obj.opaque = True
         obj.editable = False
 
-        self.canvas.add(obj, tag='ccd_overlay')
+        self.canvas.add(obj, tag='detector_overlay')
 
     def build_gui(self, container):
         fr = Widgets.Frame("Dithering")
@@ -795,9 +819,6 @@ class HSC_FOV(PF_FOV):
             self.w.stop.set_limits(1, N)
             self.w.stop.set_value(N)
 
-        #self.pl_obj.fv.error_wrap(self.draw_dither_positions)
-        #self.show_step(1)
-
         return True
 
     def update_info_cb(self):
@@ -817,14 +838,7 @@ class HSC_FOV(PF_FOV):
                 self.rdith = float(self.w.dith1.get_text())
                 self.tdith = float(self.w.dith2.get_text())
 
-            # add targets to canvas
-            #self.draw_targets()
-
             self.draw_dither_positions()
-
-            # ctr_ra_deg, ctr_dec_deg = self.pl_obj.coord
-            # self.pl_obj.fv.error_wrap(self.draw_ccds,
-            #                           self.ctr_ra_deg, self.ctr_dec_deg)
 
             start = int(self.w.skip.get_value()) + 1
             stop = int(self.w.stop.get_value())
@@ -929,13 +943,18 @@ class HSC_FOV(PF_FOV):
 
     def set_pos(self, pt):
         super().set_pos(pt)
+        x, y = pt
+        r = self.pf_radius
+        self.pf_circ.objects[0].x = x
+        self.pf_circ.objects[0].y = y
+        self.pf_circ.objects[0].radius = r
+        self.pf_circ.objects[1].x = x
+        self.pf_circ.objects[1].y = y + r
 
-        if not have_naojutils:
-            return
-        self.canvas.delete_object_by_tag('ccd_overlay')
+        self.canvas.delete_object_by_tag('detector_overlay')
 
-        self.calc_ccd_positions()
-        self.draw_ccds()
+        self.calc_detector_positions()
+        self.draw_detectors()
 
         self.canvas.update_canvas()
 
@@ -962,19 +981,119 @@ class HSC_FOV(PF_FOV):
 
     def remove(self):
         super().remove()
-        self.canvas.delete_object_by_tag('ccd_overlay')
+        self.canvas.delete_object(self.pf_circ)
+        self.canvas.delete_object_by_tag('detector_overlay')
         self.canvas.delete_object_by_tag('dither_positions')
 
 
 class PFS_FOV(PF_FOV):
 
+    pfs_info = None
+
     def __init__(self, pl_obj, canvas, pt):
         super().__init__(pl_obj, canvas, pt)
 
-        self.pf_fov = 1.37   # deg
+        self.pf_fov = 1.38   # deg
         self.pf_radius = self.pf_fov * 0.5
+        self.cam_poly_paths = []
+        self.fov_poly_path = []
 
-        self.pf_circ.objects[1].text = f"PFS FOV ({self.pf_fov:.2f} deg)"
+        ang_inc = 360.0 / 6
+        self.phis = np.array([np.radians(ang_inc * i) for i in range(6)])
+
+        points = self.calc_fov_hexagon()
+        self.pf_fov_hex = self.dc.CompoundObject(
+            self.dc.Polygon(points, color=self.pf_color, linewidth=2),
+            self.dc.Text(points[1][0], points[1][1],
+                         text=f"PFS FOV ({self.pf_fov:.2f} deg)",
+                         color=self.pf_color,
+                         rot_deg=self.rot_deg))
+        self.canvas.add(self.pf_fov_hex)
+
+        if PFS_FOV.pfs_info is None:
+            # read in PFS guide camera positions
+            pfs_info_fits = os.path.join(cfgdir, 'pfs_info.fits')
+            with fits.open(pfs_info_fits, 'readonly') as pfs_f:
+                PFS_FOV.pfs_info = pfs_f['CAM_POLY'].copy()
+
+    def calc_fov_hexagon(self):
+        points = []
+        for t_rad in self.phis:
+            # polar to cartesian
+            x = self.pt_ctr[0] + self.pf_radius * np.cos(t_rad)
+            y = self.pt_ctr[1] + self.pf_radius * np.sin(t_rad)
+            points.append((x, y))
+        return np.array(points)
+
+    def calc_guide_camera_positions(self):
+        """Computes paths for all the detector polygons."""
+        viewer = self.pl_obj.viewer
+        image = viewer.get_image()
+        if image is None:
+            return
+
+        ctr_ra, ctr_dec = self.pl_obj.coord
+        info = PFS_FOV.pfs_info
+
+        paths = []
+        cam_pfx = ['CAM{}'.format(i + 1) for i in range(0, 6)]
+        for pfx in cam_pfx:
+            dra, ddec = (info.data[pfx + '_RA_OFF_DEG'],
+                         info.data[pfx + '_DEC_OFF_DEG'])
+            poly_coords = np.array([wcs.add_offset_radec(ctr_ra, ctr_dec,
+                                                         dra[i], ddec[i])
+                                    for i in range(len(dra))])
+            path_points = image.wcs.wcspt_to_datapt(poly_coords)
+            paths.append((pfx, path_points))
+
+        self.cam_poly_paths = paths
+
+    def draw_guide_cameras(self):
+        l = []
+        for name, points in self.cam_poly_paths:
+
+            # TODO: skip some points to improve rendering performance
+            showfill = False
+            color = self.pf_color
+            p = self.dc.Polygon(points, color=color, fill=showfill,
+                                fillcolor='red', fillalpha=0.4,
+                                linewidth=2,
+                                showcap=False, coord='insfov')
+
+            # annotate with the detector name
+            # find center, which is geometric average of points
+            xs, ys = points.T
+            pcx, pcy = np.sum(xs) / len(xs), np.sum(ys) / len(ys)
+            t = self.dc.Text(pcx, pcy, text=name, color=color, fontsize=12,
+                             coord='insfov')
+
+            l.append(self.dc.CompoundObject(p, t))
+
+        obj = self.dc.CompoundObject(*l)
+        obj.opaque = True
+        obj.editable = False
+
+        self.canvas.add(obj, tag='guide_camera_overlay')
+
+    def set_pos(self, pt):
+        super().set_pos(pt)
+
+        points = self.calc_fov_hexagon()
+        self.pf_fov_hex.objects[0].points = points
+        self.pf_fov_hex.objects[1].x = points[1][0]
+        self.pf_fov_hex.objects[1].y = points[1][1]
+
+        self.canvas.delete_object_by_tag('guide_camera_overlay')
+
+        self.calc_guide_camera_positions()
+        self.draw_guide_cameras()
+
+        self.canvas.update_canvas()
+
+    def remove(self):
+        super().remove()
+        self.canvas.delete_object(self.pf_fov_hex)
+        self.canvas.delete_object_by_tag('guide_camera_overlay')
 
 
 # see spot/instruments/__init__.py

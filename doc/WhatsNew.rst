@@ -34,6 +34,8 @@ Ver 1.0.0 (unreleased)
 - Now properly support epoch/equinox values in CSV and OPE files
 - Now support proper motion in CSV files (columns "pmRA" and "pmDEC" specified
   in milliarcsec / year
+- Added HSC and PFS overlays for Subaru instruments (InsFov plugin)
+- Added HSC dithering GUI to HSC FOV
 
 Ver 0.4.1 (2025-03-14)
 ======================

@@ -22,6 +22,7 @@ from spot.util.rot import normalize_angle
 # get all overlays
 from spot.instruments import inst_dict
 
+
 class InsFov(GingaPlugin.LocalPlugin):
     """
     ++++++++++++++
@@ -559,6 +560,9 @@ class FOV:
         pass
 
     def rotate(self, rot_deg):
+        """Called when the rotation changes for the viewer. Can be used
+        to adjust the angle of text elements in overlays, for example.
+        """
         pass
 
     def remove(self):
