@@ -997,6 +997,7 @@ class PFS_FOV(PF_FOV):
         self.pf_radius = self.pf_fov * 0.5
         self.cam_poly_paths = []
         self.fov_poly_path = []
+        self.mount_offset_rot_deg = 180.0
 
         ang_inc = 360.0 / 6
         self.phis = np.array([np.radians(ang_inc * i) for i in range(6)])
