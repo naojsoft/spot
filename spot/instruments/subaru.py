@@ -41,19 +41,22 @@ class AO188_FOV(FOV):
                          text="Tip Tilt Guide Star w/LGS (1 arcmin)",
                          color=self.ao_color,
                          bgcolor='floralwhite', bgalpha=0.8,
-                         rot_deg=self.rot_deg))
+                         rot_deg=0.0))
         self.canvas.add(self.ao_circ)
 
     def set_scale(self, scale_x, scale_y):
+        super().set_scale(scale_x, scale_y)
         # NOTE: sign of scale val indicates orientation
         self.scale = np.mean((abs(scale_x), abs(scale_y)))
 
         self.ao_radius = self.ao_fov * 0.5 / self.scale
-        pt = self.ao_circ.objects[0].points[0][:2]
-        self.set_pos(pt)
+        self.set_pos(self.pt_ctr)
 
     def set_pos(self, pt):
-        x, y = pt
+        super().set_pos(pt)
+
+        #self.ao_circ.move_to_pt(pt)
+        x, y = pt[:2]
         r = self.ao_radius
         self.ao_circ.objects[0].x = x
         self.ao_circ.objects[0].y = y
@@ -62,6 +65,12 @@ class AO188_FOV(FOV):
         self.ao_circ.objects[1].y = y + r
 
         self.canvas.update_canvas()
+
+    def set_pa(self, pa_deg):
+        super().set_pa(pa_deg)
+
+        # TODO: move text around circle to top
+        # self.ao_circ.objects[1].rot_deg = self.pa_rot_deg
 
     def rotate(self, rot_deg):
         self.rot_deg = rot_deg
@@ -82,34 +91,41 @@ class IRCS_FOV(AO188_FOV):
         x, y = pt
         r = self.ircs_radius
         self.ircs_box = self.dc.CompoundObject(
-            self.dc.SquareBox(x, y, r,
-                              color=self.ircs_color, linewidth=2,
-                              rot_deg=self.rot_deg),
+            self.dc.Polygon([(x - r, y - r), (x + r, y - r),
+                             (x + r, y + r), (x - r, y + r)],
+                            color=self.ircs_color, linewidth=2),
             self.dc.Text(x - r, y + r,
                          text="IRCS FOV (54x54 arcsec)",
-                         color=self.ircs_color,
-                         rot_deg=self.rot_deg))
+                         color=self.ircs_color, rot_deg=0.0))
         self.canvas.add(self.ircs_box)
+
+    def __update(self):
+        x, y = self.pt_ctr[:2]
+        r = self.ircs_radius
+        self.ircs_box.objects[0].points = [(x - r, y - r), (x + r, y - r),
+                                           (x + r, y + r), (x - r, y + r)]
+        self.ircs_box.objects[1].x = x - r
+        self.ircs_box.objects[1].y = y - r
+        self.ircs_box.objects[1].rot_deg = self.pa_rot_deg
+
+        self.ircs_box.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
 
     def set_scale(self, scale_x, scale_y):
         super().set_scale(scale_x, scale_y)
 
         self.ircs_radius = self.ircs_fov * 0.5 / self.scale
 
-        pt = self.ircs_box.objects[0].points[0][:2]
-        self.set_pos(pt)
+        self.__update()
 
     def set_pos(self, pt):
         super().set_pos(pt)
-        x, y = pt
-        r = self.ircs_radius
-        self.ircs_box.objects[0].radius = r
-        self.ircs_box.objects[0].x = x
-        self.ircs_box.objects[0].y = y
-        self.ircs_box.objects[1].x = x - r
-        self.ircs_box.objects[1].y = y + r
 
-        self.canvas.update_canvas()
+        self.__update()
+
+    def set_pa(self, pa_deg):
+        super().set_pa(pa_deg)
+
+        self.__update()
 
     def rotate(self, rot_deg):
         super().rotate(rot_deg)
@@ -131,14 +147,25 @@ class IRD_FOV(AO188_FOV):
         x, y = pt
         xr, yr = self.ird_radius
         self.ird_box = self.dc.CompoundObject(
-            self.dc.Box(x, y, xr, yr,
-                        color=self.ird_color, linewidth=2,
-                        rot_deg=self.rot_deg),
+            self.dc.Polygon([(x - xr, y - yr), (x + xr, y - yr),
+                             (x + xr, y + yr), (x - xr, y + yr)],
+                            color=self.ird_color, linewidth=2),
             self.dc.Text(x - xr, y + yr,
                          text="IRD FOV for FIM (20x10 arcsec)",
                          color=self.ird_color,
-                         rot_deg=self.rot_deg))
+                         rot_deg=0.0))
         self.canvas.add(self.ird_box)
+
+    def __update(self):
+        x, y = self.pt_ctr[:2]
+        xr, yr = self.ird_radius
+        self.ird_box.objects[0].points = [(x - xr, y - yr), (x + xr, y - yr),
+                                          (x + xr, y + yr), (x - xr, y + yr)]
+        self.ird_box.objects[1].x = x - xr
+        self.ird_box.objects[1].y = y + yr
+        self.ird_box.objects[1].rot_deg = self.pa_rot_deg
+
+        self.ird_box.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
 
     def set_scale(self, scale_x, scale_y):
         super().set_scale(scale_x, scale_y)
@@ -147,21 +174,17 @@ class IRD_FOV(AO188_FOV):
         yr = self.ird_fov[1] * 0.5 / self.scale
         self.ird_radius = (xr, yr)
 
-        pt = self.ird_box.objects[0].points[0][:2]
-        self.set_pos(pt)
+        self.__update()
 
     def set_pos(self, pt):
         super().set_pos(pt)
-        x, y = pt
-        xr, yr = self.ird_radius
-        self.ird_box.objects[0].x = x
-        self.ird_box.objects[0].y = y
-        self.ird_box.objects[0].xradius = xr
-        self.ird_box.objects[0].yradius = yr
-        self.ird_box.objects[1].x = x - xr
-        self.ird_box.objects[1].y = y + yr
 
-        self.canvas.update_canvas()
+        self.__update()
+
+    def set_pa(self, pa_deg):
+        super().set_pa(pa_deg)
+
+        self.__update()
 
     def rotate(self, rot_deg):
         super().rotate(rot_deg)
@@ -192,20 +215,11 @@ class CS_FOV(FOV):
             self.dc.Text(x, y,
                          text="6 arcmin",
                          color=self.cs_color,
-                         rot_deg=self.rot_deg))
+                         rot_deg=0.0))
         self.canvas.add(self.cs_circ)
 
-    def set_scale(self, scale_x, scale_y):
-        # NOTE: sign of scale val indicates orientation
-        self.scale = np.mean((abs(scale_x), abs(scale_y)))
-
-        self.cs_radius = self.cs_fov * 0.5 / self.scale
-        pt = self.cs_circ.objects[0].points[0][:2]
-        self.set_pos(pt)
-
-    def set_pos(self, pt):
-        super().set_pos(pt)
-        x, y = pt
+    def __update(self):
+        x, y = self.pt_ctr
         r = self.cs_radius
         self.cs_circ.objects[0].x = x
         self.cs_circ.objects[0].y = y
@@ -213,7 +227,25 @@ class CS_FOV(FOV):
         self.cs_circ.objects[1].x = x
         self.cs_circ.objects[1].y = y + r
 
-        self.canvas.update_canvas()
+    def set_scale(self, scale_x, scale_y):
+        # NOTE: sign of scale val indicates orientation
+        self.scale = np.mean((abs(scale_x), abs(scale_y)))
+
+        self.cs_radius = self.cs_fov * 0.5 / self.scale
+        self.__update()
+
+    def set_pos(self, pt):
+        super().set_pos(pt)
+
+        self.__update()
+
+    def set_pa(self, pa_deg):
+        super().set_pa(pa_deg)
+
+        # TODO: move text around circle to top
+        # self.cs_circ.objects[1].rot_deg = self.pa_rot_deg
+
+        self.__update()
 
     def rotate(self, rot_deg):
         self.rot_deg = rot_deg
@@ -234,36 +266,45 @@ class COMICS_FOV(CS_FOV):
         x, y = pt
         xr, yr = self.comics_radius
         self.comics_box = self.dc.CompoundObject(
-            self.dc.Box(x, y, xr, yr,
-                        color=self.comics_color, linewidth=2,
-                        rot_deg=self.rot_deg),
+            self.dc.Polygon([(x - xr, y - yr), (x + xr, y - yr),
+                             (x + xr, y + yr), (x - xr, y + yr)],
+                            color=self.comics_color, linewidth=2),
             self.dc.Text(x - xr, y + yr,
                          text="COMICS FOV (30x40 arcsec)",
                          color=self.comics_color,
-                         rot_deg=self.rot_deg))
+                         rot_deg=0.0))
         self.canvas.add(self.comics_box)
+
+    def __update(self):
+        x, y = self.pt_ctr[:2]
+        xr, yr = self.comics_radius
+        self.comics_box.objects[0].points = [(x - xr, y - yr), (x + xr, y - yr),
+                                             (x + xr, y + yr), (x - xr, y + yr)]
+        self.comics_box.objects[1].x = x - xr
+        self.comics_box.objects[1].y = y + yr
+        self.comics_box.objects[1].rot_deg = self.pa_rot_deg
+
+        # rotate as necessary to show PA
+        self.comics_box.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
 
     def set_scale(self, scale_x, scale_y):
         super().set_scale(scale_x, scale_y)
+
         xr = self.comics_fov[0] * 0.5 / self.scale
         yr = self.comics_fov[1] * 0.5 / self.scale
         self.comics_radius = (xr, yr)
 
-        pt = self.comics_box.objects[0].points[0][:2]
-        self.set_pos(pt)
+        self.__update()
 
     def set_pos(self, pt):
         super().set_pos(pt)
-        x, y = pt
-        xr, yr = self.comics_radius
-        self.comics_box.objects[0].x = x
-        self.comics_box.objects[0].y = y
-        self.comics_box.objects[0].xradius = xr
-        self.comics_box.objects[0].yradius = yr
-        self.comics_box.objects[1].x = x - xr
-        self.comics_box.objects[1].y = y + yr
 
-        self.canvas.update_canvas()
+        self.__update()
+
+    def set_pa(self, pa_deg):
+        super().set_pa(pa_deg)
+
+        self.__update()
 
     def remove(self):
         super().remove()
@@ -277,60 +318,103 @@ class MOIRCS_FOV(CS_FOV):
 
         self.moircs_fov = (0.0666667, 0.116667)   # 4x7 arcmin
         self.moircs_radius = (4 * 0.5, 7 * 0.5)
+        self.det2_defect = (45.49 / 3600, 44.58 / 3600)
+        self.det1_defect = (29.87 / 3600, 25.85 / 3600)
         self.text_off = 0.90
-
         self.moircs_color = 'red'
 
         x, y = pt
         xr, yr = self.moircs_radius
+        det2_df_x = self.det2_defect[0] / self.scale
+        det2_df_y = self.det2_defect[1] / self.scale
+        det1_df_x = self.det1_defect[0] / self.scale
+        det1_df_y = self.det1_defect[1] / self.scale
         self.moircs_box = self.dc.CompoundObject(
-            self.dc.Box(x, y, xr, yr,
-                        color=self.moircs_color, linewidth=2,
-                        rot_deg=self.rot_deg),
+            # detector 2
+            self.dc.Polygon([(x - xr, y), (x + xr, y),
+                             (x + xr, y + yr), (x - xr, y + yr)],
+                            color=self.moircs_color, linewidth=2),
+            # detector 1
+            self.dc.Polygon([(x - xr, y), (x + xr, y),
+                             (x + xr, y - yr), (x - xr, y - yr)],
+                            color=self.moircs_color, linewidth=2),
             self.dc.Text(x - xr, y + yr,
                          text="MOIRCS FOV (4x7 arcmin)",
                          color=self.moircs_color,
-                         rot_deg=self.rot_deg),
-            self.dc.Line(x - xr, y, x + xr, y,
-                         color=self.moircs_color, linewidth=2),
+                         rot_deg=0.0),
             self.dc.Text(x + xr, y - (yr * self.text_off), text='Det 1',
                          color=self.cs_color,
                          bgcolor='white', bgalpha=0.75),
             self.dc.Text(x + xr, y + (yr * self.text_off), text='Det 2',
                          color=self.cs_color,
                          bgcolor='white', bgalpha=0.75),
+            # detector 2 defect
+            self.dc.Polygon([(x - xr, y + yr),
+                             (x - xr + det2_df_x, y + yr),
+                             (x - xr, y + yr - det2_df_y)],
+                            color=self.moircs_color, linewidth=0,
+                            fill=True, fillcolor=self.moircs_color,
+                            fillalpha=0.4),
+            # detector 1 defect
+            self.dc.Polygon([(x - xr, y - yr),
+                             (x - xr + det1_df_x, y - yr),
+                             (x - xr, y - yr + det1_df_y)],
+                            color=self.moircs_color, linewidth=0,
+                            fill=True, fillcolor=self.moircs_color,
+                            fillalpha=0.4),
         )
         self.canvas.add(self.moircs_box)
 
+    def __update(self):
+        # reposition overlay with scale
+        x, y = self.pt_ctr[:2]
+        xr, yr = self.moircs_radius
+        self.moircs_box.objects[0].points = [(x - xr, y), (x + xr, y),
+                                             (x + xr, y + yr), (x - xr, y + yr)]
+        self.moircs_box.objects[1].points = [(x - xr, y), (x + xr, y),
+                                             (x + xr, y - yr), (x - xr, y - yr)]
+        self.moircs_box.objects[2].x = x - xr
+        self.moircs_box.objects[2].y = y + yr
+        self.moircs_box.objects[2].rot_deg = self.pa_rot_deg
+        self.moircs_box.objects[3].x = x + xr
+        self.moircs_box.objects[3].y = y - (yr * self.text_off)
+        self.moircs_box.objects[3].rot_deg = self.pa_rot_deg
+        self.moircs_box.objects[4].x = x + xr
+        self.moircs_box.objects[4].y = y + (yr * self.text_off)
+        self.moircs_box.objects[4].rot_deg = self.pa_rot_deg
+
+        det2_df_x = self.det2_defect[0] / self.scale
+        det2_df_y = self.det2_defect[1] / self.scale
+        self.moircs_box.objects[5].points = [(x - xr, y + yr),
+                                             (x - xr + det2_df_x, y + yr),
+                                             (x - xr, y + yr - det2_df_y)]
+        det1_df_x = self.det1_defect[0] / self.scale
+        det1_df_y = self.det1_defect[1] / self.scale
+        self.moircs_box.objects[6].points = [(x - xr, y - yr),
+                                             (x - xr + det1_df_x, y - yr),
+                                             (x - xr, y - yr + det1_df_y)]
+
+        # rotate as necessary to show PA
+        self.moircs_box.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
+
     def set_scale(self, scale_x, scale_y):
         super().set_scale(scale_x, scale_y)
+
         xr = self.moircs_fov[0] * 0.5 / self.scale
         yr = self.moircs_fov[1] * 0.5 / self.scale
         self.moircs_radius = (xr, yr)
 
-        pt = self.moircs_box.objects[0].points[0][:2]
-        self.set_pos(pt)
+        self.__update()
 
     def set_pos(self, pt):
         super().set_pos(pt)
-        x, y = pt
-        xr, yr = self.moircs_radius
-        self.moircs_box.objects[0].x = pt[0]
-        self.moircs_box.objects[0].y = pt[1]
-        self.moircs_box.objects[0].xradius = xr
-        self.moircs_box.objects[0].yradius = yr
-        self.moircs_box.objects[1].x = x - xr
-        self.moircs_box.objects[1].y = y + yr
-        self.moircs_box.objects[2].x1 = x - xr
-        self.moircs_box.objects[2].x2 = x + xr
-        self.moircs_box.objects[2].y1 = y
-        self.moircs_box.objects[2].y2 = y
-        self.moircs_box.objects[3].x = x + xr
-        self.moircs_box.objects[3].y = y - (yr * self.text_off)
-        self.moircs_box.objects[4].x = x + xr
-        self.moircs_box.objects[4].y = y + (yr * self.text_off)
 
-        self.canvas.update_canvas()
+        self.__update()
+
+    def set_pa(self, pa_deg):
+        super().set_pa(pa_deg)
+
+        self.__update()
 
     def remove(self):
         super().remove()
@@ -350,42 +434,52 @@ class SWIMS_FOV(CS_FOV):
         x, y = pt
         xr, yr = self.swims_radius
         self.swims_box = self.dc.CompoundObject(
-            self.dc.Box(x, y, xr, yr,
-                        color=self.swims_color, linewidth=2,
-                        rot_deg=self.rot_deg),
+            self.dc.Polygon([(x - xr, y), (x + xr, y),
+                             (x + xr, y + yr), (x - xr, y + yr)],
+                            color=self.swims_color, linewidth=2),
+            self.dc.Polygon([(x - xr, y), (x + xr, y),
+                             (x + xr, y - yr), (x - xr, y - yr)],
+                            color=self.swims_color, linewidth=2),
             self.dc.Text(x - xr, y + yr,
                          text="SWIMS FOV (6.6x3.3 arcmin)",
                          color=self.swims_color,
-                         rot_deg=self.rot_deg),
-            self.dc.Line(x, y - yr, x, y + yr,
-                         color=self.swims_color, linewidth=2))
+                         rot_deg=0.0))
         self.canvas.add(self.swims_box)
+
+
+    def __update(self):
+        # reposition overlay with scale
+        x, y = self.pt_ctr[:2]
+        xr, yr = self.swims_radius
+        self.swims_box.objects[0].points = [(x - xr, y), (x + xr, y),
+                                             (x + xr, y + yr), (x - xr, y + yr)]
+        self.swims_box.objects[1].points = [(x - xr, y), (x + xr, y),
+                                             (x + xr, y - yr), (x - xr, y - yr)]
+        self.swims_box.objects[2].x = x - xr
+        self.swims_box.objects[2].y = y + yr
+        self.swims_box.objects[2].rot_deg = self.pa_rot_deg
+
+        # rotate as necessary to show PA
+        self.swims_box.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
 
     def set_scale(self, scale_x, scale_y):
         super().set_scale(scale_x, scale_y)
+
         xr = self.swims_fov[0] * 0.5 / self.scale
         yr = self.swims_fov[1] * 0.5 / self.scale
         self.swims_radius = (xr, yr)
 
-        pt = self.swims_box.objects[0].points[0][:2]
-        self.set_pos(pt)
+        self.__update()
 
     def set_pos(self, pt):
         super().set_pos(pt)
-        x, y = pt
-        xr, yr = self.swims_radius
-        self.swims_box.objects[0].x = x
-        self.swims_box.objects[0].y = y
-        self.swims_box.objects[0].xradius = xr
-        self.swims_box.objects[0].yradius = yr
-        self.swims_box.objects[1].x = x - xr
-        self.swims_box.objects[1].y = y + yr
-        self.swims_box.objects[2].y1 = y - yr
-        self.swims_box.objects[2].y2 = y + yr
-        self.swims_box.objects[2].x1 = x
-        self.swims_box.objects[2].x2 = x
 
-        self.canvas.update_canvas()
+        self.__update()
+
+    def set_pa(self, pa_deg):
+        super().set_pa(pa_deg)
+
+        self.__update()
 
     def rotate(self, rot_deg):
         super().rotate(rot_deg)
@@ -407,7 +501,8 @@ class FOCAS_FOV(CS_FOV):
         x, y = self.cs_circ.objects[0].points[0][:2]
         xr = self.cs_radius
         self.focas_info = self.dc.CompoundObject(
-            self.dc.Line(x - xr, y, x + xr, y,
+            # TODO: turn this into a thicker polygon
+            self.dc.Path([(x - xr, y), (x + xr, y)],
                          color=self.cs_color, linewidth=2),
             self.dc.Text(x + xr, y - (xr * self.text_off), text='Chip 1',
                          color=self.cs_color,
@@ -418,26 +513,34 @@ class FOCAS_FOV(CS_FOV):
         )
         self.canvas.add(self.focas_info)
 
+    def __update(self):
+        x, y = self.pt_ctr[:2]
+        xr = self.cs_radius
+        self.focas_info.objects[0].points = [(x - xr, y), (x + xr, y)]
+        self.focas_info.objects[1].x = x + xr
+        self.focas_info.objects[1].y = y - (xr * self.text_off)
+        self.focas_info.objects[1].rot_deg = self.pa_rot_deg
+        self.focas_info.objects[2].x = x + xr
+        self.focas_info.objects[2].y = y + (xr * self.text_off)
+        self.focas_info.objects[2].rot_deg = self.pa_rot_deg
+
+        # rotate as necessary to show PA
+        self.focas_info.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
+
     def set_scale(self, scale_x, scale_y):
         super().set_scale(scale_x, scale_y)
 
-        pt = self.cs_circ.objects[0].points[0][:2]
-        self.set_pos(pt)
+        self.__update()
 
     def set_pos(self, pt):
         super().set_pos(pt)
-        x, y = pt
-        xr = self.cs_radius
-        self.focas_info.objects[0].x1 = x - xr
-        self.focas_info.objects[0].x2 = x + xr
-        self.focas_info.objects[0].y1 = y
-        self.focas_info.objects[0].y2 = y
-        self.focas_info.objects[1].x = x + xr
-        self.focas_info.objects[1].y = y - (xr * self.text_off)
-        self.focas_info.objects[2].x = x + xr
-        self.focas_info.objects[2].y = y + (xr * self.text_off)
 
-        self.canvas.update_canvas()
+        self.__update()
+
+    def set_pa(self, pa_deg):
+        super().set_pa(pa_deg)
+
+        self.__update()
 
     def remove(self):
         super().remove()
@@ -454,11 +557,15 @@ class HDS_FOV(FOV):
         self.hds_radius = 1 * 0.5
         self.rot_deg = 0.0
         self.sky_radius_arcmin = 1.5
+        self.xr_c = 0.1
+        self.yr_c = 0.33
 
         self.hds_color = 'red'
 
         x, y = pt
         r = self.hds_radius
+        xr = r * self.xr_c
+        yr = r * self.yr_c
         self.hds_circ = self.dc.CompoundObject(
             self.dc.Circle(x, y, r,
                            color=self.hds_color, linewidth=2),
@@ -466,34 +573,56 @@ class HDS_FOV(FOV):
                          text="HDS SV FOV (1 arcmin)",
                          color=self.hds_color,
                          bgcolor='floralwhite', bgalpha=0.8,
-                         rot_deg=self.rot_deg),
-            self.dc.Line(x, y - r, x, y + r,
-                         color=self.hds_color, linewidth=2))
+                         rot_deg=0.0),
+            self.dc.Path([(x, y - r), (x, y + r)],
+                         color=self.hds_color, linewidth=2),
+            self.dc.Polygon([(x - xr, y - yr), (x - xr, y - r),
+                             (x + xr, y - r), (x + xr, y - yr)],
+                            color=self.hds_color, linewidth=1,
+                            fill=True, fillcolor=self.hds_color,
+                            fillalpha=0.3),
+            self.dc.Polygon([(x - xr, y + yr), (x - xr, y + r),
+                             (x + xr, y + r), (x + xr, y + yr)],
+                            color=self.hds_color, linewidth=1,
+                            fill=True, fillcolor=self.hds_color,
+                            fillalpha=0.3))
         self.canvas.add(self.hds_circ)
 
-    def set_scale(self, scale_x, scale_y):
-        # NOTE: sign of scale val indicates orientation
-        self.scale = np.mean((abs(scale_x), abs(scale_y)))
-
-        self.hds_radius = self.hds_fov * 0.5 / self.scale
-        pt = self.hds_circ.objects[0].points[0][:2]
-        self.set_pos(pt)
-
-    def set_pos(self, pt):
-        super().set_pos(pt)
-        x, y = pt
+    def __update(self):
+        x, y = self.pt_ctr[:2]
         r = self.hds_radius
+        xr = r * self.xr_c
+        yr = r * self.yr_c
         self.hds_circ.objects[0].x = x
         self.hds_circ.objects[0].y = y
         self.hds_circ.objects[0].radius = r
         self.hds_circ.objects[1].x = x
         self.hds_circ.objects[1].y = y + r
-        self.hds_circ.objects[2].x1 = x
-        self.hds_circ.objects[2].x2 = x
-        self.hds_circ.objects[2].y1 = y - r
-        self.hds_circ.objects[2].y2 = y + r
+        self.hds_circ.objects[2].points = [(x, y - r), (x, y + r)]
+        self.hds_circ.objects[3].points = [(x - xr, y - yr), (x - xr, y - r),
+                                           (x + xr, y - r), (x + xr, y - yr)]
+        self.hds_circ.objects[4].points = [(x - xr, y + yr), (x - xr, y + r),
+                                           (x + xr, y + r), (x + xr, y + yr)]
 
-        self.canvas.update_canvas()
+        # rotate as necessary to show PA
+        self.hds_circ.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
+
+    def set_scale(self, scale_x, scale_y):
+        # NOTE: sign of scale val indicates orientation
+        self.scale = np.mean((abs(scale_x), abs(scale_y)))
+        self.hds_radius = self.hds_fov * 0.5 / self.scale
+
+        self.__update()
+
+    def set_pos(self, pt):
+        super().set_pos(pt)
+
+        self.__update()
+
+    def set_pa(self, pa_deg):
+        super().set_pa(pa_deg)
+
+        self.__update()
 
     def rotate(self, rot_deg):
         self.rot_deg = rot_deg
@@ -517,10 +646,6 @@ class HDS_FOV_no_IMR(HDS_FOV):
         pa_deg = self.calc_pa_hds_noimr(cres.dec_deg, ha_hrs, lat_deg)
 
         super().set_pa(pa_deg)
-
-    def update_pa_from_rotation(self, rot_deg):
-        # HDS without the image rotator cannot set the position angle
-        return self.pa_deg
 
     def calc_pa_hds_noimr(self, dec_deg, ha_hr, lat_deg):
         lat_rad = np.radians(lat_deg)
@@ -555,11 +680,6 @@ class PF_FOV(FOV):
         self.scale = np.mean((abs(scale_x), abs(scale_y)))
 
         self.pf_radius = self.pf_fov * 0.5 / self.scale
-        self.set_pos(self.pt_ctr)
-
-    def set_pos(self, pt):
-        super().set_pos(pt)
-        self.pt_ctr = pt
 
     def rotate(self, rot_deg):
         self.rot_deg = rot_deg
@@ -606,6 +726,7 @@ class HSC_FOV(PF_FOV):
         super().__init__(pl_obj, canvas, pt)
 
         self.det_poly_paths = []
+        self.detector_overlay = None
 
         # for the dithering GUI
         self.dither_types = ['1', '5', 'N']
@@ -628,7 +749,7 @@ class HSC_FOV(PF_FOV):
             self.dc.Text(x, y,
                          text=f"HSC FOV ({self.pf_fov:.2f} deg)",
                          color=self.pf_color,
-                         rot_deg=self.rot_deg))
+                         rot_deg=0.0))
         self.canvas.add(self.pf_circ)
 
         if HSC_FOV.hsc_info is None:
@@ -672,7 +793,7 @@ class HSC_FOV(PF_FOV):
                 showfill = True
             p = self.dc.Polygon(points, color=color, fill=showfill,
                                 fillcolor='red', fillalpha=0.4,
-                                showcap=False, coord='insfov')
+                                showcap=False, coord='data')
 
             # annotate with the detector name
             # find center, which is geometric average of points
@@ -681,13 +802,14 @@ class HSC_FOV(PF_FOV):
             name = "{:1d}_{:02d}".format(info[key]['bees'],
                                          info[key]['bees_det_id'])
             t = self.dc.Text(pcx, pcy, text=name, color=color, fontsize=12,
-                             coord='insfov')
+                             coord='data')
 
             l.append(self.dc.CompoundObject(p, t))
 
         obj = self.dc.CompoundObject(*l)
         obj.opaque = True
         obj.editable = False
+        self.detector_overlay = obj
 
         self.canvas.add(obj, tag='detector_overlay')
 
@@ -928,7 +1050,11 @@ class HSC_FOV(PF_FOV):
         viewer = self.pl_obj.viewer
         image = viewer.get_image()
         data_x, data_y = image.radectopix(ra, dec)
-        viewer.set_pan(data_x, data_y)
+        ctr_x, ctr_y = self.pt_ctr[:2]
+        delta_x = data_x - ctr_x
+        delta_y = data_y - ctr_y
+        self.ccd_overlay.move_delta_pt((delta_x, delta_y))
+        self.canvas.update_canvas()
         return True
 
     def show_step(self, n):
@@ -941,9 +1067,8 @@ class HSC_FOV(PF_FOV):
         self.pl_obj.fv.error_wrap(self._show_step, n)
         return True
 
-    def set_pos(self, pt):
-        super().set_pos(pt)
-        x, y = pt
+    def __update(self):
+        x, y = self.pt_ctr
         r = self.pf_radius
         self.pf_circ.objects[0].x = x
         self.pf_circ.objects[0].y = y
@@ -956,28 +1081,23 @@ class HSC_FOV(PF_FOV):
         self.calc_detector_positions()
         self.draw_detectors()
 
-        self.canvas.update_canvas()
+        self.detector_overlay.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
+
+    def set_pos(self, pt):
+        super().set_pos(pt)
+
+        self.__update()
 
     def set_pa(self, pa_deg):
         # *** NOTE ***: opposite of base class because camera at Prime focus
         if self.flip_tf:
-            self.pa_rot_deg = self.img_rot_deg + self.mount_offset_rot_deg - pa_deg
-        else:
             self.pa_rot_deg = self.img_rot_deg - self.mount_offset_rot_deg + pa_deg
-
-        self.pa_deg = normalize_angle(pa_deg, limit='half')
-
-    def update_pa_from_rotation(self, rot_deg):
-        self.pa_rot_deg = rot_deg
-
-        # *** NOTE ***: opposite of base class because camera at Prime focus
-        if not self.flip_tf:
-            pa_deg = - self.img_rot_deg + self.mount_offset_rot_deg + rot_deg
         else:
-            pa_deg = self.img_rot_deg + self.mount_offset_rot_deg - rot_deg
+            self.pa_rot_deg = self.img_rot_deg + self.mount_offset_rot_deg - pa_deg
 
         self.pa_deg = normalize_angle(pa_deg, limit='half')
-        return self.pa_deg
+
+        self.__update()
 
     def remove(self):
         super().remove()
@@ -997,6 +1117,7 @@ class PFS_FOV(PF_FOV):
         self.pf_radius = self.pf_fov * 0.5
         self.cam_poly_paths = []
         self.fov_poly_path = []
+        self.guide_camera_overlay = None
         self.mount_offset_rot_deg = 180.0
 
         ang_inc = 360.0 / 6
@@ -1059,37 +1180,53 @@ class PFS_FOV(PF_FOV):
             p = self.dc.Polygon(points, color=color, fill=showfill,
                                 fillcolor='red', fillalpha=0.4,
                                 linewidth=2,
-                                showcap=False, coord='insfov')
+                                showcap=False)
 
             # annotate with the detector name
             # find center, which is geometric average of points
             xs, ys = points.T
             pcx, pcy = np.sum(xs) / len(xs), np.sum(ys) / len(ys)
-            t = self.dc.Text(pcx, pcy, text=name, color=color, fontsize=12,
-                             coord='insfov')
+            t = self.dc.Text(pcx, pcy, text=name, color=color, fontsize=12)
 
             l.append(self.dc.CompoundObject(p, t))
 
         obj = self.dc.CompoundObject(*l)
         obj.opaque = True
         obj.editable = False
+        self.guide_camera_overlay = obj
 
         self.canvas.add(obj, tag='guide_camera_overlay')
 
-    def set_pos(self, pt):
-        super().set_pos(pt)
-
+    def __update(self):
         points = self.calc_fov_hexagon()
         self.pf_fov_hex.objects[0].points = points
         self.pf_fov_hex.objects[1].x = points[1][0]
         self.pf_fov_hex.objects[1].y = points[1][1]
+        self.pf_fov_hex.objects[1].rot_deg = self.pa_rot_deg
 
         self.canvas.delete_object_by_tag('guide_camera_overlay')
 
         self.calc_guide_camera_positions()
         self.draw_guide_cameras()
 
-        self.canvas.update_canvas()
+        self.guide_camera_overlay.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
+        self.pf_fov_hex.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
+
+    def set_pos(self, pt):
+        super().set_pos(pt)
+
+        self.__update()
+
+    def set_pa(self, pa_deg):
+        # *** NOTE ***: opposite of base class because camera at Prime focus
+        if self.flip_tf:
+            self.pa_rot_deg = self.img_rot_deg - self.mount_offset_rot_deg + pa_deg
+        else:
+            self.pa_rot_deg = self.img_rot_deg + self.mount_offset_rot_deg - pa_deg
+
+        self.pa_deg = normalize_angle(pa_deg, limit='half')
+
+        self.__update()
 
     def remove(self):
         super().remove()
