@@ -91,8 +91,9 @@ class IRCS_FOV(AO188_FOV):
         x, y = pt
         r = self.ircs_radius
         self.ircs_box = self.dc.CompoundObject(
-            self.dc.Polygon([(x - r, y - r), (x + r, y - r),
-                             (x + r, y + r), (x - r, y + r)],
+            self.dc.Polygon(np.array([(x - r, y - r), (x + r, y - r),
+                                      (x + r, y + r), (x - r, y + r)],
+                                     dtype=float),
                             color=self.ircs_color, linewidth=2),
             self.dc.Text(x - r, y + r,
                          text="IRCS FOV (54x54 arcsec)",
@@ -102,11 +103,16 @@ class IRCS_FOV(AO188_FOV):
     def __update(self):
         x, y = self.pt_ctr[:2]
         r = self.ircs_radius
-        self.ircs_box.objects[0].points = [(x - r, y - r), (x + r, y - r),
-                                           (x + r, y + r), (x - r, y + r)]
+        self.ircs_box.objects[0].points = np.array([(x - r, y - r), (x + r, y - r),
+                                                    (x + r, y + r), (x - r, y + r)],
+                                                   dtype=float)
         self.ircs_box.objects[1].x = x - r
-        self.ircs_box.objects[1].y = y - r
+        self.ircs_box.objects[1].y = y + r
         self.ircs_box.objects[1].rot_deg = self.pa_rot_deg
+
+        # flip if desired
+        if self.flip_tf:
+            self.flip_x(self.ircs_box, self.pt_ctr[0])
 
         self.ircs_box.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
 
@@ -147,8 +153,9 @@ class IRD_FOV(AO188_FOV):
         x, y = pt
         xr, yr = self.ird_radius
         self.ird_box = self.dc.CompoundObject(
-            self.dc.Polygon([(x - xr, y - yr), (x + xr, y - yr),
-                             (x + xr, y + yr), (x - xr, y + yr)],
+            self.dc.Polygon(np.array([(x - xr, y - yr), (x + xr, y - yr),
+                                      (x + xr, y + yr), (x - xr, y + yr)],
+                                     dtype=float),
                             color=self.ird_color, linewidth=2),
             self.dc.Text(x - xr, y + yr,
                          text="IRD FOV for FIM (20x10 arcsec)",
@@ -159,11 +166,16 @@ class IRD_FOV(AO188_FOV):
     def __update(self):
         x, y = self.pt_ctr[:2]
         xr, yr = self.ird_radius
-        self.ird_box.objects[0].points = [(x - xr, y - yr), (x + xr, y - yr),
-                                          (x + xr, y + yr), (x - xr, y + yr)]
+        self.ird_box.objects[0].points = np.array([(x - xr, y - yr), (x + xr, y - yr),
+                                                   (x + xr, y + yr), (x - xr, y + yr)],
+                                                  dtype=float)
         self.ird_box.objects[1].x = x - xr
         self.ird_box.objects[1].y = y + yr
         self.ird_box.objects[1].rot_deg = self.pa_rot_deg
+
+        # flip if desired
+        if self.flip_tf:
+            self.flip_x(self.ird_box, self.pt_ctr[0])
 
         self.ird_box.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
 
@@ -266,8 +278,9 @@ class COMICS_FOV(CS_FOV):
         x, y = pt
         xr, yr = self.comics_radius
         self.comics_box = self.dc.CompoundObject(
-            self.dc.Polygon([(x - xr, y - yr), (x + xr, y - yr),
-                             (x + xr, y + yr), (x - xr, y + yr)],
+            self.dc.Polygon(np.array([(x - xr, y - yr), (x + xr, y - yr),
+                                      (x + xr, y + yr), (x - xr, y + yr)],
+                                     dtype=float),
                             color=self.comics_color, linewidth=2),
             self.dc.Text(x - xr, y + yr,
                          text="COMICS FOV (30x40 arcsec)",
@@ -278,11 +291,16 @@ class COMICS_FOV(CS_FOV):
     def __update(self):
         x, y = self.pt_ctr[:2]
         xr, yr = self.comics_radius
-        self.comics_box.objects[0].points = [(x - xr, y - yr), (x + xr, y - yr),
-                                             (x + xr, y + yr), (x - xr, y + yr)]
+        self.comics_box.objects[0].points = np.array([(x - xr, y - yr), (x + xr, y - yr),
+                                                      (x + xr, y + yr), (x - xr, y + yr)],
+                                                     dtype=float)
         self.comics_box.objects[1].x = x - xr
         self.comics_box.objects[1].y = y + yr
         self.comics_box.objects[1].rot_deg = self.pa_rot_deg
+
+        # flip if desired
+        if self.flip_tf:
+            self.flip_x(self.comics_box, self.pt_ctr[0])
 
         # rotate as necessary to show PA
         self.comics_box.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
@@ -331,12 +349,14 @@ class MOIRCS_FOV(CS_FOV):
         det1_df_y = self.det1_defect[1] / self.scale
         self.moircs_box = self.dc.CompoundObject(
             # detector 2
-            self.dc.Polygon([(x - xr, y), (x + xr, y),
-                             (x + xr, y + yr), (x - xr, y + yr)],
+            self.dc.Polygon(np.array([(x - xr, y), (x + xr, y),
+                                      (x + xr, y + yr), (x - xr, y + yr)],
+                                     dtype=float),
                             color=self.moircs_color, linewidth=2),
             # detector 1
-            self.dc.Polygon([(x - xr, y), (x + xr, y),
-                             (x + xr, y - yr), (x - xr, y - yr)],
+            self.dc.Polygon(np.array([(x - xr, y), (x + xr, y),
+                                      (x + xr, y - yr), (x - xr, y - yr)],
+                                     dtype=float),
                             color=self.moircs_color, linewidth=2),
             self.dc.Text(x - xr, y + yr,
                          text="MOIRCS FOV (4x7 arcmin)",
@@ -349,16 +369,18 @@ class MOIRCS_FOV(CS_FOV):
                          color=self.cs_color,
                          bgcolor='white', bgalpha=0.75),
             # detector 2 defect
-            self.dc.Polygon([(x - xr, y + yr),
-                             (x - xr + det2_df_x, y + yr),
-                             (x - xr, y + yr - det2_df_y)],
+            self.dc.Polygon(np.array([(x - xr, y + yr),
+                                      (x - xr + det2_df_x, y + yr),
+                                      (x - xr, y + yr - det2_df_y)],
+                                     dtype=float),
                             color=self.moircs_color, linewidth=0,
                             fill=True, fillcolor=self.moircs_color,
                             fillalpha=0.4),
             # detector 1 defect
-            self.dc.Polygon([(x - xr, y - yr),
-                             (x - xr + det1_df_x, y - yr),
-                             (x - xr, y - yr + det1_df_y)],
+            self.dc.Polygon(np.array([(x - xr, y - yr),
+                                      (x - xr + det1_df_x, y - yr),
+                                      (x - xr, y - yr + det1_df_y)],
+                                     dtype=float),
                             color=self.moircs_color, linewidth=0,
                             fill=True, fillcolor=self.moircs_color,
                             fillalpha=0.4),
@@ -369,10 +391,12 @@ class MOIRCS_FOV(CS_FOV):
         # reposition overlay with scale
         x, y = self.pt_ctr[:2]
         xr, yr = self.moircs_radius
-        self.moircs_box.objects[0].points = [(x - xr, y), (x + xr, y),
-                                             (x + xr, y + yr), (x - xr, y + yr)]
-        self.moircs_box.objects[1].points = [(x - xr, y), (x + xr, y),
-                                             (x + xr, y - yr), (x - xr, y - yr)]
+        self.moircs_box.objects[0].points = np.array([(x - xr, y), (x + xr, y),
+                                                      (x + xr, y + yr), (x - xr, y + yr)],
+                                                     dtype=float)
+        self.moircs_box.objects[1].points = np.array([(x - xr, y), (x + xr, y),
+                                                      (x + xr, y - yr), (x - xr, y - yr)],
+                                                     dtype=float)
         self.moircs_box.objects[2].x = x - xr
         self.moircs_box.objects[2].y = y + yr
         self.moircs_box.objects[2].rot_deg = self.pa_rot_deg
@@ -385,14 +409,20 @@ class MOIRCS_FOV(CS_FOV):
 
         det2_df_x = self.det2_defect[0] / self.scale
         det2_df_y = self.det2_defect[1] / self.scale
-        self.moircs_box.objects[5].points = [(x - xr, y + yr),
-                                             (x - xr + det2_df_x, y + yr),
-                                             (x - xr, y + yr - det2_df_y)]
+        self.moircs_box.objects[5].points = np.array([(x - xr, y + yr),
+                                                      (x - xr + det2_df_x, y + yr),
+                                                      (x - xr, y + yr - det2_df_y)],
+                                                     dtype=float)
         det1_df_x = self.det1_defect[0] / self.scale
         det1_df_y = self.det1_defect[1] / self.scale
-        self.moircs_box.objects[6].points = [(x - xr, y - yr),
-                                             (x - xr + det1_df_x, y - yr),
-                                             (x - xr, y - yr + det1_df_y)]
+        self.moircs_box.objects[6].points = np.array([(x - xr, y - yr),
+                                                      (x - xr + det1_df_x, y - yr),
+                                                      (x - xr, y - yr + det1_df_y)],
+                                                     dtype=float)
+
+        # flip if desired
+        if self.flip_tf:
+            self.flip_x(self.moircs_box, self.pt_ctr[0])
 
         # rotate as necessary to show PA
         self.moircs_box.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
@@ -434,11 +464,13 @@ class SWIMS_FOV(CS_FOV):
         x, y = pt
         xr, yr = self.swims_radius
         self.swims_box = self.dc.CompoundObject(
-            self.dc.Polygon([(x - xr, y), (x + xr, y),
-                             (x + xr, y + yr), (x - xr, y + yr)],
+            self.dc.Polygon(np.array([(x - xr, y), (x + xr, y),
+                                      (x + xr, y + yr), (x - xr, y + yr)],
+                                     dtype=float),
                             color=self.swims_color, linewidth=2),
-            self.dc.Polygon([(x - xr, y), (x + xr, y),
-                             (x + xr, y - yr), (x - xr, y - yr)],
+            self.dc.Polygon(np.array([(x - xr, y), (x + xr, y),
+                                      (x + xr, y - yr), (x - xr, y - yr)],
+                                     dtype=float),
                             color=self.swims_color, linewidth=2),
             self.dc.Text(x - xr, y + yr,
                          text="SWIMS FOV (6.6x3.3 arcmin)",
@@ -451,13 +483,19 @@ class SWIMS_FOV(CS_FOV):
         # reposition overlay with scale
         x, y = self.pt_ctr[:2]
         xr, yr = self.swims_radius
-        self.swims_box.objects[0].points = [(x - xr, y), (x + xr, y),
-                                             (x + xr, y + yr), (x - xr, y + yr)]
-        self.swims_box.objects[1].points = [(x - xr, y), (x + xr, y),
-                                             (x + xr, y - yr), (x - xr, y - yr)]
+        self.swims_box.objects[0].points = np.array([(x - xr, y), (x + xr, y),
+                                                     (x + xr, y + yr), (x - xr, y + yr)],
+                                                    dtype=float)
+        self.swims_box.objects[1].points = np.array([(x - xr, y), (x + xr, y),
+                                                     (x + xr, y - yr), (x - xr, y - yr)],
+                                                    dtype=float)
         self.swims_box.objects[2].x = x - xr
         self.swims_box.objects[2].y = y + yr
         self.swims_box.objects[2].rot_deg = self.pa_rot_deg
+
+        # flip if desired
+        if self.flip_tf:
+            self.flip_x(self.swims_box, self.pt_ctr[0])
 
         # rotate as necessary to show PA
         self.swims_box.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
@@ -516,13 +554,18 @@ class FOCAS_FOV(CS_FOV):
     def __update(self):
         x, y = self.pt_ctr[:2]
         xr = self.cs_radius
-        self.focas_info.objects[0].points = [(x - xr, y), (x + xr, y)]
+        self.focas_info.objects[0].points = np.array([(x - xr, y), (x + xr, y)],
+                                                     dtype=float)
         self.focas_info.objects[1].x = x + xr
         self.focas_info.objects[1].y = y - (xr * self.text_off)
         self.focas_info.objects[1].rot_deg = self.pa_rot_deg
         self.focas_info.objects[2].x = x + xr
         self.focas_info.objects[2].y = y + (xr * self.text_off)
         self.focas_info.objects[2].rot_deg = self.pa_rot_deg
+
+        # flip if desired
+        if self.flip_tf:
+            self.flip_x(self.focas_info, self.pt_ctr[0])
 
         # rotate as necessary to show PA
         self.focas_info.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
@@ -574,15 +617,17 @@ class HDS_FOV(FOV):
                          color=self.hds_color,
                          bgcolor='floralwhite', bgalpha=0.8,
                          rot_deg=0.0),
-            self.dc.Path([(x, y - r), (x, y + r)],
+            self.dc.Path(np.array([(x, y - r), (x, y + r)], dtype=float),
                          color=self.hds_color, linewidth=2),
-            self.dc.Polygon([(x - xr, y - yr), (x - xr, y - r),
-                             (x + xr, y - r), (x + xr, y - yr)],
+            self.dc.Polygon(np.array([(x - xr, y - yr), (x - xr, y - r),
+                                      (x + xr, y - r), (x + xr, y - yr)],
+                                     dtype=float),
                             color=self.hds_color, linewidth=1,
                             fill=True, fillcolor=self.hds_color,
                             fillalpha=0.3),
-            self.dc.Polygon([(x - xr, y + yr), (x - xr, y + r),
-                             (x + xr, y + r), (x + xr, y + yr)],
+            self.dc.Polygon(np.array([(x - xr, y + yr), (x - xr, y + r),
+                                      (x + xr, y + r), (x + xr, y + yr)],
+                                     dtype=float),
                             color=self.hds_color, linewidth=1,
                             fill=True, fillcolor=self.hds_color,
                             fillalpha=0.3))
@@ -598,11 +643,19 @@ class HDS_FOV(FOV):
         self.hds_circ.objects[0].radius = r
         self.hds_circ.objects[1].x = x
         self.hds_circ.objects[1].y = y + r
-        self.hds_circ.objects[2].points = [(x, y - r), (x, y + r)]
-        self.hds_circ.objects[3].points = [(x - xr, y - yr), (x - xr, y - r),
-                                           (x + xr, y - r), (x + xr, y - yr)]
-        self.hds_circ.objects[4].points = [(x - xr, y + yr), (x - xr, y + r),
-                                           (x + xr, y + r), (x + xr, y + yr)]
+        self.hds_circ.objects[1].rot_deg = self.pa_rot_deg
+        self.hds_circ.objects[2].points = np.array([(x, y - r), (x, y + r)],
+                                                   dtype=float)
+        self.hds_circ.objects[3].points = np.array([(x - xr, y - yr), (x - xr, y - r),
+                                                    (x + xr, y - r), (x + xr, y - yr)],
+                                                   dtype=float)
+        self.hds_circ.objects[4].points = np.array([(x - xr, y + yr), (x - xr, y + r),
+                                                    (x + xr, y + r), (x + xr, y + yr)],
+                                                   dtype=float)
+
+        # flip if desired
+        if self.flip_tf:
+            self.flip_x(self.hds_circ, self.pt_ctr[0])
 
         # rotate as necessary to show PA
         self.hds_circ.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
@@ -1081,6 +1134,10 @@ class HSC_FOV(PF_FOV):
         self.calc_detector_positions()
         self.draw_detectors()
 
+        # flip if desired
+        if self.flip_tf:
+            self.flip_x(self.detector_overlay, self.pt_ctr[0])
+
         self.detector_overlay.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
 
     def set_pos(self, pt):
@@ -1090,7 +1147,7 @@ class HSC_FOV(PF_FOV):
 
     def set_pa(self, pa_deg):
         # *** NOTE ***: opposite of base class because camera at Prime focus
-        if self.flip_tf:
+        if False: #self.flip_tf:
             self.pa_rot_deg = self.img_rot_deg - self.mount_offset_rot_deg + pa_deg
         else:
             self.pa_rot_deg = self.img_rot_deg + self.mount_offset_rot_deg - pa_deg
@@ -1209,6 +1266,11 @@ class PFS_FOV(PF_FOV):
         self.calc_guide_camera_positions()
         self.draw_guide_cameras()
 
+        # flip if desired
+        if self.flip_tf:
+            self.flip_x(self.guide_camera_overlay, self.pt_ctr[0])
+            self.flip_x(self.pf_fov_hex, self.pt_ctr[0])
+
         self.guide_camera_overlay.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
         self.pf_fov_hex.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
 
@@ -1219,7 +1281,7 @@ class PFS_FOV(PF_FOV):
 
     def set_pa(self, pa_deg):
         # *** NOTE ***: opposite of base class because camera at Prime focus
-        if self.flip_tf:
+        if False: #self.flip_tf:
             self.pa_rot_deg = self.img_rot_deg - self.mount_offset_rot_deg + pa_deg
         else:
             self.pa_rot_deg = self.img_rot_deg + self.mount_offset_rot_deg - pa_deg

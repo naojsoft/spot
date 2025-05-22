@@ -93,9 +93,7 @@ class InsFov(GingaPlugin.LocalPlugin):
         self._last_update_dt = None
 
         self.cur_fov = FOV(self, self.canvas, (0, 0))
-        # user's chosen flip and PA
-        t_ = self.viewer.get_settings()
-        self.flip = t_['flip_x']
+        self.flip = False
         self.pa_deg = 0.0
         self.coord = (0.0, 0.0)
         self.target = None
@@ -149,6 +147,8 @@ class InsFov(GingaPlugin.LocalPlugin):
         b.pa.add_callback('activated', self.set_pa_cb)
         b.pa.set_tooltip("Set desired position angle")
         b.flip.set_state(self.flip)
+        # TEMP
+        b.flip.set_enabled(False)
         b.flip.set_tooltip("Flip orientation")
         b.flip.add_callback("activated", self.toggle_flip_cb)
 
@@ -458,7 +458,7 @@ class FOV:
         pa_deg : float
             Desired position angle in deg
         """
-        if self.flip_tf:
+        if False: #self.flip_tf:
             self.pa_rot_deg = self.img_rot_deg + self.mount_offset_rot_deg - pa_deg
         else:
             self.pa_rot_deg = self.img_rot_deg - self.mount_offset_rot_deg + pa_deg
@@ -474,31 +474,6 @@ class FOV:
             The position angle of the field
         """
         return self.pa_deg
-
-    # def update_pa_from_rotation(self, rot_deg):
-    #     """How the FOV object is told the image has rotated.
-
-    #     It should update its idea of the new Position Angle.
-
-    #     Parameters
-    #     ----------
-    #     rot_deg : float
-    #         The current rotation of the viewer.
-
-    #     Returns
-    #     -------
-    #     pa_deg : float
-    #         The new Position Angle of the field.
-    #     """
-    #     self.pa_rot_deg = rot_deg
-
-    #     if not self.flip_tf:
-    #         pa_deg = self.img_rot_deg + self.mount_offset_rot_deg - rot_deg
-    #     else:
-    #         pa_deg = - self.img_rot_deg + self.mount_offset_rot_deg + rot_deg
-
-    #     self.pa_deg = normalize_angle(pa_deg, limit='half')
-    #     return self.pa_deg
 
     def set_scale(self, scale_x, scale_y):
         """How the FOV object is told to update its graphics when the scale changes.
@@ -541,3 +516,8 @@ class FOV:
         Typically, because a different instrument FOV is being loaded.
         """
         pass
+
+    def flip_x(self, comp_obj, x_ctr):
+        for obj in comp_obj.objects:
+            obj.points = np.array([(x_ctr - (pt[0] - x_ctr), pt[1])
+                                   for pt in obj.points], dtype=float)
