@@ -112,7 +112,7 @@ class SiteSelector(GingaPlugin.LocalPlugin):
             path = os.path.join(cfgdir, "sites.yml")
 
         # configure sites
-        with open(path, 'r') as site_f:
+        with open(path, 'rt', encoding='utf8') as site_f:
             sites.configure_sites(yaml.safe_load(site_f))
 
         self.site_dict = dict()
