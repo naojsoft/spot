@@ -199,7 +199,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
             # open stock list of skycams
             path = os.path.join(cfgdir, "skycams.yml")
 
-        with open(path, 'rt', encoding='utf8') as cam_f:
+        with open(path, 'rt', encoding='utf-8') as cam_f:
             self.configs = yaml.safe_load(cam_f)
 
         if self.img_src_name is None:
