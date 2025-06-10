@@ -186,7 +186,8 @@ class Targets(GingaPlugin.LocalPlugin):
                                    load_directory=user_home,
                                    enable_datetime_setting=False,
                                    rotate_target_colors=True,
-                                   merge_targets=False)
+                                   merge_targets=False,
+                                   load_selection_order='csv_first')
         self.settings.load(onError='silent')
 
         # these are set via callbacks from the SiteSelector plugin
@@ -304,9 +305,13 @@ class Targets(GingaPlugin.LocalPlugin):
                                                title="Select target files")
         self.w.fileselect.set_mode('files')
         self.w.fileselect.set_directory(self.home)
-        self.w.fileselect.add_ext_filter("CSV", ".csv")
-        self.w.fileselect.add_ext_filter("OPE", ".ope")
-        self.w.fileselect.add_ext_filter("EPH", ".eph")
+        add_order = [("CSV", ".csv"), ("OPE", ".ope"), ("EPH", ".eph")]
+        if self.settings.get('load_selection_order', 'csv_first') == 'ope_first':
+            add_order = [("OPE", ".ope"), ("CSV", ".csv"), ("EPH", ".eph")]
+        for name, ext in add_order:
+            if name == 'OPE' and not have_oscript:
+                continue
+            self.w.fileselect.add_ext_filter(name, ext)
 
         self.w.fileselect.add_callback('activated', self.load_file_cb)
         b.file_path.set_text(self.home)
