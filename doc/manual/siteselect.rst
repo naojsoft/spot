@@ -38,7 +38,7 @@ you should be able to pick your new location from the list.
 Setting the time of observation
 ===============================
 The time can be set to the current time or a fixed time. To set to the
-current time, chose "Now" from the "Time mode:" drop-down menu.
+current time, choose "Now" from the "Time mode:" drop-down menu.
 
 To set a fixed time, chose "Fixed"--this will enable the "Date time:"
 and "UTC offset (min):" controls.  Enter the date/time in the first box

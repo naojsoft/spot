@@ -36,7 +36,7 @@ notation or degrees.
 Click "Add Target" to add the target.  It will show up in the targets
 table in the ":doc:`targetlist`" plugin.  
 Select it there in the usual way to see
-it in the ":doc:`polarsky`" or ":doc:`visplot`" plots.
+it in ":doc:`polarsky`" or ":doc:`visplot`".
 
 ======================================
 Looking up a Target from a Name Server
