@@ -27,6 +27,8 @@ This should populate the "RA", "DEC", "Equinox" and "Name" fields.
           current position, allowing you to follow a dithering pattern
           (for example).
 
+.. note:: The "Mark target" option will circle and label the target.
+
 =====================================
 Loading an image from an image source
 =====================================

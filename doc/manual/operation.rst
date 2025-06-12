@@ -12,10 +12,10 @@ command "spot". When the program starts it will look like this:
 
 .. image:: figures/ProgramStart.*
 
-If it has not been selected by default, switch to the ``CPanel``
-tab on the right side of the SPOT program. Switching to CPanel 
-opens the SPOT Control Panel.
-On the right side underneath CPanel, you can press ``Open Workspace``
+If it has not been selected by default, switch to the ``Control``
+tab on the right side of the SPOT program to open the 
+SPOT Control Panel.
+At the top of the Control tab, you can press ``Open Workspace``
 to create a blank workspace. If you would like to give the 
 workspace a name, you will need to type a name next to the 
 ``Open Workspace`` button in the fillable area. Otherwise,
@@ -27,7 +27,7 @@ When a workspace is opened two channels will appear,
 "wsname"_TGTS and "wsname"_FIND. You may want to resize
 these channel windows.
 The TGTS channel (Targets Channel) is used to display a map of the sky. 
-Initially it will be blank, so in the CPanel window press 
+Initially it will be blank, so in the Control window press 
 :doc:`siteselect`, :doc:`polarsky`, and :doc:`targetlist`. 
 In the Site Selector window select a site from the drop down menu, 
 then go to the Targets window and press "File" to browse for a file 
@@ -52,7 +52,7 @@ Whenever you make a new workspace with the same name as
 a saved workspace, the saved layout will be loaded.
 
 You can delete a workspace by clicking the ``Close "workspacename"``
-button.  Note that this will delete everything in the workspace.
+button.
 
 
 .. _TargetsChannel:
@@ -96,7 +96,7 @@ left-drag the file from the file explorer to the FIND window.
 Control Panel
 =============
 
-The Control Panel (CPanel) is used to access and display the status of 
+The Control Panel is used to access and display the status of 
 plugins, and also create, switch, and save workspaces. 
 
 .. image:: figures/CPanel.*
@@ -397,13 +397,15 @@ Side Panel Functions
     :scale: 16%
  
 |microscope| Magnify detail (Zoom plugin):
-    Selecting this button creates a ``Zoom`` channel in the dialogs tab 
-    on the right side of SPOT. In the window it shows a zoomed in view 
-    of where the cursor is on the TGTS or FIND channels. The zoom amount 
+    Selecting this button creates a ``Zoom`` channel below the control panel. 
+    In the window it shows a zoomed in view of where the cursor is on the 
+    TGTS or FIND channels. The zoom amount 
     and refresh rate can be adjusted just below the zoom window. Pressing 
     the ``Relative Zoom`` button will adjust the zoom relative to the 
     zoom level in either the TGTS or FIND window depending on which one 
     you are moving the cursor over. 
+
+    .. image:: figures/Magnify.*
 
 .. |microscope| image:: figures/microscope.png
     :scale: 16%
