@@ -2,53 +2,66 @@
 Target Generator
 ++++++++++++++++
 
-The target generator plugin adds targets to the target 
-list. Targets can be created any of three ways, from 
-the azimuth and elevation, from RA and DEC coordinates, 
-or by looking up an object by name.
+TargetGenerator allows you to generate a target dynamically in one of
+several ways.  The target can then be added to the ":doc:`targetlist`" 
+plugin table.
 
 .. image:: figures/TargetGen.*
 
-=================
-Azimuth/Elevation
-=================
+.. note:: Make sure you have the "Targets" plugin also open, as it is
+          used in conjunction with this plugin.
 
-To create a target from a specified azimuth and elevation, 
-fill in the azimuth and elevation under 
-"From Azimuth/Elevation" and press "Gen Target".
-The RA and DEC will be automatically filled out along 
-with the equinox and name under "From RA/DEC Coordinate".
-Press "Add Target" and the target will be added to the 
-:doc:`targetlist` under the "Targets" section. 
+==========================================
+Generating a Target from Azimuth/Elevation
+==========================================
 
-.. .. image:: figures/TargetGen1.*
+Simply type in an azimuth into the "Az:" box and an elevation into the
+"El:" box.  Click "Gen Target" to have the AZ/EL coordinates converted
+into RA/DEC coordinates using the set time of the Site.  This will
+populate the "RA", "DEC", "Equinox" and "Name" boxes in the next section.
+From there you can add the target as described in the next section.
 
-=================
-RA/DEC Coordinate
-=================
 
-To create a target from a specified right ascension and 
-declination, fill in the RA, DEC, Equinox, and Name under 
-"From RA/DEC Coordinate" and press "Add Target". The target 
-will be added to the :doc:`targetlist` under the "Targets" section. 
+==========================================
+Generating a Target from Known Coordinates
+==========================================
 
-.. .. image:: figures/TargetGen2.*
+If RA/DEC coordinates are known, they can be typed into the boxes labeled
+"RA", "DEC", "Equinox" and "Name".  The values can be given in sexigesimal
+notation or degrees.
 
-===========
-Name Server
-===========
+.. note:: "SOSS notation" can also be used if you have the "oscript"
+          package installed.
 
-To create a target from a named object, fill in the name under 
-"From Name Server" and select whether you would like to search the 
-NASA/IPAC Extragalactic Database (NED) (https://ned.ipac.caltech.edu/) 
-or the SIMBAD Astronomical Database (http://simbad.cds.unistra.fr/simbad/). 
-Press "Search name", and if the object is 
-found the RA and DEC will be automatically filled out along 
-with the equinox and name under "From RA/DEC Coordinate". 
-Press "Add Target" and the target will be added to the 
-:doc:`targetlist` under the "Targets" section. 
+Click "Add Target" to add the target.  It will show up in the targets
+table in the ":doc:`targetlist`" plugin.  
+Select it there in the usual way to see
+it in ":doc:`polarsky`" or ":doc:`visplot`".
 
-.. .. image:: figures/TargetGen3.*
+======================================
+Looking up a Target from a Name Server
+======================================
+
+A target can be looked up via a name server (`NED`_ or `SIMBAD`_) using the
+controls in the third area.  Simply select your name server from the
+drop down box labeled "Server", type a name into the "Name" box and
+click "Search name".  If the object is found it will populate the
+boxes labeled "RA", "DEC", "Equinox" and "Name" in the second section.
+From there you can add the target by clicking the "Add Target" button.
+
+==================================================
+Generating a Non-Sidereal Target from JPL Horizons
+==================================================
+
+A non-sidereal target can be looked up from `JPL Horizons`_ using the 
+controls in the fourth section. Enter in the unique name of the target 
+in the box by "Name:", and enter the start and end time in the 
+YYYY-MM-DD format. In the box next to "Step:" enter the time between 
+each step then press "Lookup name" to add the target to the target list under 
+"Non-sidereal". If the name is not unique, an error will appear 
+with alternate names. 
+
+.. image:: figures/TargetGenNS.*
 
 ===============
 Editing Targets
@@ -59,3 +72,9 @@ enter the new coordinates into the target generator and add
 the name of the target to be edited in the "Name" field, then 
 press "Add Target". 
 
+
+.. _NED: https://ned.ipac.caltech.edu/
+
+.. _SIMBAD: http://simbad.cds.unistra.fr/simbad/
+
+.. _JPL Horizons: https://ssd.jpl.nasa.gov/horizons/app.html#/

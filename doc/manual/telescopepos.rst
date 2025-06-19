@@ -30,6 +30,9 @@ The "Rotate view to azimuth" button will orient the Targets
 window so the telescope azimuth is always facing towards the 
 top of the screen.
 
+The "Pan to telescope position" button will pan the polar 
+sky plot to center the target in the Targets window.
+
 .. note:: If you have working telescope status integration, the
           "Target follows telescope" button will select a target from 
           the target list which matches the telescope pointing.

@@ -17,9 +17,9 @@ option from the drop down menu (Targets channel or Find channel),
 clicking on one of the channel windows, or selecting one of the 
 channel dependent plugins. 
 
-=======================
-CPanel Plugin Selection
-=======================
+========================
+Control Plugin Selection
+========================
 
 Right of the Operation menu is a set of green and grey icons which 
 control and show the focus status of the activated plugins.
