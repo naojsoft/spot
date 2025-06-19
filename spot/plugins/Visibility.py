@@ -39,6 +39,7 @@ from ginga.misc import Bunch
 from ginga import GingaPlugin, colors
 
 from spot.plots.altitude import AltitudePlot
+from spot.util.eph_cache import EphemerisCache
 
 
 class Visibility(GingaPlugin.LocalPlugin):
@@ -128,9 +129,8 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.uncollapsed = set([])
         self._targets = []
         self._last_tgt_update_dt = None
-        self._columns = ['ut', 'alt_deg', 'az_deg', 'airmass',
-                         'moon_alt', 'moon_sep']
-        self.vis_dict = dict()
+        self.eph_cache = EphemerisCache(self.logger,
+                                        precision_minutes=self.settings['plot_interval_min'])
         self.plot_moon_sep = False
         self.plot_polar_azel = False
         self.plot_legend = False
@@ -390,59 +390,14 @@ class Visibility(GingaPlugin.LocalPlugin):
         # TODO: work with site object directly, not observer
         site = self.site.observer
 
-        site.set_date(start_time)
-        # create date array
-        dt_arr = np.arange(start_time.astimezone(tz.UTC),
-                           stop_time.astimezone(tz.UTC),
-                           timedelta(minutes=interval_min))
+        start_time_utc = start_time.astimezone(tz.UTC)
+        stop_time_utc = stop_time.astimezone(tz.UTC)
 
         for tgt in targets:
-            vis_dct = self.vis_dict.get(tgt, None)
-            if vis_dct is None:
-                # no history for this target, so calculate values for full
-                # time period
-                cres = site.calc(tgt, dt_arr)
-                vis_dct = cres.get_dict(columns=self._columns)
-                vis_dct['time'] = dt_arr
-                self.vis_dict[tgt] = vis_dct
-
-            else:
-                # we have some possible history for this target,
-                # so only calculate values for the new time period
-                # that we haven't already calculated
-                t_arr = vis_dct['time']
-                # remove any old calculations not in this time period
-                mask = np.isin(t_arr, dt_arr, invert=True)
-                if np.any(mask):
-                    num_rem = mask.sum()
-                    self.logger.debug(f"removing results for {num_rem} times")
-                    for key in self._columns + ['time']:
-                        vis_dct[key] = vis_dct[key][~mask]
-
-                # add any new calculations in this time period
-                add_arr = np.setdiff1d(dt_arr, t_arr)
-                num_add = len(add_arr)
-                if num_add == 0:
-                    self.logger.debug("no new calculations needed")
-                elif num_add > 0:
-                    self.logger.debug(f"adding results for {num_add} new times")
-                    # only calculate for new times
-                    cres = site.calc(tgt, add_arr)
-                    dct = cres.get_dict(columns=self._columns)
-                    dct['time'] = add_arr
-                    if len(vis_dct['time']) == 0:
-                        # we removed all the old data
-                        vis_dct.update(dct)
-                    elif add_arr.max() < vis_dct['time'].min():
-                        # prepend new data
-                        for key in self._columns + ['time']:
-                            vis_dct[key] = np.append(dct[key],
-                                                     vis_dct[key])
-                    else:
-                        # append new data
-                        for key in self._columns + ['time']:
-                            vis_dct[key] = np.append(vis_dct[key],
-                                                     dct[key])
+            vis_dct = self.eph_cache.populate_target_data(tgt, tgt, site,
+                                                          start_time_utc,
+                                                          stop_time_utc,
+                                                          keep_old=False)
 
             df = pd.DataFrame.from_dict(vis_dct, orient='columns')
             color, alpha, zorder, textbg = self._get_target_color(tgt)
@@ -543,7 +498,7 @@ class Visibility(GingaPlugin.LocalPlugin):
 
     def set_time_axis_mode_cb(self, w, index):
         self.time_axis_mode = w.get_text().lower()
-        self.vis_dict = dict()
+        #self.eph_cache.clear_all()
         self.logger.info(f'self.time_axis_mode set to {self.time_axis_mode}')
         self.replot()
 
@@ -607,7 +562,7 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.logger.debug("site has changed")
         with self.lock:
             self.site = site_obj
-            self.vis_dict = dict()
+            self.eph_cache.clear_all()
 
         self.fv.gui_do(self.replot)
 

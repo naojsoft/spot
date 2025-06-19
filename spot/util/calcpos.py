@@ -23,10 +23,7 @@ from astropy import units as u
 from astropy.utils.iers import conf as ap_iers_conf
 #ap_iers_conf.auto_download = False
 ap_iers_conf.remote_timeout = 5.0
-ap_iers_conf.iers_degraded_accuracy = 'ignore'
-#from astropy.config import set_temp_cache
-#set_temp_cache(path=datadir)
-#solar_system_ephemeris.set("jpl")
+#ap_iers_conf.iers_degraded_accuracy = 'ignore'
 
 from skyfield.api import Star, Loader, wgs84
 from skyfield.earthlib import refraction
@@ -198,78 +195,6 @@ class Observer:
         else:
             dt = dt.astimezone(timezone)
         return dt
-
-    def observable(self, target, time_start, time_stop,
-                   el_min_deg, el_max_deg, time_needed,
-                   airmass=None, moon_sep=None):
-        """
-        Return True if `target` is observable between `time_start` and
-        `time_stop`, defined by whether it is between elevation `el_min`
-        and `el_max` during that period, and whether it meets the minimum
-        airmass.
-        """
-        # set observer's horizon to elevation for el_min or to achieve
-        # desired airmass
-        if airmass is not None:
-            # compute desired altitude from airmass
-            alt_deg = airmass2alt(airmass)
-            min_alt_deg = max(alt_deg, el_min_deg)
-        else:
-            min_alt_deg = el_min_deg
-
-        # TODO: worry about el_max_deg
-
-        coord = target._get_coord()
-        obstime = timescale.from_datetime(time_start)
-        astrometric = self.location.at(obstime).observe(coord)
-        apparent = astrometric.apparent()
-        alt, az, distance = apparent.altaz(temperature_C=self.temp_C,
-                                           pressure_mbar=self.pressure_mbar)
-        alt_deg = alt.degrees
-
-        if alt_deg >= min_alt_deg:
-            # body is above desired altitude at start of period
-            # so calculate next setting
-            time_rise = time_start
-            _t_set, y = self._find_setting(coord, time_start, time_stop,
-                                           min_alt_deg)
-            if len(_t_set) > 0:
-                time_set = _t_set[0].astimezone(self.tz_local)
-            else:
-                time_set = time_stop
-            #print("body already up: set=%s" % (time_set))
-
-        else:
-            # body is below desired altitude at start of period
-            _t_rise, y = self._find_rising(coord, time_start,
-                                           time_stop, min_alt_deg)
-            if len(_t_rise) == 0:
-                time_rise = None
-                time_set = None
-            else:
-                time_rise = _t_rise[0].astimezone(self.tz_local)
-                _t_set, y = self._find_setting(coord, time_start,
-                                               time_stop, min_alt_deg)
-                if len(_t_set) > 0:
-                    time_set = _t_set[0].astimezone(self.tz_local)
-                else:
-                    time_set = time_stop
-
-
-        if None in (time_rise, time_set):
-            return (False, time_rise, time_set)
-
-        # last observable time is setting or end of period,
-        # whichever comes first
-        time_end = min(time_set, time_stop)
-        # calculate duration in seconds (subtracting two datetime objects)
-        duration = (time_end - time_rise).total_seconds()
-        # object is observable as long as the duration that it is
-        # up is as long or longer than the time needed
-        diff = duration - float(time_needed)
-        can_obs = duration > time_needed
-
-        return (can_obs, time_rise, time_end)
 
     def distance(self, tgt1, tgt2, time_start):
         c1 = self.calc(tgt1, time_start)
@@ -474,20 +399,6 @@ class Observer:
         center = self.date_to_local(center)
         return center
 
-    def get_text_almanac(self, date):
-        date_s = date.strftime("%Y-%m-%d")
-        text = ''
-        text += 'Almanac for the night of %s\n' % date_s.split()[0]
-        text += '\nEvening\n'
-        text += '_' * 30 + '\n'
-        rst = self.sun_set_rise_times(date=date)
-        rst = [t.strftime('%H:%M') for t in rst]
-        text += 'Sunset: %s\n12d: %s\n18d: %s\n' % (rst[0], rst[1], rst[2])
-        text += '\nMorning\n'
-        text += '_' * 30 + '\n'
-        text += '18d: %s\n12d: %s\nSunrise: %s\n' % (rst[3], rst[4], rst[5])
-        return text
-
     def get_target_info(self, target, time_start=None, time_stop=None,
                         time_interval=5):
         """Compute various values for a target from sunrise to sunset.
@@ -500,14 +411,8 @@ class Observer:
             time_stop = self.sunrise(date=time_start)
 
         # create date array
-        dts = []
-        time_t = self.date_to_utc(time_start)
-        time_e = self.date_to_utc(time_stop)
-        while time_t < time_e:
-            dts.append(time_t)
-            time_t = time_t + timedelta(minutes=time_interval)
-        dt_arr = np.array(dts)
-
+        dt_arr = np.arange(time_start, time_stop + timedelta(minutes=time_interval),
+                           timedelta(minutes=time_interval))
         return target.calc(self, dt_arr)
 
     def __repr__(self):
@@ -618,8 +523,6 @@ class CalculationResult(object):
         """
         self.observer = observer
         self.body = body
-        # self.date = observer.date_to_local(date)
-        # self.date_utc = observer.date_to_utc(self.date)
         # vector construction, if the value passed is an array
         if isinstance(date, np.ndarray):
             # NOTE: need to convert numpy.datetime64 to astropy time
@@ -628,7 +531,6 @@ class CalculationResult(object):
         else:
             self.obstime = timescale.from_datetime(date)
 
-        self.will_be_visible = True
         # properties
         self._ut = None
         self._lt = None

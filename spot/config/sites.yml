@@ -235,7 +235,7 @@ MMT:
   azimuth_start_direction: N
   elevation_m: 2606
   fov_deg: 1.0
-  latitude_deg: 31.688889,
+  latitude_deg: 31.688889
   longitude_deg: -110.885156
   pressure_mbar: 1015
   temperature_c: 10
