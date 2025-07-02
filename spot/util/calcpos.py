@@ -10,6 +10,7 @@ from dateutil import tz
 import dateutil.parser
 import pandas as pd
 
+from ginga.misc.Bunch import Bunch
 # set up download directory for files
 from ginga.util.paths import ginga_home
 datadir = os.path.join(ginga_home, "downloads")
@@ -418,6 +419,24 @@ class Observer:
     def __repr__(self):
         return self.name
 
+    def get_spec(self):
+        return dict(name=self.name, timezone=self.tz_local, longitude=self.lon_deg,
+                    latitude=self.lat_deg, elevation=self.elev_m,
+                    pressure=self.pressure_mbar, temperature=self.temp_C,
+                    humidity=self.rh_pct, horizon_deg=self.horizon_deg,
+                    date=self.date, wavelength=self.wavelength,
+                    description=self.description)
+
+    @classmethod
+    def from_spec(cls, spec_dct):
+        spec = Bunch(spec_dct)
+        return Observer(spec.name, timezone=spec.timezone, longitude=spec.longitude,
+                        latitude=spec.latitude, elevation=spec.elevation,
+                        pressure=spec.pressure, temperature=spec.temperature,
+                        humidity=spec.humidity, horizon_deg=spec.horizon_deg,
+                        date=spec.date, wavelength=spec.wavelength,
+                        description=spec.description)
+
     __str__ = __repr__
 
 
@@ -425,7 +444,7 @@ class Body:
 
     def __init__(self, name, ra, dec, equinox, comment='',
                  pmra=None, pmdec=None):
-        super(Body, self).__init__()
+        super().__init__()
 
         self.name = name
         self.ra = ra
@@ -497,6 +516,10 @@ class Body:
 
     def calc(self, observer, date):
         return CalculationResult(self, observer, date)
+
+    def clone(self):
+        return Body(self.name, self.ra, self.dec, self.equinox,
+                    comment=self.comment, pmra=self.pmra, pmdec=self.pmdec)
 
 
 class SSBody(object):
@@ -871,6 +894,12 @@ class CalculationResult(object):
                         atmos_disp_guiding=self.atmos_disp['guiding'])
         else:
             return {colname: getattr(self, colname) for colname in columns}
+
+    def __len__(self):
+        if isinstance(self.az, np.ndarray):
+            return len(self.az)
+        return 1
+
 
 
 Moon = SSBody('Moon', ssbodies['moon'])

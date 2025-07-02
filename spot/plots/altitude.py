@@ -5,7 +5,7 @@
 #   Copyright (c) 2008 UCO/Lick Observatory.
 #
 from datetime import datetime, timedelta
-import numpy
+import numpy as np
 
 import matplotlib.dates as mpl_dt
 
@@ -82,23 +82,25 @@ class AltitudePlot(plots.Plot):
         lstyle = '-'
         #lstyle = 'solid'
         # convert to desired time zone for plot
-        lt_data = [t.astimezone(tz) for t in tgt_data[0].history['ut']]
+        lt_data_first = np.array([t.astimezone(tz)
+                              for t in tgt_data[0].history['ut']])
 
         # get the date of the first target. Also get the end date
         # so that we can include it in the plot title.
-        localdate_start = lt_data[0]
-        localdate_end = lt_data[-1]
+        localdate_start = lt_data_first[0]
+        localdate_end = lt_data_first[-1]
         localdate_start_str = localdate_start.strftime('%Y-%b-%d %H:%M')
         localdate_end_str = localdate_end.strftime('%Y-%b-%d %H:%M')
 
         min_interval = 4
-        mt = lt_data[0:-1:min_interval]
         targets, legend = [], []
 
         # plot targets elevation vs. time
         for i, info in enumerate(tgt_data):
+            lt_data = np.array([t.astimezone(tz)
+                                for t in info.history['ut']])
             alt_data = info.history['alt_deg']
-            alt_min = numpy.argmin(alt_data)
+            alt_min = np.argmin(alt_data)
             alt_data_dots = alt_data
             color = info.get('color', self.colors[i % len(self.colors)])
             alpha = info.get('alpha', 1.0)
@@ -119,6 +121,7 @@ class AltitudePlot(plots.Plot):
                 moon_sep = moon_sep[0:-1:min_interval]
 
                 # plot moon separations
+                mt = lt_data[0:-1:min_interval]
                 for x, y, v in zip(mt, alt_interval, moon_sep):
                     if y < 0:
                         continue
@@ -140,7 +143,7 @@ class AltitudePlot(plots.Plot):
                             frameon=True, ncol=1, bbox_to_anchor=[0.3, 0.865, .7, 0.1])
 
         ax1.set_ylim(0.0, 90.0)
-        ax1.set_xlim(lt_data[0], lt_data[-1])
+        ax1.set_xlim(lt_data_first[0], lt_data_first[-1])
         ax1.xaxis.set_major_locator(majorTick)
         ax1.xaxis.set_minor_locator(minorTick)
         ax1.xaxis.set_major_formatter(majorFmt)
@@ -156,24 +159,24 @@ class AltitudePlot(plots.Plot):
 
         # Plot moon trajectory and illumination
         moon_data = tgt_data[0].history['moon_alt']
-        illum_time = lt_data[moon_data.argmax()]
+        illum_time = lt_data_first[moon_data.argmax()]
         moon_illum = site.moon_illumination(date=illum_time)
         moon_color = '#CDBE70'
         moon_name = "Moon (%.2f %%)" % (moon_illum * 100)
-        ax1.plot(lt_data, moon_data, moon_color, linewidth=3.0,
+        ax1.plot(lt_data_first, moon_data, moon_color, linewidth=3.0,
                  alpha=0.9, aa=True)
         ax1.text(mpl_dt.date2num(illum_time),
                  moon_data.max() + 4.0, moon_name, color=moon_color, # '#CDBE70'
                  ha='center', va='center', clip_on=True)
 
         # Plot airmass scale
-        altitude_ticks = numpy.array([20, 30, 40, 50, 60, 70, 80, 90])
-        airmass_ticks = 1.0 / numpy.cos(numpy.radians(90 - altitude_ticks))
+        altitude_ticks = np.array([20, 30, 40, 50, 60, 70, 80, 90])
+        airmass_ticks = 1.0 / np.cos(np.radians(90 - altitude_ticks))
         airmass_ticks = ["%.3f" % n for n in airmass_ticks]
 
         ax2 = ax1.twinx()
         #ax2.set_ylim(None, 0.98)
-        #ax2.set_xlim(lt_data[0], lt_data[-1])
+        #ax2.set_xlim(lt_data_first[0], lt_data_first[-1])
         ax2.set_yticks(altitude_ticks)
         ax2.set_yticklabels(airmass_ticks)
         ax2.set_ylim(ax1.get_ylim())
@@ -205,7 +208,7 @@ class AltitudePlot(plots.Plot):
         else:
             lo = current_time.astimezone(tz)
         hi = lo + timedelta(0, 3600.0)
-        if lt_data[0] < lo < lt_data[-1]:
+        if lt_data_first[0] < lo < lt_data_first[-1]:
             self._plot_current_time(ax1, lo, hi)
 
         # drawing the line of center_time
@@ -219,11 +222,11 @@ class AltitudePlot(plots.Plot):
 
         # plot satellite open/close windows if that info was provided
         if satellite_barh_data is not None:
-            self._plot_satellite_windows(ax1, satellite_barh_data, lt_data[-1])
+            self._plot_satellite_windows(ax1, satellite_barh_data, lt_data_first[-1])
 
         # plot collisions open/close windows if that info was provided
         if collision_barh_data is not None:
-            self._plot_collision_windows(ax1, collision_barh_data, lt_data[-1])
+            self._plot_collision_windows(ax1, collision_barh_data, lt_data_first[-1])
 
         canvas = self.fig.canvas
         if canvas is not None:

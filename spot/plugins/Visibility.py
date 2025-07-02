@@ -130,7 +130,8 @@ class Visibility(GingaPlugin.LocalPlugin):
         self._targets = []
         self._last_tgt_update_dt = None
         self.eph_cache = EphemerisCache(self.logger,
-                                        precision_minutes=self.settings['plot_interval_min'])
+                                        precision_minutes=self.settings['plot_interval_min'],
+                                        default_period_check=True)
         self.plot_moon_sep = False
         self.plot_polar_azel = False
         self.plot_legend = False
@@ -335,8 +336,8 @@ class Visibility(GingaPlugin.LocalPlugin):
         elif self.time_axis_mode == 'current':
             # Plot a time period and put the current time at 1/4 from
             # the left edge of the period.
-            time_period_sec = 60 * 60 * self.time_range_current_mode
-            start_offset_from_current_sec = time_period_sec / 4
+            time_period_sec = int(60 * 60 * self.time_range_current_mode)
+            start_offset_from_current_sec = int(time_period_sec / 4)
             start_time = dt_utc - timedelta(seconds=start_offset_from_current_sec)
             stop_time = dt_utc + timedelta(seconds=time_period_sec)
             center_time = dt_utc
@@ -393,11 +394,14 @@ class Visibility(GingaPlugin.LocalPlugin):
         start_time_utc = start_time.astimezone(tz.UTC)
         stop_time_utc = stop_time.astimezone(tz.UTC)
 
+        # populate ephemeris cache
+        tgt_dct = {tgt: tgt for tgt in targets}
+        periods = [(start_time_utc, stop_time_utc)]
+        self.eph_cache.populate_periods(tgt_dct, site, periods,
+                                        keep_old=False)
+
         for tgt in targets:
-            vis_dct = self.eph_cache.populate_target_data(tgt, tgt, site,
-                                                          start_time_utc,
-                                                          stop_time_utc,
-                                                          keep_old=False)
+            vis_dct = self.eph_cache.get_target_data(tgt)
 
             df = pd.DataFrame.from_dict(vis_dct, orient='columns')
             color, alpha, zorder, textbg = self._get_target_color(tgt)
