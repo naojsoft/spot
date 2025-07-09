@@ -13,6 +13,8 @@ import pandas as pd
 from ginga.misc.Bunch import Bunch
 # set up download directory for files
 from ginga.util.paths import ginga_home
+if not os.path.isdir(ginga_home):
+    os.mkdir(ginga_home)
 datadir = os.path.join(ginga_home, "downloads")
 if not os.path.isdir(datadir):
     os.mkdir(datadir)
