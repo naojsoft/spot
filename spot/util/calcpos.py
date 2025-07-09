@@ -206,8 +206,10 @@ class Observer:
         return (d_alt, d_az)
 
     def _find_setting(self, coord, start_dt, stop_dt, horizon_deg):
-        t0 = timescale.from_datetime(start_dt)
-        t1 = timescale.from_datetime(stop_dt)
+        # NOTE: fractional seconds seems to cause an exception inside
+        # skyfield
+        t0 = timescale.from_datetime(start_dt.replace(microsecond=0))
+        t1 = timescale.from_datetime(stop_dt.replace(microsecond=0))
         # TODO: refraction function does not appear to work as expected
         r = refraction(0.0, temperature_C=self.temp_C,
                        pressure_mbar=self.pressure_mbar)
@@ -217,8 +219,10 @@ class Observer:
         return t, y
 
     def _find_rising(self, coord, start_dt, stop_dt, horizon_deg):
-        t0 = timescale.from_datetime(start_dt)
-        t1 = timescale.from_datetime(stop_dt)
+        # NOTE: fractional seconds seems to cause an exception inside
+        # skyfield
+        t0 = timescale.from_datetime(start_dt.replace(microsecond=0))
+        t1 = timescale.from_datetime(stop_dt.replace(microsecond=0))
         # TODO: refraction function does not appear to work as expected
         r = refraction(0.0, temperature_C=self.temp_C,
                        pressure_mbar=self.pressure_mbar)

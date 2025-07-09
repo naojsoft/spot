@@ -17,7 +17,7 @@ def calc_alternate_angle(ang_deg):
     alt_deg : float or array of float
         The output angle(s) in degrees
     """
-    alt_deg = ang_deg - np.sign(ang_deg) * 360
+    alt_deg = ang_deg - np.sign(ang_deg) * 360.0
     return alt_deg
 
 
@@ -45,7 +45,8 @@ def normalize_angle(ang_deg, limit=None, ang_offset=0.0):
     # convert to array if just a scalar
     is_array = isinstance(ang_deg, np.ndarray)
     if not is_array:
-        ang_deg = np.array([ang_deg])
+        ang_deg = np.array([ang_deg], dtype=float)
+    ang_deg = ang_deg.astype(float)
 
     ang_deg = ang_deg + ang_offset
 
