@@ -19,6 +19,7 @@ from ginga.gw import Widgets
 from ginga import GingaPlugin
 from ginga.misc.Callback import Callbacks
 from ginga.util import wcs
+from ginga.util.syncops import Shelf
 
 # local
 from spot.util.target import Target
@@ -26,7 +27,7 @@ from spot.util.rot import normalize_angle
 
 
 class TelescopePosition(GingaPlugin.LocalPlugin):
-    """TODO
+    """
     ++++++++++++++++++
     Telescope Position
     ++++++++++++++++++
@@ -46,11 +47,22 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
     In the "Telescope" section, the telescope status, such as pointing or
     slewing, is shown along with the slew time in h:mm:ss.
 
-    The "Plot telescope position" button will show the Target and Telescope
-    positions on the Targets window when the button is selected.
+    The "Plot telescope position" option will show the Target and Telescope
+    positions on the Targets window when the checkbox is selected.
 
-    The "Rotate view to azimuth" button will orient the Targets window so the
-    telescope azimuth is always facing towards the top of the screen.
+    The "Target follow telescope" option will cause a target to be selected
+    in the Targets plugin table when the telescope is "close" to that target
+    (close being defined as within approximately 10 arc minutes). The closest
+    actual target to the telescope's coordinate is selected.
+
+    .. note:: If a target is manually selected by the user after checking this
+              box it will automatically uncheck the option.  To restore the
+              target following the telescope, simply recheck the box.
+
+    The "Pan to telescope position" option will cause the TGTS viewer to pan
+    to the telescope position.  This can be helpful when there are a lot of
+    targets plotted and you have zoomed in to show only a part of the polar
+    sky field.
 
     Writing a Companion Plugin
     ==========================
@@ -68,8 +80,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         # get TelescopePosition preferences
         prefs = self.fv.get_preferences()
         self.settings = prefs.create_category('plugin_TelescopePosition')
-        self.settings.add_defaults(rotate_view_to_az=False,
-                                   pan_to_telescope_position=False,
+        self.settings.add_defaults(pan_to_telescope_position=False,
                                    tel_fov_deg=1.5,
                                    color_telescope='skyblue1',
                                    color_slew='thistle1',
@@ -94,7 +105,8 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         # (in arcsec)
         self.min_delta_arcsec = self.settings.get('min_delta_arcsec', 600.0)
         self._follow_target = False
-        self._updating_target_flag = False
+        self.target_shelf = Shelf()
+        self.target_stocker = self.target_shelf.get_stocker()
         self._last_tel_update_dt = None
         self._cur_tel_target = None
 
@@ -185,7 +197,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
 
         captions = (("Plot telescope position", 'checkbox',
                      "Target follows telescope", 'checkbox'),
-                    ("Rotate view to azimuth", 'checkbox',
+                    ('sp1', 'spacer',
                      "Pan to telescope position", 'checkbox'),
                     )
 
@@ -197,11 +209,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
                                                self.tel_posn_toggle_cb)
         b.plot_telescope_position.set_state(True)
         b.plot_telescope_position.set_tooltip("Plot the telescope position")
-        b.rotate_view_to_azimuth.set_state(self.settings.get('rotate_view_to_az',
-                                                             False))
-        b.rotate_view_to_azimuth.set_tooltip("Rotate the display to show the current azimuth at the top")
-        b.rotate_view_to_azimuth.add_callback('activated',
-                                              self.rotate_view_to_azimuth_cb)
+
         b.target_follows_telescope.set_state(self._follow_target)
         b.target_follows_telescope.add_callback('activated',
                                                 self.follow_target_cb)
@@ -336,13 +344,6 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         bcurve.points = self.get_arc_points(origin, dest, direction)
 
         with self.fitsimage.suppress_redraw:
-            if self.settings.get('rotate_view_to_az', False):
-                # rotate view to telescope azimuth
-                rot_deg = - az
-            else:
-                rot_deg = 0.0
-            self.fitsimage.rotate(rot_deg)
-
             if self.settings.get('pan_to_telescope_position', False):
                 self.fitsimage.set_pan(x2, y2, coord='data')
 
@@ -381,11 +382,8 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         if tgt is not None:
             # select target in Targets table
             targets = [tgt]
-        self._updating_target_flag = True
-        try:
+        with self.target_stocker:
             self.targets.select_targets(targets)
-        finally:
-            self._updating_target_flag = False
 
         return tgt
 
@@ -433,16 +431,12 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
 
     def target_selection_cb(self, cb, targets):
         """Called when the user selects targets in the Target table"""
-        if not self._updating_target_flag:
+        if not self.target_shelf.is_blocked():
             if self.gui_up:
                 self.w.target_follows_telescope.set_state(False)
             self._follow_target = False
 
     def tel_posn_toggle_cb(self, w, tf):
-        self.fv.gui_do(self.update_telescope_plot)
-
-    def rotate_view_to_azimuth_cb(self, w, tf):
-        self.settings.set(rotate_view_to_az=tf)
         self.fv.gui_do(self.update_telescope_plot)
 
     def pan_to_tel_pos_cb(self, w, tf):

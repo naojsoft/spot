@@ -25,7 +25,7 @@ naojsoft packages
 - ginga
 """
 # stdlib
-from datetime import timedelta
+from datetime import datetime, timedelta
 import threading
 
 # 3rd party
@@ -123,11 +123,13 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.lock = threading.RLock()
         self.dt_utc = None
         self.cur_tz = None
+
         self.full_tgt_list = []
         self.tagged = set([])
         self.selected = set([])
         self.uncollapsed = set([])
         self._targets = []
+        self._telescope_target = None
         self._last_tgt_update_dt = None
         self.eph_cache = EphemerisCache(self.logger,
                                         precision_minutes=self.settings['plot_interval_min'],
@@ -137,7 +139,7 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.plot_legend = False
         self.plot_which = 'selected'
         self._satellite_barh_data = None
-        self._collision_barh_data = None
+        self._collisions = None
         self.gui_up = False
 
         self.time_axis_options = ('Night Center', 'Day Center', 'Current')
@@ -185,6 +187,8 @@ class Visibility(GingaPlugin.LocalPlugin):
         obj.cb.add_callback('uncollapsed-changed', self.uncollapsed_changed_cb)
         self.tgts_obj = obj
 
+        obj = self.channel.opmon.get_plugin('TelescopePosition')
+        obj.cb.add_callback('telescope-status-changed', self.telescope_status_cb)
         top = Widgets.VBox()
         top.set_border_width(4)
 
@@ -307,7 +311,7 @@ class Visibility(GingaPlugin.LocalPlugin):
             dt_utc = self.dt_utc
             cur_tz = self.cur_tz
             satellite_barh_data = self._satellite_barh_data
-            collision_barh_data = self._collision_barh_data
+            collisions = self._collisions
 
         new_tgts = set(targets)
         # TODO: work with site object directly, not observer
@@ -354,6 +358,14 @@ class Visibility(GingaPlugin.LocalPlugin):
         # this does the heavy lifting
         target_data = self.get_target_data(targets, start_time, stop_time,
                                            interval_min)
+
+        collision_barh_data = None
+        if self._telescope_target in targets and collisions is not None:
+            # only plot the laser collision windows if we are viewing
+            # one of the targets that the telescope is pointing at
+            collision_barh_data = self.calc_collision_windows(start_time,
+                                                              stop_time,
+                                                              collisions)
 
         # plot results back in the GUI thread
         self.fv.gui_do(self._plot_targets, site, target_data, dt_utc, cur_tz,
@@ -594,17 +606,86 @@ class Visibility(GingaPlugin.LocalPlugin):
 
         self.replot()
 
-    def set_collision_windows(self, windows):
-        with self.lock:
-            if windows is None:
-                self._collision_barh_data = None
-            else:
-                windows_open, windows_close = windows.T
-                windows_dur_sec = windows_close - windows_open
-                windows_dur = np.array((windows_open, windows_dur_sec)).T
-                self._collision_barh_data = windows_dur
+    def telescope_status_cb(self, cb, status, target):
+        # this is called when the telescope target changes, if the
+        # TelescopePosition plugin has been enabled and working
+        old_tgt, self._telescope_target = self._telescope_target, target
+        targets = [] if self._targets is None else self._targets
+        if old_tgt is not target:
+            # change of target by telescope
+            if old_tgt in targets or target in targets:
+                self.replot()
 
-        self.replot()
+    def set_collisions(self, collisions):
+        # this is called by the LTCS plugin (if active, it is part of the
+        # spot-subaru package) to inform us of laser collisions
+        replot = False
+        with self.lock:
+            if collisions is None and self._collisions is not None:
+                self._collisions = collisions
+                replot = True
+            else:
+                _collisions = set(collisions)
+                if self._collisions is None or len(_collisions.difference(self._collisions)) > 0:
+                    self._collisions = _collisions
+                    replot = True
+
+        if replot and self.gui_up:
+            self.replot()
+
+    def calc_collision_windows(self, dt_start, dt_stop, collisions,
+                               use_datetime=True):
+        # convert collisions list queried from database to open windows
+        sse_start = dt_start.timestamp()
+        sse_stop = dt_stop.timestamp()
+
+        # sort collisions by starting time
+        collisions_closed = list(collisions)
+        collisions_closed.sort(key=lambda coll: coll.time_start_sse)
+        self.logger.info(f'collisions_closed {collisions_closed}')
+
+        # adjust collision times to account for
+        # overlapping collisions
+        mod_collisions_closed = []
+        prev_start = prev_end = sse_start
+        for coll in collisions_closed:
+            # Consider only collisions that start inside
+            # the range of the plot window.
+            if coll.time_start_sse < sse_stop:
+                now_start = prev_end if coll.time_start_sse < prev_end else coll.time_start_sse
+                now_end = prev_end if coll.time_stop_sse < prev_end else coll.time_stop_sse
+                if now_start < now_end:
+                    mod_collisions_closed.append([now_start, now_end])
+                prev_start, prev_end = now_start, now_end
+        self.logger.info(f'mod_collisions_closed {mod_collisions_closed}')
+
+        # convert from closed windows to open windows
+        prev_end = sse_start
+        collisions_open = []
+        for coll_start_sse, coll_stop_sse in mod_collisions_closed:
+            close_sse = min(coll_start_sse, sse_stop)
+            window = (prev_end, close_sse)
+            prev_end = coll_stop_sse
+            if coll_start_sse < sse_stop:
+                collisions_open.append(window)
+        self.logger.info(f'collisions_open {collisions_open}')
+
+        if prev_end < sse_stop:
+            window = (prev_end, sse_stop)
+            collisions_open.append(window)
+        windows = np.array(collisions_open)
+        #self.logger.debug(f'windows {windows}')
+
+        windows_open, windows_close = windows.T
+        windows_dur_sec = windows_close - windows_open
+        if not use_datetime:
+            windows_dur = np.array((windows_open, windows_dur_sec)).T
+        else:
+            windows_dur = np.array(([datetime.fromtimestamp(sse).replace(tzinfo=self.cur_tz)
+                                     for sse in windows_open],
+                                    [timedelta(seconds=sec) for sec in windows_dur_sec])).T
+        self.logger.debug(f'windows duration {windows_dur}')
+        return windows_dur
 
     def __str__(self):
         return 'visibility'

@@ -311,7 +311,7 @@ class AltitudePlot(plots.Plot):
         ax.annotate('SAT', xy=(x_pos, 5),
                     color='pink', fontsize=14, ha='left')
 
-    def _plot_collision_closures(self, ax, dt_boxes, x_lim_end):
+    def _plot_collision_windows(self, ax, dt_boxes, x_lim_end):
 
         # plot the open windows
         ax.broken_barh(dt_boxes, (12, 8),

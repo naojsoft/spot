@@ -38,6 +38,7 @@ from ginga.gw import Widgets, GwHelp
 from ginga import GingaPlugin, colors
 from ginga.util.paths import ginga_home, home as user_home
 from ginga.util import wcs
+from ginga.util.syncops import Shelf
 from ginga.misc import Bunch, Callback
 
 # oscript (optional, for loading OPE files)
@@ -220,7 +221,8 @@ class Targets(GingaPlugin.LocalPlugin):
         self.ss_df = None
         self.fov_dct = Bunch.Bunch(dict(Sun=6.5, Moon=6.5), caseless=True)
         self._mbody = None
-        self._updating_table_flag = False
+        self.table_shelf = Shelf()
+        self.table_stocker = self.table_shelf.get_stocker()
 
         self.columns = [('Tagged', 'tagged'),
                         ('Name', 'name'),
@@ -989,13 +991,10 @@ class Targets(GingaPlugin.LocalPlugin):
 
         # save and restore selection after update
         # NOTE: calling set_tree() will trigger the target_selection_cb,
-        # clearing the selected targets, etc.  So we use this flag to
-        # prevent that from happening and restore the selections.
-        self._updating_table_flag = True
-        try:
+        # clearing the selected targets, etc.  So we use this context
+        # manager to prevent that from happening and restore the selections.
+        with self.table_stocker:
             self.w.tgt_tbl.update_tree(tree_dict, expand_new=True)
-        finally:
-            self._updating_table_flag = False
 
         # NOTE: seems not to be necessary any more, since selected items
         # remain selected after the update
@@ -1049,7 +1048,7 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def target_selection_cb(self, w, sel_dct):
         """Called when a selection is made in the targets table."""
-        if self._updating_table_flag:
+        if self.table_shelf.is_blocked():
             # see NOTE in targets_to_table()
             return
 

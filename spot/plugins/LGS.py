@@ -122,22 +122,6 @@ class LGS(GingaPlugin.LocalPlugin):
         fr.set_widget(w)
         top.add_widget(fr)
 
-        # fr = Widgets.Frame("Collisions / LTCS")
-
-        # captions = (("Collision status:", 'llabel', 'col_status', 'llabel'),
-        #             ("col_time_label", 'llabel', 'col_time_countdown', 'llabel'),
-        #             )
-        # w, b = Widgets.build_info(captions)
-        # self.w.update(b)
-        # b.col_time_label.set_text("Time left:")
-        # b.col_time_countdown.set_text("")
-        # b.col_status.set_text("")
-
-        # fr.set_widget(w)
-        # top.add_widget(fr)
-
-        #top.add_widget(Widgets.Label(''), stretch=1)
-
         btns = Widgets.HBox()
         btns.set_border_width(4)
         btns.set_spacing(3)
