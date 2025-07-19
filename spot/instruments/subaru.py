@@ -835,6 +835,11 @@ class HSC_FOV(PF_FOV):
         l = []
         info = HSC_FOV.hsc_info
 
+        # add reference point for center
+        x, y = self.pt_ctr
+        ref_pt = self.dc.Point(x, y, 0, color='black', alpha=0.0)
+        l.append(ref_pt)
+
         for key, points in self.det_poly_paths:
 
             showfill = False
@@ -956,7 +961,11 @@ class HSC_FOV(PF_FOV):
             self.w.dith2.set_enabled(False)
             self.w.dith1.set_text('')
             self.w.dith2.set_text('')
+            self.w.skip.set_limits(0, 0)
+            self.w.skip.set_value(0)
             self.w.skip.set_enabled(False)
+            self.w.stop.set_limits(1, 1)
+            self.w.stop.set_value(1)
             self.w.stop.set_enabled(False)
 
         elif self.dither_type == '5':
@@ -1104,10 +1113,16 @@ class HSC_FOV(PF_FOV):
         image = viewer.get_image()
         data_x, data_y = image.radectopix(ra, dec)
         ctr_x, ctr_y = self.pt_ctr[:2]
-        delta_x = data_x - ctr_x
-        delta_y = data_y - ctr_y
-        self.ccd_overlay.move_delta_pt((delta_x, delta_y))
-        self.canvas.update_canvas()
+        ref_pt = self.detector_overlay.objects[0]
+        with viewer.suppress_redraw:
+            # move back to "home"
+            self.detector_overlay.move_delta_pt((ctr_x - ref_pt.x,
+                                                 ctr_y - ref_pt.y))
+            # now move to new dither position
+            self.detector_overlay.move_delta_pt((data_x - ctr_x,
+                                                 data_y - ctr_y))
+
+            self.canvas.update_canvas()
         return True
 
     def show_step(self, n):
@@ -1129,16 +1144,18 @@ class HSC_FOV(PF_FOV):
         self.pf_circ.objects[1].x = x
         self.pf_circ.objects[1].y = y + r
 
-        self.canvas.delete_object_by_tag('detector_overlay')
+        viewer = self.pl_obj.viewer
+        with viewer.suppress_redraw:
+            self.canvas.delete_object_by_tag('detector_overlay')
 
-        self.calc_detector_positions()
-        self.draw_detectors()
+            self.calc_detector_positions()
+            self.draw_detectors()
 
-        # flip if desired
-        if self.flip_tf:
-            self.flip_x(self.detector_overlay, self.pt_ctr[0])
+            # flip if desired
+            if self.flip_tf:
+                self.flip_x(self.detector_overlay, self.pt_ctr[0])
 
-        self.detector_overlay.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
+            self.detector_overlay.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
 
     def set_pos(self, pt):
         super().set_pos(pt)
