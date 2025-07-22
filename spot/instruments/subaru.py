@@ -720,7 +720,7 @@ class PF_FOV(FOV):
     def __init__(self, pl_obj, canvas, pt):
         super().__init__(pl_obj, canvas, pt)
 
-        self.pf_fov = 1.7   # deg
+        self.pf_fov = 1.6   # deg
         self.scale = 1.0
         self.pf_radius = self.pf_fov * 0.5
         self.sky_radius_arcmin = 55
