@@ -3,6 +3,7 @@ subaru.py -- Subaru instrument overlays
 
 """
 import os.path
+import json
 import numpy as np
 from astropy.coordinates import Angle
 from astropy import units as u
@@ -745,34 +746,12 @@ class HSC_FOV(PF_FOV):
     @classmethod
     def read_hsc_info(cls):
         # read in HSC detector info
-        hsc_info_fits = os.path.join(cfgdir, 'hsc_info.fits')
-        with fits.open(hsc_info_fits, 'readonly') as hsc_f:
-            info_dct = dict()
-            sdo = hsc_f['SDO'].data
-            poly = hsc_f['DET_POLY'].data
-            for row in sdo:
-                det_num = row['DET_INDEX']
-                bad_ch_str = row['BAD_CHANNELS'].strip()
-                if len(bad_ch_str) == 0:
-                    bad_channels = []
-                else:
-                    bad_channels = list(map(int, bad_ch_str.split(',')))
-                if len(bad_channels) > 0:
-                    color = 'red'
-                elif row['BEES_UNIT'] == 0:
-                    color = 'skyblue'
-                else:
-                    color = 'violet'
-                offsets = np.array((poly['{}_OFFSET_RA'.format(det_num)],
-                                    poly['{}_OFFSET_DEC'.format(det_num)]),
-                                   dtype=float).T
-                det_dct = dict(bees=row['BEES_UNIT'],
-                               bees_det_id=row['BEES_ID'],
-                               color=color,
-                               bad_channels=bad_channels,
-                               polygon=offsets)
-                info_dct[det_num] = det_dct
+        hsc_info_json = os.path.join(cfgdir, 'hsc_info.json')
+        with open(hsc_info_json, 'r') as hsc_f:
+            _tbl = json.loads(hsc_f.read())
 
+        info_dct = {int(det_id_str): info_dct
+                    for det_id_str, info_dct in _tbl.items()}
         HSC_FOV.hsc_info = info_dct
 
     def __init__(self, pl_obj, canvas, pt):
@@ -783,6 +762,7 @@ class HSC_FOV(PF_FOV):
         self.mount_offset_rot_deg = -90.0
 
         self.det_poly_paths = []
+        self.det_badch_paths = []
         self.detector_overlay = None
 
         # for the dithering GUI
@@ -823,17 +803,30 @@ class HSC_FOV(PF_FOV):
         info = HSC_FOV.hsc_info
 
         paths = []
-        keys = list(info.keys())
-        keys.sort()
-        for key in keys:
+        bad_ch_paths = []
+        det_ids = list(info.keys())
+        det_ids.sort()
+        for det_id in det_ids:
             poly_coords = np.array([wcs.add_offset_radec(ctr_ra, ctr_dec,
                                                          dra, ddec)
-                                    for dra, ddec in info[key]['polygon']],
+                                    for dra, ddec in info[det_id]['polygon']],
                                    dtype=float)
             path_points = image.wcs.wcspt_to_datapt(poly_coords)
-            paths.append((key, path_points))
+            paths.append((det_id, path_points))
+
+            bad_channels = info[det_id].get('bad_channels', [])
+            if len(bad_channels) > 0:
+                # there are bad channels in this detector
+                for ch_offsets in bad_channels:
+                    poly_coords = np.array([wcs.add_offset_radec(ctr_ra, ctr_dec,
+                                                         dra, ddec)
+                                            for dra, ddec in ch_offsets],
+                                           dtype=float)
+                    path_points = image.wcs.wcspt_to_datapt(poly_coords)
+                    bad_ch_paths.append(path_points)
 
         self.det_poly_paths = paths
+        self.det_badch_paths = bad_ch_paths
 
     def draw_detectors(self):
         l = []
@@ -844,29 +837,29 @@ class HSC_FOV(PF_FOV):
         ref_pt = self.dc.Point(x, y, 0, color='black', alpha=0.0)
         l.append(ref_pt)
 
-        for key, points in self.det_poly_paths:
+        for det_id, points in self.det_poly_paths:
 
-            showfill = False
-            if 'color' in info[key]:
-                color = info[key]['color']
-            else:
-                color = 'lightgreen'
-            if color == 'red':
-                showfill = True
-            p = self.dc.Polygon(points, color=color, fill=showfill,
-                                fillcolor='red', fillalpha=0.4,
+            color = info[det_id]['color']
+            p = self.dc.Polygon(points, color=color, fill=False,
                                 showcap=False, coord='data')
 
             # annotate with the detector name
             # find center, which is geometric average of points
             xs, ys = points.T
             pcx, pcy = np.sum(xs) / len(xs), np.sum(ys) / len(ys)
-            name = "{:1d}_{:02d}".format(info[key]['bees'],
-                                         info[key]['bees_det_id'])
+            name = "{:1d}_{:02d}".format(info[det_id]['bee_id'],
+                                         info[det_id]['sdo_id'])
             t = self.dc.Text(pcx, pcy, text=name, color=color, fontsize=12,
                              coord='data')
 
             l.append(self.dc.CompoundObject(p, t))
+
+        # Add bad channels
+        for points in self.det_badch_paths:
+            p = self.dc.Polygon(points, color='red', fill=True,
+                                fillcolor='red', fillalpha=0.4,
+                                showcap=False, coord='data')
+            l.append(p)
 
         obj = self.dc.CompoundObject(*l)
         obj.opaque = True
