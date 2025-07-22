@@ -34,7 +34,7 @@ from dateutil.parser import parse as parse_date
 from datetime import UTC
 
 # ginga
-from ginga.gw import Widgets, GwHelp
+from ginga.gw import Widgets
 from ginga import GingaPlugin, colors
 from ginga.util.paths import ginga_home, home as user_home
 from ginga.util import wcs

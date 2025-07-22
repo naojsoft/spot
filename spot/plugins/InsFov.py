@@ -15,7 +15,6 @@ from ginga.gw import Widgets
 from ginga import GingaPlugin, trcalc
 from ginga.util import wcs
 from ginga.misc import Bunch
-from ginga.canvas.coordmap import BaseMapper
 
 from spot.util import target as spot_target
 from spot.util.rot import normalize_angle
@@ -286,7 +285,6 @@ class InsFov(GingaPlugin.LocalPlugin):
 
             self.cur_fov.build_gui(self.w.fov_gui_box)
 
-
     def set_pa_cb(self, w):
         self.pa_deg = float(w.get_text().strip())
         self.update_fov()
@@ -458,7 +456,7 @@ class FOV:
         pa_deg : float
             Desired position angle in deg
         """
-        if False: #self.flip_tf:
+        if False:   # self.flip_tf:
             self.pa_rot_deg = self.img_rot_deg + self.mount_offset_rot_deg - pa_deg
         else:
             self.pa_rot_deg = self.img_rot_deg - self.mount_offset_rot_deg + pa_deg

@@ -793,7 +793,7 @@ class FindImage(GingaPlugin.LocalPlugin):
             m = (y2 - y1) / (x2 - x1)   # find slope
             ang = np.arctan(-1 / m)
             _c, _s = np.cos(ang), np.sin(ang)
-            l = pt_radius * 0.5 # length of perpendicular lines
+            l = pt_radius * 0.5  # length of perpendicular lines
             ang_deg = np.degrees(ang)
             flip_x, flip_y, swap_xy = self.viewer.get_transforms()
             ll = l

@@ -332,7 +332,7 @@ def split_array(arr):
         A list of NumPy arrays representing the subarrays.
     """
     if len(arr) <= 1:
-      return [arr]
+        return [arr]
 
     # find differences between i and i+1 indices
     diffs = np.diff(arr)

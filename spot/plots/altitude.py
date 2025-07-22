@@ -83,7 +83,7 @@ class AltitudePlot(plots.Plot):
         #lstyle = 'solid'
         # convert to desired time zone for plot
         lt_data_first = np.array([t.astimezone(tz)
-                              for t in tgt_data[0].history['ut']])
+                                  for t in tgt_data[0].history['ut']])
 
         # get the date of the first target. Also get the end date
         # so that we can include it in the plot title.
@@ -166,7 +166,7 @@ class AltitudePlot(plots.Plot):
         ax1.plot(lt_data_first, moon_data, moon_color, linewidth=3.0,
                  alpha=0.9, aa=True)
         ax1.text(mpl_dt.date2num(illum_time),
-                 moon_data.max() + 4.0, moon_name, color=moon_color, # '#CDBE70'
+                 moon_data.max() + 4.0, moon_name, color=moon_color,
                  ha='center', va='center', clip_on=True)
 
         # Plot airmass scale

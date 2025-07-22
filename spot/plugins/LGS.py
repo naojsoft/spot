@@ -23,7 +23,8 @@ naojsoft packages
 - ginga
 """
 # stdlib
-import os, glob
+import os
+import glob
 from datetime import timedelta
 
 import numpy as np

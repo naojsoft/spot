@@ -1,4 +1,3 @@
-from collections.abc import Mapping
 from datetime import UTC
 
 import numpy as np
@@ -171,7 +170,7 @@ def get_closest_ra_dec(dt, track_tbl):
     # interpolate between the two closest dates to find the percentage
     # difference
     jd = track_tbl['datetime_jd']
-    pct = (dt_jd  - jd[idx - 1]) / (jd[idx] - jd[idx - 1])
+    pct = (dt_jd - jd[idx - 1]) / (jd[idx] - jd[idx - 1])
 
     ra, dec = track_tbl['RA'], track_tbl['DEC']
     ra_deg = ra[idx - 1] + (ra[idx] - ra[idx - 1]) * pct
@@ -200,6 +199,7 @@ def update_nonsidereal_targets(targets, dt):
             target.set(color='cyan')
     return changed
 
+
 def load_jplephem_target(eph_path, dt=None):
     from Gen2.astro.jplHorizonsIF import JPLHorizonsEphem
     with open(eph_path, 'r') as eph_f:
@@ -223,6 +223,7 @@ def load_jplephem_target(eph_path, dt=None):
     if dt is not None:
         update_nonsidereal_targets([target], dt)
     return target
+
 
 def make_jplhorizons_target(name, eph_table, dt=None, category='Non-sidereal'):
     """Make a non-sidereal target from a JPL Horizons ephemeris from

@@ -907,7 +907,6 @@ class CalculationResult(object):
         return 1
 
 
-
 Moon = SSBody('Moon', ssbodies['moon'])
 Sun = SSBody('Sun', ssbodies['sun'])
 Mercury = SSBody('Mercury', ssbodies['mercury'])
@@ -918,6 +917,7 @@ Saturn = SSBody('Saturn', ssbodies['saturn barycenter'])
 Uranus = SSBody('Uranus', ssbodies['uranus barycenter'])
 Neptune = SSBody('Neptune', ssbodies['neptune barycenter'])
 Pluto = SSBody('Pluto', ssbodies['pluto barycenter'])
+
 
 def get_ssbody(lookup_name, myname=None):
     if myname is None:

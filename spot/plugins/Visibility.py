@@ -448,7 +448,7 @@ class Visibility(GingaPlugin.LocalPlugin):
                 t, r = self.map_azalt(az_data, alt_data)
                 x, y = self.p2r(r, t)
                 pts = np.array((x, y)).T
-                path = self.dc.Path(pts, color='goldenrod1', # info.color,
+                path = self.dc.Path(pts, color='goldenrod1',
                                     linewidth=1, alpha=alpha)
                 objs.append(path)
                 tgtname = info.target.name
@@ -460,10 +460,7 @@ class Visibility(GingaPlugin.LocalPlugin):
                                     font="Roboto condensed",
                                     fontscale=True,
                                     fontsize=None, fontsize_min=12,
-                                    fontsize_max=16)#,
-                                    # bgcolor='floralwhite', bgalpha=bg_alpha,
-                                    # bordercolor='orangered1', borderlinewidth=2,
-                                    # borderalpha=bg_alpha)
+                                    fontsize_max=16)
                 objs.append(text)
 
         o = self.dc.CompoundObject(*objs)
@@ -505,11 +502,6 @@ class Visibility(GingaPlugin.LocalPlugin):
 
     def toggle_show_legend_cb(self, w, tf):
         self.plot_legend = tf
-        self.replot()
-
-    def configure_plot_cb(self, w, idx):
-        option = w.get_text()
-        self.plot_which = option.lower()
         self.replot()
 
     def set_time_axis_mode_cb(self, w, index):

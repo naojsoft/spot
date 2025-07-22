@@ -478,7 +478,6 @@ class SWIMS_FOV(CS_FOV):
                          rot_deg=0.0))
         self.canvas.add(self.swims_box)
 
-
     def __update(self):
         # reposition overlay with scale
         x, y = self.pt_ctr[:2]
@@ -818,7 +817,7 @@ class HSC_FOV(PF_FOV):
                 # there are bad channels in this detector
                 for ch_offsets in bad_channels:
                     poly_coords = np.array([wcs.add_offset_radec(ctr_ra, ctr_dec,
-                                                         dra, ddec)
+                                                                 dra, ddec)
                                             for dra, ddec in ch_offsets],
                                            dtype=float)
                     path_points = image.wcs.wcspt_to_datapt(poly_coords)
@@ -1173,7 +1172,7 @@ class HSC_FOV(PF_FOV):
 
     def set_pa(self, pa_deg):
         # *** NOTE ***: opposite of base class because camera at Prime focus
-        if False: #self.flip_tf:
+        if False:  # self.flip_tf:
             self.pa_rot_deg = self.img_rot_deg - self.mount_offset_rot_deg + pa_deg
         else:
             self.pa_rot_deg = self.img_rot_deg + self.mount_offset_rot_deg - pa_deg
@@ -1307,7 +1306,7 @@ class PFS_FOV(PF_FOV):
 
     def set_pa(self, pa_deg):
         # *** NOTE ***: opposite of base class because camera at Prime focus
-        if False: #self.flip_tf:
+        if False:  # self.flip_tf:
             self.pa_rot_deg = self.img_rot_deg - self.mount_offset_rot_deg + pa_deg
         else:
             self.pa_rot_deg = self.img_rot_deg + self.mount_offset_rot_deg - pa_deg
