@@ -7,7 +7,6 @@ import json
 import numpy as np
 from astropy.coordinates import Angle
 from astropy import units as u
-from astropy.io import fits
 
 from ginga.util import wcs
 from ginga.gw import Widgets
@@ -1218,9 +1217,10 @@ class PFS_FOV(PF_FOV):
 
         if PFS_FOV.pfs_info is None:
             # read in PFS guide camera positions
-            pfs_info_fits = os.path.join(cfgdir, 'pfs_info.fits')
-            with fits.open(pfs_info_fits, 'readonly') as pfs_f:
-                PFS_FOV.pfs_info = pfs_f['CAM_POLY'].copy()
+            pfs_info_json = os.path.join(cfgdir, 'pfs_info.json')
+            with open(pfs_info_json, 'r') as pfs_f:
+                _tbl = json.loads(pfs_f.read())
+            PFS_FOV.pfs_info = _tbl
 
     def calc_fov_hexagon(self):
         points = []
@@ -1239,13 +1239,12 @@ class PFS_FOV(PF_FOV):
             return
 
         ctr_ra, ctr_dec = self.pl_obj.coord
-        info = PFS_FOV.pfs_info
+        info = PFS_FOV.pfs_info['guiders']
 
         paths = []
         cam_pfx = ['CAM{}'.format(i + 1) for i in range(0, 6)]
         for pfx in cam_pfx:
-            dra, ddec = (info.data[pfx + '_RA_OFF_DEG'],
-                         info.data[pfx + '_DEC_OFF_DEG'])
+            dra, ddec = np.array(info[pfx]).T
             poly_coords = np.array([wcs.add_offset_radec(ctr_ra, ctr_dec,
                                                          dra[i], ddec[i])
                                     for i in range(len(dra))])
