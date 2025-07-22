@@ -863,7 +863,8 @@ class FindImage(GingaPlugin.LocalPlugin):
 
         header = image.get_header()
         # get scale of image in deg/pix
-        rot, iscale_dim1, iscale_dim2 = wcs.get_rotation_and_scale(header)
+        rot, iscale_dim1, iscale_dim2 = wcs.get_rotation_and_scale(header,
+                                                                   skew_threshold=0.1)
         # adjust by viewer scale
         scale = max(iscale_dim1, iscale_dim2) / v_scale
         return scale

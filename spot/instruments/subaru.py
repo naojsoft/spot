@@ -720,7 +720,7 @@ class PF_FOV(FOV):
     def __init__(self, pl_obj, canvas, pt):
         super().__init__(pl_obj, canvas, pt)
 
-        self.pf_fov = 1.5   # 1.5 deg
+        self.pf_fov = 1.7   # deg
         self.scale = 1.0
         self.pf_radius = self.pf_fov * 0.5
         self.sky_radius_arcmin = 55
@@ -777,6 +777,10 @@ class HSC_FOV(PF_FOV):
 
     def __init__(self, pl_obj, canvas, pt):
         super().__init__(pl_obj, canvas, pt)
+
+        # according to https://subarutelescope.org/Instruments/HSC/ccd.html
+        # we need to orient using this mount offset
+        self.mount_offset_rot_deg = -90.0
 
         self.det_poly_paths = []
         self.detector_overlay = None
@@ -934,6 +938,13 @@ class HSC_FOV(PF_FOV):
 
         l = []
         start, stop, posns = self.get_dither_positions()
+
+        # this is the marker that shows our current position
+        ra_deg, dec_deg = posns[0]
+        x, y = image.radectopix(ra_deg, dec_deg)
+        l.append(self.dc.Point(x, y, self.target_radius, color='orangered',
+                               linewidth=2, style='cross', alpha=0.0))
+
         i = start
         for ra_deg, dec_deg in posns:
             x, y = image.radectopix(ra_deg, dec_deg)
@@ -1121,6 +1132,12 @@ class HSC_FOV(PF_FOV):
             # now move to new dither position
             self.detector_overlay.move_delta_pt((data_x - ctr_x,
                                                  data_y - ctr_y))
+
+            # update item that shows our position
+            obj = self.canvas.get_object_by_tag('dither_positions')
+            marker = obj.objects[0]
+            marker.x, marker.y = data_x, data_y
+            marker.alpha = 1.0
 
             self.canvas.update_canvas()
         return True
