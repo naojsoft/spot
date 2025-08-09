@@ -33,11 +33,11 @@ from ginga.AstroImage import AstroImage
 from spot.util import target as spot_target
 
 image_sources = {
-    'SkyView: DSS1 Blue': dict(),
-    'SkyView: DSS1 Red': dict(),
-    'SkyView: DSS2 Red': dict(),
-    'SkyView: DSS2 Blue': dict(),
-    'SkyView: DSS2 IR': dict(),
+    'SkyView: DSS1+Blue': dict(),
+    'SkyView: DSS1+Red': dict(),
+    'SkyView: DSS2+Red': dict(),
+    'SkyView: DSS2+Blue': dict(),
+    'SkyView: DSS2+IR': dict(),
     'SkyView: SDSSg': dict(),
     'SkyView: SDSSi': dict(),
     'SkyView: SDSSr': dict(),
@@ -46,17 +46,41 @@ image_sources = {
     'SkyView: 2MASS-J': dict(),
     'SkyView: 2MASS-H': dict(),
     'SkyView: 2MASS-K': dict(),
-    'SkyView: WISE 3.4': dict(),
-    'SkyView: WISE 4.6': dict(),
-    'SkyView: WISE 12': dict(),
-    'SkyView: WISE 22': dict(),
-    'SkyView: AKARI N60': dict(),
-    'SkyView: AKARI WIDE-S': dict(),
-    'SkyView: AKARI WIDE-L': dict(),
-    'SkyView: AKARI N160': dict(),
-    'SkyView: NVSS': dict(),
-    'SkyView: GALEX Near UV': dict(),
-    'SkyView: GALEX Far UV': dict(),
+    'SkyView: WISE+3.4': dict(),
+    'SkyView: WISE+4.6': dict(),
+    'SkyView: WISE+12': dict(),
+    'SkyView: WISE+22': dict(),
+    'SkyView: AKAIR+N60': dict(),
+    'SkyView: AKAIR+WIDE-S': dict(),
+    'SkyView: AKAIR+WIDE-L': dict(),
+    'SkyView: AKAIR+N160': dict(),
+    'SkyView: NAVSS': dict(),
+    'SkyView: GALEX+Near+UV': dict(),
+    'SkyView: GALEX+Far+UV': dict(),
+    # 'SkyView: DSS1 Blue': dict(),
+    # 'SkyView: DSS1 Red': dict(),
+    # 'SkyView: DSS2 Red': dict(),
+    # 'SkyView: DSS2 Blue': dict(),
+    # 'SkyView: DSS2 IR': dict(),
+    # 'SkyView: SDSSg': dict(),
+    # 'SkyView: SDSSi': dict(),
+    # 'SkyView: SDSSr': dict(),
+    # 'SkyView: SDSSu': dict(),
+    # 'SkyView: SDSSz': dict(),
+    # 'SkyView: 2MASS-J': dict(),
+    # 'SkyView: 2MASS-H': dict(),
+    # 'SkyView: 2MASS-K': dict(),
+    # 'SkyView: WISE 3.4': dict(),
+    # 'SkyView: WISE 4.6': dict(),
+    # 'SkyView: WISE 12': dict(),
+    # 'SkyView: WISE 22': dict(),
+    # 'SkyView: AKARI N60': dict(),
+    # 'SkyView: AKARI WIDE-S': dict(),
+    # 'SkyView: AKARI WIDE-L': dict(),
+    # 'SkyView: AKARI N160': dict(),
+    # 'SkyView: NVSS': dict(),
+    # 'SkyView: GALEX Near UV': dict(),
+    # 'SkyView: GALEX Far UV': dict(),
     'ESO: DSS1': dict(),
     'ESO: DSS2-red': dict(),
     'ESO: DSS2-blue': dict(),
@@ -76,13 +100,13 @@ image_sources = {
 }
 
 service_urls = {
+    'SkyView': """https://skyview.gsfc.nasa.gov/cgi-bin/images?Survey={survey}&position={position}&coordinates={coordinates}&size={size}&Return=FITS""",
     'ESO': """https://archive.eso.org/dss/dss?ra={ra}&dec={dec}&mime-type=application/x-fits&x={arcmin}&y={arcmin}&Sky-Survey={survey}&equinox={equinox}""",
     'STScI': """https://archive.stsci.edu/cgi-bin/dss_search?v={survey}&r={ra_deg}&d={dec_deg}&e={equinox}&h={arcmin}&w={arcmin}&f=fits&c=none&fov=NONE&v3=""",
     'PanSTARRS-1': """https://ps1images.stsci.edu/cgi-bin/fitscut.cgi?ra={ra}&dec={dec}&size={size}&format={format}&output_size=1024"""
 }
 
 # replaced with astroquery
-# 'SkyView': """https://skyview.gsfc.nasa.gov/cgi-bin/images?Survey={survey}&coordinates={coordinates}&position={position}&imscale={imscale}&size={size}&Return=FITS""",
 # 'SDSS-DR16': """https://skyserver.sdss.org/dr16/SkyServerWS/ImgCutout/getjpeg?ra={ra_deg}&dec={dec_deg}&scale=0.4&height={size}&width={size}""",
 # 'SDSS-DR7': """https://skyservice.pha.jhu.edu/DR7/ImgCutout/getjpeg.aspx?ra={ra_deg}&dec={dec_deg}&scale=0.39612%20%20%20&width={size}&height={size}"""
 
@@ -448,6 +472,28 @@ class FindImage(GingaPlugin.LocalPlugin):
         if service == "SKYVIEW":
             self.logger.info(f'service name={service_name}')
 
+            position_deg = f'{ra_deg}+{dec_deg}'
+            size = arcmin / 60.0
+
+            equinox_str = f'J{equinox}'
+
+            params = {'survey': survey,
+                      'coordinates': equinox_str,
+                      'position': position_deg,
+                      'size': size,
+                      }
+
+            self.logger.debug(f'Skyview params={params}')
+
+            service_url = service_urls[service_name]
+            service_url = service_url.format(**params)
+            self.logger.debug(f'SkyView url={service_url}')
+            self.fv.gui_do(self.fv.open_uris, [service_url],
+                           chname=self.channel.name)
+
+
+            """  astroquery SkyView is not working as of 2025-08-07.
+
             sv = SkyView()
 
             position = SkyCoord(ra=ra_deg * u.degree, dec=dec_deg * u.degree)
@@ -463,6 +509,7 @@ class FindImage(GingaPlugin.LocalPlugin):
             self.logger.debug(f'SkyView url={service_url}')
             self.fv.gui_do(self.fv.open_uris, [service_url],
                            chname=self.channel.name)
+            """
 
         # elif service == "SDSS":
         #     position = SkyCoord(ra=ra_deg * u.degree, dec=dec_deg * u.degree)
