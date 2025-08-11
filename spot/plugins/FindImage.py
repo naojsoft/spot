@@ -100,7 +100,7 @@ image_sources = {
 }
 
 service_urls = {
-    'SkyView': """https://skyview.gsfc.nasa.gov/cgi-bin/images?Survey={survey}&position={position}&coordinates={coordinates}&size={size}&Return=FITS""",
+    'SkyView': """https://skyview.gsfc.nasa.gov/cgi-bin/images?Survey={survey}&position={position}&coordinates={coordinates}&projection=Tan&sampler=LI&Pixels={pixels}&size={size}&Return=FITS""",
     'ESO': """https://archive.eso.org/dss/dss?ra={ra}&dec={dec}&mime-type=application/x-fits&x={arcmin}&y={arcmin}&Sky-Survey={survey}&equinox={equinox}""",
     'STScI': """https://archive.stsci.edu/cgi-bin/dss_search?v={survey}&r={ra_deg}&d={dec_deg}&e={equinox}&h={arcmin}&w={arcmin}&f=fits&c=none&fov=NONE&v3=""",
     'PanSTARRS-1': """https://ps1images.stsci.edu/cgi-bin/fitscut.cgi?ra={ra}&dec={dec}&size={size}&format={format}&output_size=1024"""
@@ -397,6 +397,22 @@ class FindImage(GingaPlugin.LocalPlugin):
         if self.gui_up:
             self.w.size.set_value(length)
 
+    def map_arcmin_to_pixels(self, size_arcmin):
+
+        # Clamp the input to the valid range
+        size_arcmin = max(3, min(110, size_arcmin))
+
+        # Define ranges
+        arcmin_min, arcmin_max = 3, 110
+        pixel_min, pixel_max = 1024, 2048
+
+        # Linear interpolation formula
+        scale = (size_arcmin - arcmin_min) / (arcmin_max - arcmin_min)
+        pixel_count = int(pixel_min + scale * (pixel_max - pixel_min))
+
+        return pixel_count
+
+
     def find_image(self):
         try:
             self.fv.assert_gui_thread()
@@ -477,10 +493,13 @@ class FindImage(GingaPlugin.LocalPlugin):
 
             equinox_str = f'J{equinox}'
 
+            pixels = self.map_arcmin_to_pixels(arcmin)
+
             params = {'survey': survey,
                       'coordinates': equinox_str,
                       'position': position_deg,
                       'size': size,
+                      'pixels': pixels
                       }
 
             self.logger.debug(f'Skyview params={params}')
