@@ -19,9 +19,6 @@ import datetime
 import re
 
 from astropy import units as u
-from astropy.coordinates import SkyCoord
-from astroquery.skyview import SkyView
-#from astroquery.sdss import SDSS
 from astropy.table import Table
 
 # ginga
@@ -57,35 +54,10 @@ image_sources = {
     'SkyView: NAVSS': dict(),
     'SkyView: GALEX+Near+UV': dict(),
     'SkyView: GALEX+Far+UV': dict(),
-    # 'SkyView: DSS1 Blue': dict(),
-    # 'SkyView: DSS1 Red': dict(),
-    # 'SkyView: DSS2 Red': dict(),
-    # 'SkyView: DSS2 Blue': dict(),
-    # 'SkyView: DSS2 IR': dict(),
-    # 'SkyView: SDSSg': dict(),
-    # 'SkyView: SDSSi': dict(),
-    # 'SkyView: SDSSr': dict(),
-    # 'SkyView: SDSSu': dict(),
-    # 'SkyView: SDSSz': dict(),
-    # 'SkyView: 2MASS-J': dict(),
-    # 'SkyView: 2MASS-H': dict(),
-    # 'SkyView: 2MASS-K': dict(),
-    # 'SkyView: WISE 3.4': dict(),
-    # 'SkyView: WISE 4.6': dict(),
-    # 'SkyView: WISE 12': dict(),
-    # 'SkyView: WISE 22': dict(),
-    # 'SkyView: AKARI N60': dict(),
-    # 'SkyView: AKARI WIDE-S': dict(),
-    # 'SkyView: AKARI WIDE-L': dict(),
-    # 'SkyView: AKARI N160': dict(),
-    # 'SkyView: NVSS': dict(),
-    # 'SkyView: GALEX Near UV': dict(),
-    # 'SkyView: GALEX Far UV': dict(),
     'ESO: DSS1': dict(),
     'ESO: DSS2-red': dict(),
     'ESO: DSS2-blue': dict(),
     'ESO: DSS2-infrared': dict(),
-    # 'PanSTARRS-1: color': dict(),
     'PanSTARRS-1: g': dict(),
     'PanSTARRS-1: r': dict(),
     'PanSTARRS-1: i': dict(),
@@ -96,7 +68,6 @@ image_sources = {
     'STScI: poss2ukstu_blue': dict(),
     'STScI: poss2ukstu_red': dict(),
     'STScI: poss2ukstu_ir': dict(),
-    #'SDSS: 17': dict(),
 }
 
 service_urls = {
@@ -105,10 +76,6 @@ service_urls = {
     'STScI': """https://archive.stsci.edu/cgi-bin/dss_search?v={survey}&r={ra_deg}&d={dec_deg}&e={equinox}&h={arcmin}&w={arcmin}&f=fits&c=none&fov=NONE&v3=""",
     'PanSTARRS-1': """https://ps1images.stsci.edu/cgi-bin/fitscut.cgi?ra={ra}&dec={dec}&size={size}&format={format}&output_size=1024"""
 }
-
-# replaced with astroquery
-# 'SDSS-DR16': """https://skyserver.sdss.org/dr16/SkyServerWS/ImgCutout/getjpeg?ra={ra_deg}&dec={dec_deg}&scale=0.4&height={size}&width={size}""",
-# 'SDSS-DR7': """https://skyservice.pha.jhu.edu/DR7/ImgCutout/getjpeg.aspx?ra={ra_deg}&dec={dec_deg}&scale=0.39612%20%20%20&width={size}&height={size}"""
 
 
 class FindImage(GingaPlugin.LocalPlugin):
@@ -412,7 +379,6 @@ class FindImage(GingaPlugin.LocalPlugin):
 
         return pixel_count
 
-
     def find_image(self):
         try:
             self.fv.assert_gui_thread()
@@ -509,39 +475,6 @@ class FindImage(GingaPlugin.LocalPlugin):
             self.logger.debug(f'SkyView url={service_url}')
             self.fv.gui_do(self.fv.open_uris, [service_url],
                            chname=self.channel.name)
-
-
-            """  astroquery SkyView is not working as of 2025-08-07.
-
-            sv = SkyView()
-
-            position = SkyCoord(ra=ra_deg * u.degree, dec=dec_deg * u.degree)
-            radius = u.Quantity(arcmin, unit=u.arcmin)
-
-            self.logger.info(f'position={position}, survey={survey}, radius={radius}')
-
-            im_lst = sv.get_image_list(position=position,
-                                       survey=[survey],
-                                       radius=radius)
-            self.logger.debug(f'im_lst={im_lst}')
-            service_url = list(im_lst)[0]
-            self.logger.debug(f'SkyView url={service_url}')
-            self.fv.gui_do(self.fv.open_uris, [service_url],
-                           chname=self.channel.name)
-            """
-
-        # elif service == "SDSS":
-        #     position = SkyCoord(ra=ra_deg * u.degree, dec=dec_deg * u.degree)
-        #     radius = u.Quantity(arcmin, unit=u.arcmin)
-
-        #     self.logger.info(f'position={position}, survey={survey}, radius={radius}')
-
-        #     im_tbl = SDSS.query_region(coordinates=position,
-        #                                radius=radius,
-        #                                spectro=False,
-        #                                data_release=int(survey))
-
-        #     # TBD
 
         elif service == "ESO":
             self.logger.debug('ESO...')
