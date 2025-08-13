@@ -2,9 +2,9 @@
 What's New
 ++++++++++
 
-Ver 1.0.0 (unreleased)
+Ver 1.0.0 (2025-08-13)
 ======================
-- NOTE: requires development version of Ginga (https://github.com/ejeschke/ginga)
+- NOTE: requires Ginga v5.4.0
 - Targets plugin: added ability to color targets by file loaded, including
   a button for user to manually select a color if desired
 - Targets plugin: Added ability to select and delete an entire category of
@@ -36,6 +36,7 @@ Ver 1.0.0 (unreleased)
   in milliarcsec / year
 - Added HSC and PFS overlays for Subaru instruments (InsFov plugin)
 - Added HSC dithering GUI to HSC FOV
+- Updated FindImage SkyView survey parameters to provide better quality images
 
 Ver 0.4.1 (2025-03-14)
 ======================
