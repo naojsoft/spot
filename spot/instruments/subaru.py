@@ -334,8 +334,9 @@ class MOIRCS_FOV(CS_FOV):
     def __init__(self, pl_obj, canvas, pt):
         super().__init__(pl_obj, canvas, pt)
 
-        self.moircs_fov = (0.0666667, 0.116667)   # 4x7 arcmin
-        self.moircs_radius = (4 * 0.5, 7 * 0.5)
+        self.moircs_fov = (0.065, 0.115833)   # 3.9 x 6.95 arcmin
+        self.moircs_radius = (self.moircs_fov[0] * 0.5,
+                              self.moircs_fov[1] * 0.5)
         self.det2_defect = (45.49 / 3600, 44.58 / 3600)
         self.det1_defect = (29.87 / 3600, 25.85 / 3600)
         self.text_off = 0.90
@@ -359,7 +360,7 @@ class MOIRCS_FOV(CS_FOV):
                                      dtype=float),
                             color=self.moircs_color, linewidth=2),
             self.dc.Text(x - xr, y + yr,
-                         text="MOIRCS FOV (4x7 arcmin)",
+                         text="MOIRCS FOV (3.9 x 6.95 arcmin)",
                          color=self.moircs_color,
                          rot_deg=0.0),
             self.dc.Text(x + xr, y - (yr * self.text_off), text='Det 1',

@@ -2,6 +2,10 @@
 What's New
 ++++++++++
 
+Ver 1.1.0 (unreleased)
+======================
+- updated Subaru/MOIRCS FOV dimensions
+
 Ver 1.0.0 (2025-08-13)
 ======================
 - NOTE: requires Ginga v5.4.0
