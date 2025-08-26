@@ -187,8 +187,12 @@ class Visibility(GingaPlugin.LocalPlugin):
         obj.cb.add_callback('uncollapsed-changed', self.uncollapsed_changed_cb)
         self.tgts_obj = obj
 
-        obj = self.channel.opmon.get_plugin('TelescopePosition')
-        obj.cb.add_callback('telescope-status-changed', self.telescope_status_cb)
+        have_telpos = self.channel.opmon.has_plugin('TelescopePosition')
+        if have_telpos:
+            obj = self.channel.opmon.get_plugin('TelescopePosition')
+            obj.cb.add_callback('telescope-status-changed',
+                                self.telescope_status_cb)
+
         top = Widgets.VBox()
         top.set_border_width(4)
 

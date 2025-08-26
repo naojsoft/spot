@@ -5,6 +5,8 @@ What's New
 Ver 1.1.0 (unreleased)
 ======================
 - updated Subaru/MOIRCS FOV dimensions
+- Fixed a bug where Visibility could not be started without access to
+  TelescopePosition
 
 Ver 1.0.0 (2025-08-13)
 ======================
