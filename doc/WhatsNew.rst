@@ -2,7 +2,7 @@
 What's New
 ++++++++++
 
-Ver 1.1.0 (unreleased)
+Ver 1.0.1 (2025-08-27)
 ======================
 - updated Subaru/MOIRCS FOV dimensions
 - Fixed a bug where Visibility could not be started without access to
