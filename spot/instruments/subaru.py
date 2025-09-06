@@ -108,13 +108,15 @@ class IRCS_FOV(AO188_FOV):
                                                    dtype=float)
         self.ircs_box.objects[1].x = x - r
         self.ircs_box.objects[1].y = y + r
-        self.ircs_box.objects[1].rot_deg = self.pa_rot_deg
+        #self.ircs_box.objects[1].rot_deg = self.pa_rot_deg
 
         # flip if desired
         if self.flip_tf:
             self.flip_x(self.ircs_box, self.pt_ctr[0])
 
         self.ircs_box.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
+
+        self.rotate_for_pa()
 
     def set_scale(self, scale_x, scale_y):
         super().set_scale(scale_x, scale_y)
@@ -171,13 +173,15 @@ class IRD_FOV(AO188_FOV):
                                                   dtype=float)
         self.ird_box.objects[1].x = x - xr
         self.ird_box.objects[1].y = y + yr
-        self.ird_box.objects[1].rot_deg = self.pa_rot_deg
+        #self.ird_box.objects[1].rot_deg = self.pa_rot_deg
 
         # flip if desired
         if self.flip_tf:
             self.flip_x(self.ird_box, self.pt_ctr[0])
 
         self.ird_box.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
+
+        self.rotate_for_pa()
 
     def set_scale(self, scale_x, scale_y):
         super().set_scale(scale_x, scale_y)
@@ -296,7 +300,7 @@ class COMICS_FOV(CS_FOV):
                                                      dtype=float)
         self.comics_box.objects[1].x = x - xr
         self.comics_box.objects[1].y = y + yr
-        self.comics_box.objects[1].rot_deg = self.pa_rot_deg
+        #self.comics_box.objects[1].rot_deg = self.pa_rot_deg
 
         # flip if desired
         if self.flip_tf:
@@ -304,6 +308,8 @@ class COMICS_FOV(CS_FOV):
 
         # rotate as necessary to show PA
         self.comics_box.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
+
+        self.rotate_for_pa()
 
     def set_scale(self, scale_x, scale_y):
         super().set_scale(scale_x, scale_y)
@@ -400,13 +406,13 @@ class MOIRCS_FOV(CS_FOV):
                                                      dtype=float)
         self.moircs_box.objects[2].x = x - xr
         self.moircs_box.objects[2].y = y + yr
-        self.moircs_box.objects[2].rot_deg = self.pa_rot_deg
+        #self.moircs_box.objects[2].rot_deg = self.pa_rot_deg
         self.moircs_box.objects[3].x = x + xr
         self.moircs_box.objects[3].y = y - (yr * self.text_off)
-        self.moircs_box.objects[3].rot_deg = self.pa_rot_deg
+        #self.moircs_box.objects[3].rot_deg = self.pa_rot_deg
         self.moircs_box.objects[4].x = x + xr
         self.moircs_box.objects[4].y = y + (yr * self.text_off)
-        self.moircs_box.objects[4].rot_deg = self.pa_rot_deg
+        #self.moircs_box.objects[4].rot_deg = self.pa_rot_deg
 
         det2_df_x = self.det2_defect[0] / self.scale
         det2_df_y = self.det2_defect[1] / self.scale
@@ -427,6 +433,8 @@ class MOIRCS_FOV(CS_FOV):
 
         # rotate as necessary to show PA
         self.moircs_box.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
+
+        self.rotate_for_pa()
 
     def set_scale(self, scale_x, scale_y):
         super().set_scale(scale_x, scale_y)
@@ -491,7 +499,7 @@ class SWIMS_FOV(CS_FOV):
                                                     dtype=float)
         self.swims_box.objects[2].x = x - xr
         self.swims_box.objects[2].y = y + yr
-        self.swims_box.objects[2].rot_deg = self.pa_rot_deg
+        #self.swims_box.objects[2].rot_deg = self.pa_rot_deg
 
         # flip if desired
         if self.flip_tf:
@@ -499,6 +507,8 @@ class SWIMS_FOV(CS_FOV):
 
         # rotate as necessary to show PA
         self.swims_box.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
+
+        self.rotate_for_pa()
 
     def set_scale(self, scale_x, scale_y):
         super().set_scale(scale_x, scale_y)
@@ -558,10 +568,10 @@ class FOCAS_FOV(CS_FOV):
                                                      dtype=float)
         self.focas_info.objects[1].x = x + xr
         self.focas_info.objects[1].y = y - (xr * self.text_off)
-        self.focas_info.objects[1].rot_deg = self.pa_rot_deg
+        #self.focas_info.objects[1].rot_deg = self.pa_rot_deg
         self.focas_info.objects[2].x = x + xr
         self.focas_info.objects[2].y = y + (xr * self.text_off)
-        self.focas_info.objects[2].rot_deg = self.pa_rot_deg
+        #self.focas_info.objects[2].rot_deg = self.pa_rot_deg
 
         # flip if desired
         if self.flip_tf:
@@ -569,6 +579,8 @@ class FOCAS_FOV(CS_FOV):
 
         # rotate as necessary to show PA
         self.focas_info.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
+
+        self.rotate_for_pa()
 
     def set_scale(self, scale_x, scale_y):
         super().set_scale(scale_x, scale_y)
@@ -616,7 +628,7 @@ class HDS_FOV(FOV):
                          text="HDS SV FOV (1 arcmin)",
                          color=self.hds_color,
                          bgcolor='floralwhite', bgalpha=0.8,
-                         rot_deg=0.0),
+                         rot_deg=0.0, rotation_is_relative=True),
             self.dc.Path(np.array([(x, y - r), (x, y + r)], dtype=float),
                          color=self.hds_color, linewidth=2),
             self.dc.Polygon(np.array([(x - xr, y - yr), (x - xr, y - r),
@@ -643,7 +655,7 @@ class HDS_FOV(FOV):
         self.hds_circ.objects[0].radius = r
         self.hds_circ.objects[1].x = x
         self.hds_circ.objects[1].y = y + r
-        self.hds_circ.objects[1].rot_deg = self.pa_rot_deg
+        #self.hds_circ.objects[1].rot_deg = - self.pa_rot_deg
         self.hds_circ.objects[2].points = np.array([(x, y - r), (x, y + r)],
                                                    dtype=float)
         self.hds_circ.objects[3].points = np.array([(x - xr, y - yr), (x - xr, y - r),
@@ -659,6 +671,8 @@ class HDS_FOV(FOV):
 
         # rotate as necessary to show PA
         self.hds_circ.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
+
+        self.rotate_for_pa()
 
     def set_scale(self, scale_x, scale_y):
         # NOTE: sign of scale val indicates orientation
@@ -736,6 +750,15 @@ class PF_FOV(FOV):
 
     def rotate(self, rot_deg):
         self.rot_deg = rot_deg
+
+    def rotate_for_pa(self):
+        viewer = self.pl_obj.viewer
+        rotate_with_pa = self.pl_obj.settings.get('rotate_with_pa', False)
+        if rotate_with_pa:
+            # TODO: handle flip
+            # *** NOTE ***: opposite of base class because camera at Prime focus
+            rot_deg = - self.mount_offset_rot_deg + self.img_rot_deg + self.pa_deg
+            viewer.rotate(rot_deg)
 
 
 class HSC_FOV(PF_FOV):
@@ -1166,6 +1189,8 @@ class HSC_FOV(PF_FOV):
 
             self.detector_overlay.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
 
+            self.rotate_for_pa()
+
     def set_pos(self, pt):
         super().set_pos(pt)
 
@@ -1176,7 +1201,7 @@ class HSC_FOV(PF_FOV):
         if False:  # self.flip_tf:
             self.pa_rot_deg = self.img_rot_deg - self.mount_offset_rot_deg + pa_deg
         else:
-            self.pa_rot_deg = self.img_rot_deg + self.mount_offset_rot_deg - pa_deg
+            self.pa_rot_deg = - self.img_rot_deg + self.mount_offset_rot_deg - pa_deg
 
         self.pa_deg = normalize_angle(pa_deg, limit='half')
 
@@ -1287,18 +1312,22 @@ class PFS_FOV(PF_FOV):
         self.pf_fov_hex.objects[1].y = points[1][1]
         self.pf_fov_hex.objects[1].rot_deg = self.pa_rot_deg
 
-        self.canvas.delete_object_by_tag('guide_camera_overlay')
+        viewer = self.pl_obj.viewer
+        with viewer.suppress_redraw:
+            self.canvas.delete_object_by_tag('guide_camera_overlay')
 
-        self.calc_guide_camera_positions()
-        self.draw_guide_cameras()
+            self.calc_guide_camera_positions()
+            self.draw_guide_cameras()
 
-        # flip if desired
-        if self.flip_tf:
-            self.flip_x(self.guide_camera_overlay, self.pt_ctr[0])
-            self.flip_x(self.pf_fov_hex, self.pt_ctr[0])
+            # flip if desired
+            if self.flip_tf:
+                self.flip_x(self.guide_camera_overlay, self.pt_ctr[0])
+                self.flip_x(self.pf_fov_hex, self.pt_ctr[0])
 
-        self.guide_camera_overlay.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
-        self.pf_fov_hex.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
+            self.guide_camera_overlay.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
+            self.pf_fov_hex.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
+
+            self.rotate_for_pa()
 
     def set_pos(self, pt):
         super().set_pos(pt)
@@ -1310,7 +1339,7 @@ class PFS_FOV(PF_FOV):
         if False:  # self.flip_tf:
             self.pa_rot_deg = self.img_rot_deg - self.mount_offset_rot_deg + pa_deg
         else:
-            self.pa_rot_deg = self.img_rot_deg + self.mount_offset_rot_deg - pa_deg
+            self.pa_rot_deg = - self.img_rot_deg + self.mount_offset_rot_deg - pa_deg
 
         self.pa_deg = normalize_angle(pa_deg, limit='half')
 
@@ -1325,7 +1354,7 @@ class PFS_FOV(PF_FOV):
 # see spot/instruments/__init__.py
 #
 subaru_fov_dict = dict(AO188=AO188_FOV, IRCS=IRCS_FOV, IRD=IRD_FOV,
-                       #COMICS=COMICS_FOV, SWIMS=SWIMS_FOV,
+                       COMICS=COMICS_FOV, #SWIMS=SWIMS_FOV,
                        MOIRCS=MOIRCS_FOV, FOCAS=FOCAS_FOV,
                        HDS=HDS_FOV, HDS_NO_IMR=HDS_FOV_no_IMR,
                        HSC=HSC_FOV, PFS=PFS_FOV)

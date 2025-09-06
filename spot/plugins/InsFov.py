@@ -42,10 +42,12 @@ class InsFov(GingaPlugin.LocalPlugin):
     "Instrument", and then navigating the menu until you find the
     desired instrument. Once the instrument is selected the name will be
     filled in by "Instrument:" and an outline of the instrument's
-    field of view will appear in the `<wsname>_FIND` window. The position
-    angle can be adjusted, rotating the survey image relative to the
-    instrument overlay. The image can also be  flipped across the vertical
-    axis by checking the "Flip" box.
+    field of view will appear in the `<wsname>_FIND` window.
+
+    The position angle can be adjusted, which will adjust the angle of
+    the instrument FOV overlay on the image.  If the "Rotate w/PA" box is
+    checked then the viewer image will be rotated so that the FOV overlay
+    remains in the same orientation.
 
     The RA and DEC will be autofilled by setting the pan position in the
     `<wsname>_FIND` window (for example, by Shift-clicking), but can also
@@ -73,7 +75,8 @@ class InsFov(GingaPlugin.LocalPlugin):
         prefs = self.fv.get_preferences()
         self.settings = prefs.create_category('plugin_InsFov')
         self.settings.add_defaults(sky_radius_arcmin=3,
-                                   fov_update_interval=60.0)
+                                   fov_update_interval=60.0,
+                                   rotate_with_pa=True)
         self.settings.load(onError='silent')
 
         self.viewer = self.fitsimage
@@ -116,9 +119,9 @@ class InsFov(GingaPlugin.LocalPlugin):
         fr = Widgets.Frame("Instrument")
 
         captions = (('Instrument:', 'label', 'instrument', 'llabel',
-                     'Choose', 'button'),
+                     'spacer_1', 'spacer', 'Choose', 'button'),
                     ('PA (deg):', 'label', 'pa', 'entryset',
-                     'Flip', 'checkbox'),
+                     'Flip', 'checkbox', 'Rotate w/PA', 'checkbox'),
                     )
 
         w, b = Widgets.build_info(captions)
@@ -150,6 +153,10 @@ class InsFov(GingaPlugin.LocalPlugin):
         b.flip.set_enabled(False)
         b.flip.set_tooltip("Flip orientation")
         b.flip.add_callback("activated", self.toggle_flip_cb)
+
+        b.rotate_w_pa.set_tooltip("Rotate image with PA to keep position of overlay")
+        b.rotate_w_pa.set_state(self.settings.get('rotate_with_pa', True))
+        b.rotate_w_pa.add_callback("activated", self.rotate_with_pa_cb)
 
         fr = Widgets.Frame("Pointing")
 
@@ -289,6 +296,10 @@ class InsFov(GingaPlugin.LocalPlugin):
         self.pa_deg = float(w.get_text().strip())
         self.update_fov()
 
+    def rotate_with_pa_cb(self, w, tf):
+        self.settings.set(rotate_with_pa=tf)
+        self.update_fov()
+
     def update_fov(self):
         self.cur_fov.set_pa(self.pa_deg)
         self.cur_fov.update_viewer(self.viewer)
@@ -405,6 +416,7 @@ class FOV:
         """
         header = image.get_header()
         rot, scale = wcs.get_xy_rotation_and_scale(header)
+        img_pa_deg = rot[0]
 
         # figure out the orientation of the image from its WCS, and whether
         # we need to flip it and how much to rotate it to get a 0 deg PA
@@ -412,13 +424,12 @@ class FOV:
         (x, y, xn, yn, xe, ye) = wcs.calc_compass(image, data_x, data_y,
                                                   1.0, 1.0)
         degn = np.degrees(np.arctan2(xn - x, yn - y))
-        # self.logger.info("degn=%f xe=%f ye=%f" % (
-        #     degn, xe, ye))
-        # rotate east point also by degn
+        self.pl_obj.logger.info(f"img_pa {img_pa_deg} and {degn}")
+        # rotate east point also by degn--now it should be pointing
+        # (typically) perpenticular to N at 0
         xe2, ye2 = trcalc.rotate_pt(xe, ye, degn, xoff=x, yoff=y)
         dege = np.degrees(np.arctan2(xe2 - x, ye2 - y))
-        # self.logger.info("dege=%f xe2=%f ye2=%f" % (
-        #     dege, xe2, ye2))
+        self.pl_obj.logger.info(f"dege={dege} xe2={xe2} ye2={ye2}")
 
         self.flip_tf = righthand
         # if right-hand image, flip it to make left hand
@@ -426,12 +437,14 @@ class FOV:
         if dege > 0.0:
             xflip = not xflip
         if xflip:
-            degn = - degn
+            self.pl_obj.logger.info("flipping sign on degn")
+            img_pa_deg = - img_pa_deg
 
         # store the flip of the image and the rotation needed to get 0 deg
         # Position Angle on the sky
         self.img_flip_x = xflip
-        self.img_rot_deg = degn
+        self.img_rot_deg = - img_pa_deg
+        self.pl_obj.logger.info(f"image rotation is {self.img_rot_deg}")
 
         scale_x, scale_y = scale
         self.set_pos(pt)
@@ -446,6 +459,14 @@ class FOV:
     def build_gui(self, container):
         pass
 
+    def rotate_for_pa(self):
+        viewer = self.pl_obj.viewer
+        rotate_with_pa = self.pl_obj.settings.get('rotate_with_pa', False)
+        if rotate_with_pa:
+            # TODO: handle flip
+            rot_deg = self.mount_offset_rot_deg + self.img_rot_deg - self.pa_deg
+            viewer.rotate(rot_deg)
+
     def set_pa(self, pa_deg):
         """Set the desired Position Angle of the FOV.
 
@@ -459,7 +480,7 @@ class FOV:
         if False:   # self.flip_tf:
             self.pa_rot_deg = self.img_rot_deg + self.mount_offset_rot_deg - pa_deg
         else:
-            self.pa_rot_deg = self.img_rot_deg - self.mount_offset_rot_deg + pa_deg
+            self.pa_rot_deg = - self.img_rot_deg - self.mount_offset_rot_deg + pa_deg
 
         self.pa_deg = normalize_angle(pa_deg, limit='half')
 
