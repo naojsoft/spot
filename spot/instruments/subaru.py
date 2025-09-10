@@ -748,9 +748,6 @@ class PF_FOV(FOV):
 
         self.pf_radius = self.pf_fov * 0.5 / self.scale
 
-    def rotate(self, rot_deg):
-        self.rot_deg = rot_deg
-
     def rotate_for_pa(self):
         viewer = self.pl_obj.viewer
         rotate_with_pa = self.pl_obj.settings.get('rotate_with_pa', False)
@@ -759,6 +756,9 @@ class PF_FOV(FOV):
             # *** NOTE ***: opposite of base class because camera at Prime focus
             rot_deg = - self.mount_offset_rot_deg + self.img_rot_deg + self.pa_deg
             viewer.rotate(rot_deg)
+
+    def rotate(self, rot_deg):
+        self.rot_deg = rot_deg
 
 
 class HSC_FOV(PF_FOV):
@@ -808,6 +808,7 @@ class HSC_FOV(PF_FOV):
             self.dc.Text(x, y,
                          text=f"HSC FOV ({self.pf_fov:.2f} deg)",
                          color=self.pf_color,
+                         bgcolor='floralwhite', bgalpha=0.8,
                          rot_deg=0.0))
         self.canvas.add(self.pf_circ)
 
@@ -1196,6 +1197,11 @@ class HSC_FOV(PF_FOV):
 
         self.__update()
 
+    def set_scale(self, scale_x, scale_y):
+        super().set_scale(scale_x, scale_y)
+
+        self.__update()
+
     def set_pa(self, pa_deg):
         # *** NOTE ***: opposite of base class because camera at Prime focus
         if False:  # self.flip_tf:
@@ -1226,18 +1232,24 @@ class PFS_FOV(PF_FOV):
         self.cam_poly_paths = []
         self.fov_poly_path = []
         self.guide_camera_overlay = None
-        self.mount_offset_rot_deg = 180.0
+        #self.mount_offset_rot_deg = 180.0
+        self.mount_offset_rot_deg = 0.0
 
         ang_inc = 360.0 / 6
         self.phis = np.array([np.radians(ang_inc * i) for i in range(6)])
 
         points = self.calc_fov_hexagon()
+        x, y = pt
+        r = self.pf_radius
         self.pf_fov_hex = self.dc.CompoundObject(
+            self.dc.Circle(x, y, r,
+                           color=self.pf_color, linewidth=2),
             self.dc.Polygon(points, color=self.pf_color, linewidth=2),
-            self.dc.Text(points[1][0], points[1][1],
-                         text=f"PFS FOV ({self.pf_fov:.2f} deg)",
+            self.dc.Text(x, y + r,
+                         text=f"PFS FOV (~{self.pf_fov:.2f} deg)",
                          color=self.pf_color,
-                         rot_deg=self.rot_deg))
+                         bgcolor='floralwhite', bgalpha=0.8,
+                         rot_deg=0.0))
         self.canvas.add(self.pf_fov_hex)
 
         if PFS_FOV.pfs_info is None:
@@ -1306,11 +1318,16 @@ class PFS_FOV(PF_FOV):
         self.canvas.add(obj, tag='guide_camera_overlay')
 
     def __update(self):
+        x, y = self.pt_ctr
+        r = self.pf_radius
+        self.pf_fov_hex.objects[0].x = x
+        self.pf_fov_hex.objects[0].y = y
+        self.pf_fov_hex.objects[0].radius = r
         points = self.calc_fov_hexagon()
-        self.pf_fov_hex.objects[0].points = points
-        self.pf_fov_hex.objects[1].x = points[1][0]
-        self.pf_fov_hex.objects[1].y = points[1][1]
-        self.pf_fov_hex.objects[1].rot_deg = self.pa_rot_deg
+        self.pf_fov_hex.objects[1].points = points
+        self.pf_fov_hex.objects[2].x = x
+        self.pf_fov_hex.objects[2].y = y + r
+        #self.pf_fov_hex.objects[2].rot_deg = self.pa_rot_deg
 
         viewer = self.pl_obj.viewer
         with viewer.suppress_redraw:
@@ -1331,6 +1348,11 @@ class PFS_FOV(PF_FOV):
 
     def set_pos(self, pt):
         super().set_pos(pt)
+
+        self.__update()
+
+    def set_scale(self, scale_x, scale_y):
+        super().set_scale(scale_x, scale_y)
 
         self.__update()
 

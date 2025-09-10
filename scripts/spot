@@ -91,6 +91,7 @@ if __name__ == "__main__":
                            ('ScreenShot', dict(workspace='dialogs')),
                            ('ColorMapPicker', dict(workspace='dialogs')),
                            ('Histogram', dict(workspace='dialogs')),
+                           ('Ruler', dict(workspace='dialogs')),
                            ('Preferences', dict(workspace='dialogs')),
                            ('FBrowser', dict(workspace='dialogs')),
                            ('Pan', dict(workspace='mright', start=False,
