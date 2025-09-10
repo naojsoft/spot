@@ -1229,6 +1229,11 @@ class PFS_FOV(PF_FOV):
 
         self.pf_fov = 1.38   # deg
         self.pf_radius = self.pf_fov * 0.5
+        # length of hexagonal corner is 8mm*28=224 mm
+        # (cobras are located in 8-mm pitch, and 29 or 28 Cobras are in line)
+        self.deg_per_mm = self.pf_radius / 224
+        # circumcircle radius (outside of guide cameras)
+        self.circum_radius_deg = 247.939 * self.deg_per_mm
         self.cam_poly_paths = []
         self.fov_poly_path = []
         self.guide_camera_overlay = None
@@ -1241,8 +1246,9 @@ class PFS_FOV(PF_FOV):
         points = self.calc_fov_hexagon()
         x, y = pt
         r = self.pf_radius
+        cr = self.circum_radius_deg / self.scale
         self.pf_fov_hex = self.dc.CompoundObject(
-            self.dc.Circle(x, y, r,
+            self.dc.Circle(x, y, cr,
                            color=self.pf_color, linewidth=2),
             self.dc.Polygon(points, color=self.pf_color, linewidth=2),
             self.dc.Text(x, y + r,
@@ -1320,9 +1326,10 @@ class PFS_FOV(PF_FOV):
     def __update(self):
         x, y = self.pt_ctr
         r = self.pf_radius
+        cr = self.circum_radius_deg / self.scale
         self.pf_fov_hex.objects[0].x = x
         self.pf_fov_hex.objects[0].y = y
-        self.pf_fov_hex.objects[0].radius = r
+        self.pf_fov_hex.objects[0].radius = cr
         points = self.calc_fov_hexagon()
         self.pf_fov_hex.objects[1].points = points
         self.pf_fov_hex.objects[2].x = x
