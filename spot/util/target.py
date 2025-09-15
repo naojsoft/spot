@@ -7,7 +7,7 @@ from astropy.table import Table
 from ginga.util.wcs import hmsStrToDeg, dmsStrToDeg
 from ginga.misc import Bunch
 
-from spot.util.calcpos import Body, SSBody
+from spot.util.calcpos import Body, SSBody, ssbodies
 
 try:
     from oscript.util import ope
@@ -81,8 +81,8 @@ class NSTarget(TargetMixin, SSBody):
 
     def __init__(self, name=None, body=None, comment='', category=None):
         TargetMixin.__init__(self, category=category)
-        # TODO: take care of comment
         SSBody.__init__(self, name, body)
+        self.comment = comment
 
 
 def normalize_ra_dec_equinox(ra, dec, eq):
@@ -246,3 +246,21 @@ def make_jplhorizons_target(name, eph_table, dt=None, category='Non-sidereal'):
     if dt is not None:
         update_nonsidereal_targets([target], dt)
     return target
+
+
+Moon = NSTarget('Moon', ssbodies['moon'])
+Sun = NSTarget('Sun', ssbodies['sun'])
+Mercury = NSTarget('Mercury', ssbodies['mercury'])
+Venus = NSTarget('Venus', ssbodies['venus'])
+Mars = NSTarget('Mars', ssbodies['mars'])
+Jupiter = NSTarget('Jupiter', ssbodies['jupiter barycenter'])
+Saturn = NSTarget('Saturn', ssbodies['saturn barycenter'])
+Uranus = NSTarget('Uranus', ssbodies['uranus barycenter'])
+Neptune = NSTarget('Neptune', ssbodies['neptune barycenter'])
+Pluto = NSTarget('Pluto', ssbodies['pluto barycenter'])
+
+
+def get_nstarget(lookup_name, myname=None):
+    if myname is None:
+        myname = lookup_name
+    return NSTarget(myname, ssbodies[lookup_name.lower()])

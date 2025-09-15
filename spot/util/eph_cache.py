@@ -109,7 +109,7 @@ class EphemerisCache:
         tgt_dct : dict
             dict mapping keys to targets
 
-        site : ~qplan.util.calcpos.Observer
+        site : ~spot.util.calcpos.Observer
             The site observing the targets
 
         periods : list of (start_time, stop_time)
@@ -184,7 +184,7 @@ class EphemerisCache:
         tgt_dct : dict
             dict mapping keys to targets
 
-        site : ~qplan.util.calcpos.Observer
+        site : ~spot.util.calcpos.Observer
             The site observing the targets
 
         start_time : datetime.datetime

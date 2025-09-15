@@ -856,8 +856,7 @@ class CalculationResult(object):
         if hasattr(coord, 'ra'):
             self._ra, self._dec = coord.ra, coord.dec
             self._ra_deg, self._dec_deg = coord.ra.hours * 15.0, coord.dec.degrees
-            # TODO
-            self._eq = 2000.0
+            self._eq = coord.epoch
         else:
             # moons, planets, etc.
             # Need to calculate the apparent ra/dec from the azalt

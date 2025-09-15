@@ -211,14 +211,13 @@ class Targets(GingaPlugin.LocalPlugin):
         self.base_circ = None
         self.target_dict = {}
         self.full_tgt_list = []
+        self.partial_tgt_list = []
         self.plot_which = 'uncollapsed'
         self.plot_ss_objects = self.settings.get('plot_ss_objects', True)
         self.uncollapsed = set([])
         self.tagged = set([])
         self.selected = set([])
         self.show_unref_tgts = False
-        self.tgt_df = None
-        self.ss_df = None
         self.fov_dct = Bunch.Bunch(dict(Sun=6.5, Moon=6.5), caseless=True)
         self._mbody = None
         self.table_shelf = Shelf()
@@ -244,12 +243,12 @@ class Targets(GingaPlugin.LocalPlugin):
                         ]
 
         # the solar system objects
-        ss = [(calcpos.Moon, 'navajowhite2'),
-              (calcpos.Sun, 'darkgoldenrod1'),
-              (calcpos.Mercury, 'gray'), (calcpos.Venus, 'gray80'),
-              (calcpos.Mars, 'mistyrose'), (calcpos.Jupiter, 'gray90'),
-              (calcpos.Saturn, 'gray70'), (calcpos.Uranus, 'gray'),
-              (calcpos.Neptune, 'gray'), (calcpos.Pluto, 'gray'),
+        ss = [(spot_target.Moon, 'navajowhite2'),
+              (spot_target.Sun, 'darkgoldenrod1'),
+              (spot_target.Mercury, 'gray'), (spot_target.Venus, 'gray80'),
+              (spot_target.Mars, 'mistyrose'), (spot_target.Jupiter, 'gray90'),
+              (spot_target.Saturn, 'gray70'), (spot_target.Uranus, 'gray'),
+              (spot_target.Neptune, 'gray'), (spot_target.Pluto, 'gray'),
               ]
         self.ss = []
         for tup in ss:
@@ -506,23 +505,18 @@ class Targets(GingaPlugin.LocalPlugin):
         self.canvas.delete_object_by_tag('ss')
         self.canvas.delete_object_by_tag('targets')
 
-    def filter_targets(self, tgt_df):
+    def filter_targets(self, targets):
         if self.plot_which == 'all':
-            shown_tgt_lst = tgt_df
+            shown_tgt_lst = targets
         elif self.plot_which == 'uncollapsed':
             tgts = self.uncollapsed.union(self.selected.union(self.tagged))
-            mask = np.array([tgt in tgts
-                             for tgt in self.full_tgt_list], dtype=bool)
-            shown_tgt_lst = tgt_df[mask]
+            shown_tgt_lst = tgts.intersection(set(targets))
         elif self.plot_which == 'tagged+selected':
-            tagged_and_selected = self.selected.union(self.tagged)
-            mask = np.array([tgt in tagged_and_selected
-                             for tgt in self.full_tgt_list], dtype=bool)
-            shown_tgt_lst = tgt_df[mask]
+            tgts = self.selected.union(self.tagged)
+            shown_tgt_lst = tgts.intersection(set(targets))
         elif self.plot_which == 'selected':
-            mask = np.array([tgt in self.selected
-                             for tgt in self.full_tgt_list], dtype=bool)
-            shown_tgt_lst = tgt_df[mask]
+            tgts = self.selected
+            shown_tgt_lst = tgts.intersection(set(targets))
 
         return shown_tgt_lst
 
@@ -557,7 +551,7 @@ class Targets(GingaPlugin.LocalPlugin):
         sel_dct = self.w.tgt_tbl.get_selected()
         self.target_selection_cb(self.w.tgt_tbl, sel_dct)
 
-    def plot_targets(self, tgt_df, tag):
+    def plot_targets(self, targets, tag):
         """Plot targets.
         """
         start_time = self.get_datetime()
@@ -569,40 +563,35 @@ class Targets(GingaPlugin.LocalPlugin):
         cl_radius = pt_radius * 2
         radius_dct = dict(Sun=cl_radius * pt_radius * 2,
                           Moon=cl_radius * pt_radius * 2)
+        fill = True
         if tag != 'ss':
-            tgt_df = self.filter_targets(tgt_df)
             fill = False
-        else:
-            fill = True
 
-        self.logger.info("plotting {} targets tag {}".format(len(tgt_df), tag))
+        self.logger.info("plotting {} targets tag {}".format(len(targets), tag))
         to_be_raised = []
         objs = []
-        for idx, row in tgt_df.iterrows():
-            category = row.get('category', None)
-            name = row.get('name', None)
-            tgt = self.target_dict.get((category, name), None)
-            is_ref = row.get('is_ref', None)
+        for idx, tgt in enumerate(targets):
+            category = tgt.category
+            name = tgt.name
+            is_ref = tgt.get('IsRef', False)
             if tag == 'ss' or self.show_unref_tgts or is_ref:
-                alpha = 1.0 if row['alt_deg'] > 0 else 0.0
-                if tgt is None:
-                    color = row['color']
-                else:
-                    color = self._get_target_color(tgt)
+                az_deg, alt_deg = tgt['az_deg'], tgt['alt_deg']
+                alpha = 1.0 if alt_deg > 0 else 0.0
+                color = self._get_target_color(tgt)
                 selected = tgt in self.selected
-                t, r = self.map_azalt(row['az_deg'], row['alt_deg'])
+                t, r = self.map_azalt(az_deg, alt_deg)
                 x, y = self.p2r(r, t)
                 point = self.dc.Point(x, y, radius=pt_radius, style='cross',
                                       color=color, fillcolor=color,
                                       linewidth=2, alpha=alpha,
                                       fill=True, fillalpha=alpha)
-                radius = radius_dct.get(row['name'], cl_radius)
+                radius = radius_dct.get(tgt.name, cl_radius)
                 circle = self.dc.Circle(x, y, radius, color=color,
                                         linewidth=1, alpha=alpha,
                                         fill=fill, fillcolor=color,
                                         fillalpha=alpha * 0.7)
                 bg_alpha = alpha if selected else 0.0
-                text = self.dc.Text(x, y, row['name'],
+                text = self.dc.Text(x, y, tgt.name,
                                     color=color, alpha=alpha,
                                     fill=True, fillcolor=color,
                                     fillalpha=alpha, linewidth=0,
@@ -626,7 +615,7 @@ class Targets(GingaPlugin.LocalPlugin):
                     to_be_raised.append(star)
 
                 if tag == 'targets':
-                    self.target_dict[(category, name)].set(plotted=star)
+                    tgt.set(plotted=star)
 
         o = self.dc.CompoundObject(*objs)
         for obj in to_be_raised:
@@ -635,12 +624,24 @@ class Targets(GingaPlugin.LocalPlugin):
 
         self.canvas.update_canvas(whence=3)
 
-    def update_targets(self, tgt_df, tag):
+    def update_targets(self, targets, tag):
         """Update targets already plotted with new positions.
         """
+        import inspect
+        # Get the current stack frame
+        current_frame = inspect.currentframe()
+        # Get the frame of the caller (one level up in the stack)
+        caller_frame = current_frame.f_back
+        # Get the code object of the caller's frame
+        caller_code = caller_frame.f_code
+        # Get the name of the caller function
+        caller_name = caller_code.co_name
+        print(f"I am 'update_targets', and I was called by '{caller_name}'")
         self.canvas.delete_object_by_tag(tag)
         if not self.canvas.has_tag(tag):
-            self.plot_targets(tgt_df, tag)
+            if tag != 'ss':
+                targets = self.filter_targets(targets)
+            self.plot_targets(targets, tag)
 
     def _create_multicoord_body(self):
         if len(self.full_tgt_list) == 0:
@@ -654,10 +655,11 @@ class Targets(GingaPlugin.LocalPlugin):
     def update_all(self, targets_changed=False):
         # Run target calculations and table building in a separate thread
         # (seems to keep GUI responsive)
-        self.fv.nongui_do(self._update_calc, targets_changed=targets_changed)
+        #self.fv.nongui_do(self._update_calc, targets_changed=targets_changed)
+        self._update_calc(targets_changed=targets_changed)
 
     def _update_calc(self, targets_changed=False):
-        self.fv.assert_nongui_thread()
+        #self.fv.assert_nongui_thread()
         start_time = self.get_datetime()
         self._last_tgt_update_dt = start_time
         self.logger.info("update time: {}".format(start_time.strftime(
@@ -676,52 +678,36 @@ class Targets(GingaPlugin.LocalPlugin):
 
             # get full information about all targets at `start_time`
             cres = self._mbody.calc(self.site.observer, start_time)
+            columns = ['ra', 'dec', 'equinox', 'az_deg', 'alt_deg',
+                       'ha', 'pang_deg', 'airmass', 'moon_sep', 'atmos_disp',
+                       ]
+            #dct_all = cres.get_dict(columns=columns)
             dct_all = cres.get_dict()
 
-            # add additional columns
-            _addl_str_cols = np.asarray([(tgt.get('color', self._tgt_color),
-                                          tgt.category, tgt.get('comment', ''))
-                                         for tgt in self.full_tgt_list]).T
-            _addl_bool_cols = np.array([(tgt in self.tagged,
-                                         tgt.get('is_ref', True))
-                                        for tgt in self.full_tgt_list],
-                                       dtype=bool).T
-            _addl_int_cols = np.array([(tgt.get('index', idx),
-                                        tgt.get('priority', 1))
-                                       for idx, tgt in enumerate(self.full_tgt_list)],
-                                      dtype=int).T
-            dct_all['color'] = _addl_str_cols[0]
-            dct_all['category'] = _addl_str_cols[1]
-            dct_all['comment'] = _addl_str_cols[2]
-            dct_all['tagged'] = _addl_bool_cols[0]
-            dct_all['is_ref'] = _addl_bool_cols[1]
-            dct_all['index'] = _addl_int_cols[0]
-            dct_all['priority'] = _addl_int_cols[1]
+            # set target metadata for calculated attributes
+            for i, tgt in enumerate(self.full_tgt_list):
+                for col_name in columns:
+                    tgt.set(col_name=dct_all[col_name][i])
 
-            # make pandas dataframe from result
-            self.tgt_df = pd.DataFrame.from_dict(dct_all, orient='columns')
-
-        ss_df = pd.DataFrame(columns=['az_deg', 'alt_deg', 'name', 'color'])
         if self.plot_ss_objects:
             # TODO: until we learn how to do vector calculations for SS bodies
-            for tgt in self.ss:
+            for i, tgt in enumerate(self.ss):
+                columns=['az_deg', 'alt_deg']
                 cres = tgt.calc(self.site.observer, start_time)
-                dct = cres.get_dict(columns=['az_deg', 'alt_deg', 'name'])
-                dct['color'] = tgt.color
-                # this is the strange way to do an append in pandas df
-                ss_df.loc[len(ss_df)] = dct
-            self.ss_df = ss_df
+                dct = cres.get_dict(columns=columns)
+                for col_name in columns:
+                    tgt.set(col_name=dct[col_name])
 
         if self.gui_up:
-            self.fv.gui_do(self._update_gui, self.tgt_df, self.ss_df)
+            self.fv.gui_do(self._update_gui)
 
-    def _update_gui(self, tgt_df, ss_df):
+    def _update_gui(self):
         self.fv.assert_gui_thread()
         if len(self.target_dict) == 0:
             self.w.tgt_tbl.clear()
         else:
             # update the target table
-            self.targets_to_table(tgt_df)
+            self.targets_to_table()
 
             local_time = (self._last_tgt_update_dt.astimezone(self.cur_tz))
             tzname = self.cur_tz.tzname(local_time)
@@ -729,17 +715,16 @@ class Targets(GingaPlugin.LocalPlugin):
                                         local_time.strftime("%H:%M:%S") +
                                         f" [{tzname}]")
 
-            self.update_targets(tgt_df, 'targets')
+            self.update_targets(self.full_target_list, 'targets')
 
         if self.plot_ss_objects:
-            self.update_targets(ss_df, 'ss')
+            self.update_targets(self.ss, 'ss')
 
     def update_plots(self):
         """Just update plots, targets and info haven't changed."""
-        if self.tgt_df is not None:
-            self.update_targets(self.tgt_df, 'targets')
+        self.update_targets(self.full_target_list, 'targets')
         if self.plot_ss_objects:
-            self.update_targets(self.ss_df, 'ss')
+            self.update_targets(self.ss, 'ss')
 
     def get_target_by_separation(self, tgt, dt=None, min_delta_sep_arcsec=600):
         """Select a target by angular distance from another target.
@@ -978,39 +963,39 @@ class Targets(GingaPlugin.LocalPlugin):
         self.add_targets(category, tgt_df, merge=merge)
         self.w.tgt_tbl.set_optimal_column_widths()
 
-    def targets_to_table(self, tgt_df):
+    def targets_to_table(self):
         tree_dict = OrderedDict()
-        for idx, row in tgt_df.iterrows():
-            is_ref = row.get('is_ref', True)
+        for idx, tgt in enumerate(self.full_tgt_list):
+            is_ref = tgt.get('IsRef', True)
             if self.show_unref_tgts or is_ref:
-                dct = tree_dict.setdefault(row.category, dict())
-                tagged = row['tagged']
+                dct = tree_dict.setdefault(tgt.category, dict())
+                tagged = tgt in self.tagged
                 # NOTE: AZ values are normalized to standard use
-                az_deg = self.site.norm_to_az(row.az_deg)
+                az_deg = self.site.norm_to_az(tgt.get('az_deg'))
                 # find shorter of the two azimuth choices
                 az2_deg = (az_deg % 360) - 360
                 if abs(az2_deg) < abs(az_deg):
                     az_deg = az2_deg
-                ad_observe, ad_guide = (row.atmos_disp_observing,
-                                        row.atmos_disp_guiding)
+                ad_observe, ad_guide = (tgt.get('atmos_disp_observing'),
+                                        tgt.get('atmos_disp_guiding'))
                 calc_ad = max(ad_observe, ad_guide) - min(ad_observe, ad_guide)
                 dct[row['name']] = Bunch.Bunch(
                     tagged=chr(0x2714) if tagged else '',
-                    index=row.get('index', idx),
-                    priority=row.get('priority', 1),
-                    name=row['name'],
-                    ra=wcs.ra_deg_to_str(row.ra_deg),
-                    dec=wcs.dec_deg_to_str(row.dec_deg),
-                    equinox="{:>6.1f}".format(row.equinox),
+                    index=tgt.get('index', idx),
+                    priority=tgt.get('priority', 1),
+                    name=tgt.name,
+                    ra=wcs.ra_deg_to_str(tgt.get('ra_deg')),
+                    dec=wcs.dec_deg_to_str(tgt.get('dec_deg')),
+                    equinox="{:>6.1f}".format(tgt.get('equinox')),
                     az_deg="{:>+4d}".format(int(round(az_deg))),
-                    alt_deg="{:>3d}".format(int(round(row.alt_deg))),
-                    parang_deg="{:>3d}".format(int(row.pang_deg)),
-                    ha="{:>+6.2f}".format(np.degrees(row.ha) / 15),
+                    alt_deg="{:>3d}".format(int(round(tgt.get('alt_deg')))),
+                    parang_deg="{:>3d}".format(int(tgt.get('pang_deg'))),
+                    ha="{:>+6.2f}".format(np.degrees(tgt.get('ha')) / 15),
                     ad="{:>3.1f}".format(np.degrees(calc_ad) * 3600),
                     icon=self._get_dir_icon(row),
-                    airmass="{:>5.2f}".format(row.airmass),
-                    moon_sep="{:>3d}".format(int(round(row.moon_sep))),
-                    comment=row.comment)
+                    airmass="{:>5.2f}".format(tgt.get('airmass')),
+                    moon_sep="{:>3d}".format(int(round(tgt.get('moon_sep')))),
+                    comment=tgt.comment)
 
         # save and restore selection after update
         # NOTE: calling set_tree() will trigger the target_selection_cb,
@@ -1112,24 +1097,24 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def _update_uncollapsed_targets(self):
         res_dct = self.w.tgt_tbl.get_children(status='expanded')
+        uncollapsed = self.uncollapsed
         self.uncollapsed = set([self.target_dict[(category, name)]
                                 for category, dct in res_dct.items()
                                 for name in dct.keys()])
 
-        if self.tgt_df is not None:
-            self.update_targets(self.tgt_df, 'targets')
+        if uncollapsed != self.uncollapsed:
+            self.update_targets(self.full_tgt_list, 'targets')
 
-        self.cb.make_callback('uncollapsed-changed', self.uncollapsed)
+            self.cb.make_callback('uncollapsed-changed', self.uncollapsed)
 
     def targets_collapse_cb(self, w, path):
         self._update_uncollapsed_targets()
 
     def list_prm_cb(self, w, tf):
         self.show_unref_tgts = tf
-        if self.tgt_df is not None:
-            self.targets_to_table(self.tgt_df)
-            self.update_targets(self.tgt_df, 'targets')
-        self.update_targets(self.ss_df, 'ss')
+        self.targets_to_table()
+        self.update_targets(self.full_tgt_list, 'targets')
+        self.update_targets(self.ss, 'ss')
 
         self.issue_targets_changed()
 
