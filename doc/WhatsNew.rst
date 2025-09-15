@@ -2,13 +2,20 @@
 What's New
 ++++++++++
 
+Ver 1.1.0 (unreleased)
+======================
+- Added a feature to InsFov where it rotates the image by the position
+  angle to keep the orientation of the FOV overlay
+- Added an index column to Targets table for sorting purposes
+- Added a priority column to Targets table for sorting purposes;
+  can be set by including a "Priority" header and column in CSV file
+- Fixed an issue with loading "funky SOSS format" coordinates from CSV files
+
 Ver 1.0.1 (2025-08-27)
 ======================
 - updated Subaru/MOIRCS FOV dimensions
 - Fixed a bug where Visibility could not be started without access to
   TelescopePosition
-- Added a feature to InsFov where it rotates the image by the position
-  angle to keep the orientation of the FOV overlay
 
 Ver 1.0.0 (2025-08-13)
 ======================

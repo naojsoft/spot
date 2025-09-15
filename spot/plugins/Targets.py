@@ -225,6 +225,7 @@ class Targets(GingaPlugin.LocalPlugin):
         self.table_stocker = self.table_shelf.get_stocker()
 
         self.columns = [('Tagged', 'tagged'),
+                        ('Index', 'index'),
                         ('Name', 'name'),
                         ('Az', 'az_deg'),
                         ('Alt', 'alt_deg'),
@@ -238,6 +239,7 @@ class Targets(GingaPlugin.LocalPlugin):
                         ('RA', 'ra'),
                         ('DEC', 'dec'),
                         ('Eq', 'equinox'),
+                        ('Priority', 'priority'),
                         ('Comment', 'comment'),
                         ]
 
@@ -681,14 +683,20 @@ class Targets(GingaPlugin.LocalPlugin):
                                           tgt.category, tgt.get('comment', ''))
                                          for tgt in self.full_tgt_list]).T
             _addl_bool_cols = np.array([(tgt in self.tagged,
-                                         tgt.metadata.get('is_ref', True))
+                                         tgt.get('is_ref', True))
                                         for tgt in self.full_tgt_list],
                                        dtype=bool).T
+            _addl_int_cols = np.array([(tgt.get('index', idx),
+                                        tgt.get('priority', 1))
+                                       for idx, tgt in enumerate(self.full_tgt_list)],
+                                      dtype=int).T
             dct_all['color'] = _addl_str_cols[0]
             dct_all['category'] = _addl_str_cols[1]
             dct_all['comment'] = _addl_str_cols[2]
             dct_all['tagged'] = _addl_bool_cols[0]
             dct_all['is_ref'] = _addl_bool_cols[1]
+            dct_all['index'] = _addl_int_cols[0]
+            dct_all['priority'] = _addl_int_cols[1]
 
             # make pandas dataframe from result
             self.tgt_df = pd.DataFrame.from_dict(dct_all, orient='columns')
@@ -851,7 +859,9 @@ class Targets(GingaPlugin.LocalPlugin):
                                      comment=comment,
                                      category=category)
             tgt.set(is_ref=row.get('IsRef', True),
-                    color=row.get('color', self._tgt_color))
+                    color=row.get('color', self._tgt_color),
+                    index=row.get('Index', idx),
+                    priority=row.get('Priority', 1))
             # get all column values as metadata
             tgt.set(**row.to_dict())
             new_targets.append(tgt)
@@ -878,7 +888,9 @@ class Targets(GingaPlugin.LocalPlugin):
         self.issue_targets_changed()
 
     def process_csv_file_for_targets(self, csv_path):
-        tgt_df = pd.read_csv(csv_path)
+        # NOTE: to allow reading "SOSS-like" coordinates
+        type_dct = {'RA': str, 'DEC': str, 'Equinox': str}
+        tgt_df = pd.read_csv(csv_path, dtype=type_dct)
         if 'Equinox' not in tgt_df:
             tgt_df['Equinox'] = [2000.0] * len(tgt_df)
         if 'IsRef' not in tgt_df:
@@ -937,20 +949,29 @@ class Targets(GingaPlugin.LocalPlugin):
             for errmsg in tgt_res.prm_errmsg_list:
                 self.logger.error(errmsg)
 
+        # re-order target info list so that non-referenced targets come last
+        tgt_info_lst, unref_lst = [], []
+        for tgt_info in tgt_res.tgt_list_info:
+            if tgt_info.is_referenced:
+                tgt_info_lst.append(tgt_info)
+            else:
+                unref_lst.append(tgt_info)
+        tgt_info_lst.extend(unref_lst)
+
         # process into Target object list
         new_targets = []
         comment = os.path.basename(ope_file)
-        for tgt_info in tgt_res.tgt_list_info:
+        for idx, tgt_info in enumerate(tgt_info_lst):
             objname = tgt_info.objname
             ra_str = tgt_info.ra
             dec_str = tgt_info.dec
             eq_str = tgt_info.eq
             is_ref = tgt_info.is_referenced
-            new_targets.append((objname, ra_str, dec_str, eq_str,
+            new_targets.append((idx, objname, ra_str, dec_str, eq_str,
                                 comment, is_ref))
 
         tgt_df = pd.DataFrame(new_targets,
-                              columns=["Name", "RA", "DEC", "Equinox",
+                              columns=["Index", "Name", "RA", "DEC", "Equinox",
                                        "Comment", "IsRef"])
         merge = self.settings.get('merge_targets', False)
         category = ope_file if not merge else "Targets"
@@ -975,6 +996,8 @@ class Targets(GingaPlugin.LocalPlugin):
                 calc_ad = max(ad_observe, ad_guide) - min(ad_observe, ad_guide)
                 dct[row['name']] = Bunch.Bunch(
                     tagged=chr(0x2714) if tagged else '',
+                    index=row.get('index', idx),
+                    priority=row.get('priority', 1),
                     name=row['name'],
                     ra=wcs.ra_deg_to_str(row.ra_deg),
                     dec=wcs.dec_deg_to_str(row.dec_deg),

@@ -1383,7 +1383,7 @@ class PFS_FOV(PF_FOV):
 # see spot/instruments/__init__.py
 #
 subaru_fov_dict = dict(AO188=AO188_FOV, IRCS=IRCS_FOV, IRD=IRD_FOV,
-                       COMICS=COMICS_FOV, #SWIMS=SWIMS_FOV,
+                       COMICS=COMICS_FOV,  # SWIMS=SWIMS_FOV,
                        MOIRCS=MOIRCS_FOV, FOCAS=FOCAS_FOV,
                        HDS=HDS_FOV, HDS_NO_IMR=HDS_FOV_no_IMR,
                        HSC=HSC_FOV, PFS=PFS_FOV)
