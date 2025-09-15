@@ -10,6 +10,8 @@ Ver 1.1.0 (unreleased)
 - Added a priority column to Targets table for sorting purposes;
   can be set by including a "Priority" header and column in CSV file
 - Fixed an issue with loading "funky SOSS format" coordinates from CSV files
+- Allow FindImage image size to be set in fractional arcminutes in a range
+  (from 1.0 to 120.0)
 
 Ver 1.0.1 (2025-08-27)
 ======================

@@ -257,7 +257,7 @@ class FindImage(GingaPlugin.LocalPlugin):
         fr = Widgets.Frame("Image Source")
 
         captions = (("Source:", 'label', 'image_source', 'combobox',
-                     "Size (arcmin):", 'label', 'size', 'spinbutton'),
+                     "Size (arcmin):", 'label', 'size', 'entryset'),
                     ('__ph1', 'spacer', "Find image", 'button',
                      "Create Blank", 'button', "Load FITS", 'button'),
                     )
@@ -271,9 +271,8 @@ class FindImage(GingaPlugin.LocalPlugin):
             b.image_source.append_text(name)
         b.find_image.add_callback('activated', lambda w: self.find_image())
 
-        b.size.set_limits(1, 120, incr_value=1)
-        b.size.set_value(self.size[0])
-        b.size.add_callback('value-changed', self.set_size_cb)
+        b.size.set_text(f"{self.size[0]:.2f}")
+        b.size.add_callback('activated', self.set_size_cb)
 
         b.create_blank.set_tooltip("Create a blank image")
         b.create_blank.add_callback('activated',
@@ -355,23 +354,24 @@ class FindImage(GingaPlugin.LocalPlugin):
             data_x, data_y = image.radectopix(tgt.ra, tgt.dec)
             self.viewer.set_pan(data_x, data_y)
 
-    def set_size_cb(self, w, val):
+    def set_size_cb(self, w):
+        val = float(w.get_text())
         self.size = (val, val)
 
     def change_skyradius_cb(self, setting, radius_arcmin):
-        length = int(np.ceil(radius_arcmin * 2))
+        length = np.ceil(radius_arcmin * 2)
         self.size = (length, length)
         if self.gui_up:
-            self.w.size.set_value(length)
+            self.w.size.set_text(f"{length:.2f}")
 
     def map_arcmin_to_pixels(self, size_arcmin):
 
-        # Clamp the input to the valid range
-        size_arcmin = max(3, min(110, size_arcmin))
-
         # Define ranges
-        arcmin_min, arcmin_max = 3, 110
+        arcmin_min, arcmin_max = 1.0, 120.0
         pixel_min, pixel_max = 1024, 2048
+
+        # Clamp the input to the valid range
+        size_arcmin = max(arcmin_min, min(arcmin_max, size_arcmin))
 
         # Linear interpolation formula
         scale = (size_arcmin - arcmin_min) / (arcmin_max - arcmin_min)
@@ -395,7 +395,7 @@ class FindImage(GingaPlugin.LocalPlugin):
             service_name, survey = i_source.split(":")
             survey = survey.strip()
 
-            arcmin = self.w.size.get_value()
+            arcmin = float(self.w.size.get_text().strip())
 
             image_timestamp = datetime.datetime.now()
             image_info_text = "Initiating image download at: " + \
@@ -579,7 +579,7 @@ class FindImage(GingaPlugin.LocalPlugin):
                                      delay=1.0)
         self.fv.update_pending()
 
-        arcmin = self.w.size.get_value()
+        arcmin = float(self.w.size.get_text().strip())
         fov_deg = arcmin / 60.0
         pa_deg = 0.0
         px_scale = 0.000047
