@@ -484,6 +484,8 @@ class FOV:
 
         self.pa_deg = normalize_angle(pa_deg, limit='half')
 
+        self.rotate_for_pa()
+
     def get_pa(self):
         """Return the Position Angle of the field.
 
@@ -509,7 +511,8 @@ class FOV:
             Scale in the Y direction
 
         """
-        pass
+        self.scale_x = scale_x
+        self.scale_y = scale_y
 
     def set_pos(self, pt):
         """How the FOV object is told to update its graphics when the position changes.

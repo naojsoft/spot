@@ -116,8 +116,6 @@ class IRCS_FOV(AO188_FOV):
 
         self.ircs_box.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
 
-        self.rotate_for_pa()
-
     def set_scale(self, scale_x, scale_y):
         super().set_scale(scale_x, scale_y)
 
@@ -180,8 +178,6 @@ class IRD_FOV(AO188_FOV):
             self.flip_x(self.ird_box, self.pt_ctr[0])
 
         self.ird_box.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
-
-        self.rotate_for_pa()
 
     def set_scale(self, scale_x, scale_y):
         super().set_scale(scale_x, scale_y)
@@ -309,8 +305,6 @@ class COMICS_FOV(CS_FOV):
         # rotate as necessary to show PA
         self.comics_box.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
 
-        self.rotate_for_pa()
-
     def set_scale(self, scale_x, scale_y):
         super().set_scale(scale_x, scale_y)
 
@@ -434,8 +428,6 @@ class MOIRCS_FOV(CS_FOV):
         # rotate as necessary to show PA
         self.moircs_box.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
 
-        self.rotate_for_pa()
-
     def set_scale(self, scale_x, scale_y):
         super().set_scale(scale_x, scale_y)
 
@@ -508,8 +500,6 @@ class SWIMS_FOV(CS_FOV):
         # rotate as necessary to show PA
         self.swims_box.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
 
-        self.rotate_for_pa()
-
     def set_scale(self, scale_x, scale_y):
         super().set_scale(scale_x, scale_y)
 
@@ -579,8 +569,6 @@ class FOCAS_FOV(CS_FOV):
 
         # rotate as necessary to show PA
         self.focas_info.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
-
-        self.rotate_for_pa()
 
     def set_scale(self, scale_x, scale_y):
         super().set_scale(scale_x, scale_y)
@@ -671,8 +659,6 @@ class HDS_FOV(FOV):
 
         # rotate as necessary to show PA
         self.hds_circ.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
-
-        self.rotate_for_pa()
 
     def set_scale(self, scale_x, scale_y):
         # NOTE: sign of scale val indicates orientation
@@ -1190,8 +1176,6 @@ class HSC_FOV(PF_FOV):
 
             self.detector_overlay.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
 
-            self.rotate_for_pa()
-
     def set_pos(self, pt):
         super().set_pos(pt)
 
@@ -1212,6 +1196,8 @@ class HSC_FOV(PF_FOV):
         self.pa_deg = normalize_angle(pa_deg, limit='half')
 
         self.__update()
+
+        self.rotate_for_pa()
 
     def remove(self):
         super().remove()
@@ -1351,8 +1337,6 @@ class PFS_FOV(PF_FOV):
             self.guide_camera_overlay.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
             self.pf_fov_hex.rotate_deg([self.pa_rot_deg], self.pt_ctr[:2])
 
-            self.rotate_for_pa()
-
     def set_pos(self, pt):
         super().set_pos(pt)
 
@@ -1373,6 +1357,8 @@ class PFS_FOV(PF_FOV):
         self.pa_deg = normalize_angle(pa_deg, limit='half')
 
         self.__update()
+
+        self.rotate_for_pa()
 
     def remove(self):
         super().remove()
