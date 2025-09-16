@@ -211,7 +211,7 @@ class Targets(GingaPlugin.LocalPlugin):
         self.base_circ = None
         self.target_dict = {}
         self.full_tgt_list = []
-        self.partial_tgt_list = []
+        self.tgt_category_dct = {}
         self.plot_which = 'uncollapsed'
         self.plot_ss_objects = self.settings.get('plot_ss_objects', True)
         self.uncollapsed = set([])
@@ -254,7 +254,7 @@ class Targets(GingaPlugin.LocalPlugin):
         for tup in ss:
             tgt, color = tup
             self.ss.append(tgt)
-            tgt.color = color
+            tgt.set(color=color)
 
         self.diricon = dict()
         for name, filename in [('invisible', 'no_go.svg'),
@@ -362,7 +362,6 @@ class Targets(GingaPlugin.LocalPlugin):
 
         self.w.tgt_tbl.set_optimal_column_widths()
         self.w.tgt_tbl.add_callback('selected', self.target_selection_cb)
-        # self.w.tgt_tbl.add_callback('activated', self.target_single_cb)
         self.w.tgt_tbl.add_callback('collapsed', self.targets_collapse_cb)
         self.w.tgt_tbl.add_callback('expanded', self.targets_collapse_cb)
 
@@ -480,7 +479,7 @@ class Targets(GingaPlugin.LocalPlugin):
 
         self.canvas.delete_all_objects()
 
-        self.update_all()
+        self.update_all(targets_changed=False)
 
         self.resume()
 
@@ -627,16 +626,6 @@ class Targets(GingaPlugin.LocalPlugin):
     def update_targets(self, targets, tag):
         """Update targets already plotted with new positions.
         """
-        import inspect
-        # Get the current stack frame
-        current_frame = inspect.currentframe()
-        # Get the frame of the caller (one level up in the stack)
-        caller_frame = current_frame.f_back
-        # Get the code object of the caller's frame
-        caller_code = caller_frame.f_code
-        # Get the name of the caller function
-        caller_name = caller_code.co_name
-        print(f"I am 'update_targets', and I was called by '{caller_name}'")
         self.canvas.delete_object_by_tag(tag)
         if not self.canvas.has_tag(tag):
             if tag != 'ss':
@@ -656,7 +645,17 @@ class Targets(GingaPlugin.LocalPlugin):
         # Run target calculations and table building in a separate thread
         # (seems to keep GUI responsive)
         #self.fv.nongui_do(self._update_calc, targets_changed=targets_changed)
-        self._update_calc(targets_changed=targets_changed)
+        self.fv.gui_do_oneshot('targets_update_calc',
+                               self._update_calc,
+                               targets_changed=targets_changed)
+
+    def calc_ss_targets(self, start_time):
+        # TODO: until we learn how to do vector calculations for SS bodies
+        for idx, tgt in enumerate(self.ss):
+            columns = ['az_deg', 'alt_deg']
+            cres = tgt.calc(self.site.observer, start_time)
+            dct = cres.get_dict(columns=columns)
+            tgt.set(**dct)
 
     def _update_calc(self, targets_changed=False):
         #self.fv.assert_nongui_thread()
@@ -665,7 +664,6 @@ class Targets(GingaPlugin.LocalPlugin):
         self.logger.info("update time: {}".format(start_time.strftime(
                          "%Y-%m-%d %H:%M:%S [%z]")))
         if len(self.target_dict) > 0:
-            # update non-sidereal targets
             non_sd = [tgt for tgt in self.full_tgt_list
                       if tgt.get('nonsidereal', False)]
             non_sd_changed = spot_target.update_nonsidereal_targets(non_sd,
@@ -678,28 +676,23 @@ class Targets(GingaPlugin.LocalPlugin):
 
             # get full information about all targets at `start_time`
             cres = self._mbody.calc(self.site.observer, start_time)
-            columns = ['ra', 'dec', 'equinox', 'az_deg', 'alt_deg',
-                       'ha', 'pang_deg', 'airmass', 'moon_sep', 'atmos_disp',
+            columns = ['ra_deg', 'dec_deg', 'equinox', 'az_deg', 'alt_deg',
+                       'ha', 'pang_deg', 'airmass', 'moon_sep',
+                       'atmos_disp_observing', 'atmos_disp_guiding',
                        ]
-            #dct_all = cres.get_dict(columns=columns)
+            # dct_all = cres.get_dict(columns=columns)
             dct_all = cres.get_dict()
 
             # set target metadata for calculated attributes
             for i, tgt in enumerate(self.full_tgt_list):
-                for col_name in columns:
-                    tgt.set(col_name=dct_all[col_name][i])
+                kwargs = {col_name: dct_all[col_name][i]
+                          for col_name in columns}
+                tgt.set(**kwargs)
 
-        if self.plot_ss_objects:
-            # TODO: until we learn how to do vector calculations for SS bodies
-            for i, tgt in enumerate(self.ss):
-                columns=['az_deg', 'alt_deg']
-                cres = tgt.calc(self.site.observer, start_time)
-                dct = cres.get_dict(columns=columns)
-                for col_name in columns:
-                    tgt.set(col_name=dct[col_name])
+        self.calc_ss_targets(start_time)
 
         if self.gui_up:
-            self.fv.gui_do(self._update_gui)
+            self.fv.gui_do_oneshot('targets_update_gui', self._update_gui)
 
     def _update_gui(self):
         self.fv.assert_gui_thread()
@@ -715,14 +708,14 @@ class Targets(GingaPlugin.LocalPlugin):
                                         local_time.strftime("%H:%M:%S") +
                                         f" [{tzname}]")
 
-            self.update_targets(self.full_target_list, 'targets')
+            self.update_targets(self.full_tgt_list, 'targets')
 
         if self.plot_ss_objects:
             self.update_targets(self.ss, 'ss')
 
     def update_plots(self):
         """Just update plots, targets and info haven't changed."""
-        self.update_targets(self.full_target_list, 'targets')
+        self.update_targets(self.full_tgt_list, 'targets')
         if self.plot_ss_objects:
             self.update_targets(self.ss, 'ss')
 
@@ -802,11 +795,6 @@ class Targets(GingaPlugin.LocalPlugin):
                 self.fv.show_error(f"I don't know how to load files of type '{ext}'")
                 return
 
-            if (not self.settings.get('merge_targets', False) and
-                self.settings.get('rotate_target_colors', False)):
-                self._tgt_color_idx = (self._tgt_color_idx + 1) % len(self.tgt_colors)
-                self._tgt_color = self.tgt_colors[self._tgt_color_idx]
-
         self.w.file_path.set_text(file_path)
         hex_color = colors.lookup_color(self._tgt_color, format='hex')
         self.w.colorselect.set_color(hex_color)
@@ -844,7 +832,6 @@ class Targets(GingaPlugin.LocalPlugin):
                                      comment=comment,
                                      category=category)
             tgt.set(is_ref=row.get('IsRef', True),
-                    color=row.get('color', self._tgt_color),
                     index=row.get('Index', idx),
                     priority=row.get('Priority', 1))
             # get all column values as metadata
@@ -854,6 +841,18 @@ class Targets(GingaPlugin.LocalPlugin):
         self.add_target_list(category, new_targets, merge=merge)
 
     def add_target_list(self, category, targets, merge=False):
+        # look for category specific properties
+        bnch = self.tgt_category_dct.get(category, None)
+        if bnch is None:
+            # <-- new category: assign the default color
+            bnch = Bunch.Bunch(tgt_color=self._tgt_color)
+            self.tgt_category_dct[category] = bnch
+            # rotate colors as needed
+            if (not self.settings.get('merge_targets', False) and
+                self.settings.get('rotate_target_colors', False)):
+                self._tgt_color_idx = (self._tgt_color_idx + 1) % len(self.tgt_colors)
+                self._tgt_color = self.tgt_colors[self._tgt_color_idx]
+
         if not merge:
             # remove old targets from this same category
             target_dict = {(tgt.category, tgt.name): tgt
@@ -979,7 +978,7 @@ class Targets(GingaPlugin.LocalPlugin):
                 ad_observe, ad_guide = (tgt.get('atmos_disp_observing'),
                                         tgt.get('atmos_disp_guiding'))
                 calc_ad = max(ad_observe, ad_guide) - min(ad_observe, ad_guide)
-                dct[row['name']] = Bunch.Bunch(
+                dct[tgt.name] = Bunch.Bunch(
                     tagged=chr(0x2714) if tagged else '',
                     index=tgt.get('index', idx),
                     priority=tgt.get('priority', 1),
@@ -992,7 +991,7 @@ class Targets(GingaPlugin.LocalPlugin):
                     parang_deg="{:>3d}".format(int(tgt.get('pang_deg'))),
                     ha="{:>+6.2f}".format(np.degrees(tgt.get('ha')) / 15),
                     ad="{:>3.1f}".format(np.degrees(calc_ad) * 3600),
-                    icon=self._get_dir_icon(row),
+                    icon=self._get_dir_icon(tgt),
                     airmass="{:>5.2f}".format(tgt.get('airmass')),
                     moon_sep="{:>3d}".format(int(round(tgt.get('moon_sep')))),
                     comment=tgt.comment)
@@ -1004,17 +1003,12 @@ class Targets(GingaPlugin.LocalPlugin):
         with self.table_stocker:
             self.w.tgt_tbl.update_tree(tree_dict, expand_new=True)
 
-        # NOTE: seems not to be necessary any more, since selected items
-        # remain selected after the update
-        # paths = [[tgt.category, tgt.name] for tgt in self.selected]
-        # self.w.tgt_tbl.select_paths(paths)
-
         self._update_uncollapsed_targets()
         self._update_selection_buttons()
 
     def target_tagged_update(self):
         self.clear_plot()
-        self.update_all()
+        self.update_all(targets_changed=False)
 
         self.cb.make_callback('tagged-changed', self.tagged)
 
@@ -1024,7 +1018,16 @@ class Targets(GingaPlugin.LocalPlugin):
         elif tgt in self.tagged:
             color = self.settings['color_tagged']
         else:
-            color = tgt.get('color', self._tgt_color)
+            # if there is a set color for this target, use it,
+            # otherwise if there is a category color, use that,
+            # otherwise use the default color
+            color = tgt.get('color', None)
+            if color is None:
+                if tgt.category in self.tgt_category_dct:
+                    bnch = self.tgt_category_dct[tgt.category]
+                    color = bnch.tgt_color
+                else:
+                    color = self._tgt_color
         return color
 
     def _update_target_colors(self, targets):
@@ -1066,10 +1069,7 @@ class Targets(GingaPlugin.LocalPlugin):
         updated_tgts = (self.selected - new_highlighted).union(
             new_highlighted - self.selected)
         self.selected = new_highlighted
-        if self.plot_which in ['selected', 'tagged+selected', 'uncollapsed']:
-            self.update_all(targets_changed=False)
-        else:
-            self._update_target_colors(updated_tgts)
+        self._update_target_colors(updated_tgts)
 
         self._update_selection_buttons()
 
@@ -1087,13 +1087,6 @@ class Targets(GingaPlugin.LocalPlugin):
                     obj.set_datetime(dt)
 
         self.cb.make_callback('selection-changed', self.selected)
-
-    # def target_single_cb(self, w, sel_dct):
-    #     selected = set([self.target_dict[(category, name)]
-    #                     for category, dct in sel_dct.items()
-    #                     for name in dct.keys()])
-    #     self.tagged = selected
-    #     self.target_tagged_update()
 
     def _update_uncollapsed_targets(self):
         res_dct = self.w.tgt_tbl.get_children(status='expanded')
@@ -1114,7 +1107,6 @@ class Targets(GingaPlugin.LocalPlugin):
         self.show_unref_tgts = tf
         self.targets_to_table()
         self.update_targets(self.full_tgt_list, 'targets')
-        self.update_targets(self.ss, 'ss')
 
         self.issue_targets_changed()
 
@@ -1230,7 +1222,7 @@ class Targets(GingaPlugin.LocalPlugin):
     def plot_ss_cb(self, w, tf):
         self.plot_ss_objects = tf
         self.clear_plot()
-        self.update_all()
+        self.update_plots()
 
     def configure_plot_cb(self, w, idx):
         option = w.get_text()
@@ -1243,7 +1235,7 @@ class Targets(GingaPlugin.LocalPlugin):
         self.site = site_obj
 
         self.clear_plot()
-        self.update_all()
+        self.update_all(targets_changed=False)
 
     def enable_datetime_cb(self, w, tf):
         self.settings.set(enable_datetime_setting=tf)
@@ -1268,9 +1260,9 @@ class Targets(GingaPlugin.LocalPlugin):
     def update_targets_fov(self, dct):
         self.fov_dct.update(dct)
 
-    def _get_dir_icon(self, row):
-        if True:  # TBD?  row.will_be_visible']:
-            ha, alt_deg = row.ha, row.alt_deg
+    def _get_dir_icon(self, tgt):
+        if True:  # TBD will_be_visible
+            ha, alt_deg = tgt['ha'], tgt['alt_deg']
             if int(round(alt_deg)) <= 15:
                 if ha < 0:
                     icon = self.diricon['up_ng']

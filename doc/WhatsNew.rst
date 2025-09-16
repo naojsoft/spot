@@ -12,6 +12,7 @@ Ver 1.1.0 (unreleased)
 - Fixed an issue with loading "funky SOSS format" coordinates from CSV files
 - Allow FindImage image size to be set in fractional arcminutes in a range
   (from 1.0 to 120.0)
+- Fixed "Sync integgui2" feature (available from spot-subaru package)
 
 Ver 1.0.1 (2025-08-27)
 ======================
