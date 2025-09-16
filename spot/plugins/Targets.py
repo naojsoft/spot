@@ -26,6 +26,7 @@ naojsoft packages
 # stdlib
 import os
 from collections import OrderedDict
+import webbrowser
 
 # 3rd party
 import numpy as np
@@ -135,6 +136,10 @@ class Targets(GingaPlugin.LocalPlugin):
     Selecting targets and pressing "Delete" will remove selected targets
     from the list.  If only a category row is selected (but no targets),
     pressing this button will delete all targets in the category.
+
+    Selecting a single target and then clicking "Browse" will open a menu
+    of options to look up the target by coordinate and present the results
+    in a web browser.
 
     The drop down menu next to "Plot:" changes which targets are plotted on
     the `<wsname>_TGTS` window. Selecting "All" will show all of the targets,
@@ -386,6 +391,17 @@ class Targets(GingaPlugin.LocalPlugin):
         btn.set_tooltip("Collapse all loaded files")
         btn.add_callback('activated', self.collapse_all_cb)
         self.w.btn_collapse_all = btn
+
+        m = Widgets.Menu()
+        for name in spot_target.get_browse_service_names():
+            action = m.add_name(name)
+            action.set_tooltip(f"Search {name} for information about the target")
+            action.add_callback('activated', self.browse_cb, name)
+
+        self.w.browse = self.w.toolbar2.add_menu("Browse", menu=m,
+                                                 mtype='menu')
+        self.w.browse.set_tooltip("Browse for information about a target")
+        self.w.browse.set_enabled(False)
 
         self.w.toolbar2.add_spacer()
         #self.w.toolbar2.add_separator()
@@ -1218,6 +1234,7 @@ class Targets(GingaPlugin.LocalPlugin):
         self.w.btn_untag.set_enabled(len(selected & self.tagged) > 0)
         sel_lst = self.w.tgt_tbl.get_selected_paths()
         self.w.btn_delete.set_enabled(len(selected) > 0 or len(sel_lst) > 0)
+        self.w.browse.set_enabled(len(selected) == 1)
 
     def plot_ss_cb(self, w, tf):
         self.plot_ss_objects = tf
@@ -1245,6 +1262,18 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def merge_targets_cb(self, w, tf):
         self.settings.set(merge_targets=tf)
+
+    def browse_cb(self, w, service_name):
+        if len(self.selected) != 1:
+            self.fv.show_error("Please select just one target")
+            return
+
+        self.logger.info(f"browsing {service_name} for target")
+        # prepare URL
+        tgt = list(self.selected)[0]
+        url = spot_target.get_browse_url(tgt, service_name)
+        self.logger.info(f"url is: {url}")
+        self.fv.nongui_do(webbrowser.open, url, new=2, autoraise=True)
 
     def color_select_cb(self, w, color):
         hex_color = w.get_color(format='hex')

@@ -4,7 +4,7 @@ import numpy as np
 from astropy.time import Time
 from astropy.table import Table
 
-from ginga.util.wcs import hmsStrToDeg, dmsStrToDeg
+from ginga.util import wcs
 from ginga.misc import Bunch
 
 from spot.util.calcpos import Body, SSBody, ssbodies
@@ -96,7 +96,7 @@ def normalize_ra_dec_equinox(ra, dec, eq):
             ra_deg = None
         elif ':' in ra:
             # read as sexigesimal hours
-            ra_deg = hmsStrToDeg(ra)
+            ra_deg = wcs.hmsStrToDeg(ra)
         else:
             if '.' in ra:
                 l, r = ra.split('.')
@@ -121,7 +121,7 @@ def normalize_ra_dec_equinox(ra, dec, eq):
             dec_deg = None
         elif ':' in dec:
             # read as sexigesimal hours
-            dec_deg = dmsStrToDeg(dec)
+            dec_deg = wcs.dmsStrToDeg(dec)
         else:
             if '.' in dec:
                 l, r = dec.split('.')
@@ -264,3 +264,37 @@ def get_nstarget(lookup_name, myname=None):
     if myname is None:
         myname = lookup_name
     return NSTarget(myname, ssbodies[lookup_name.lower()])
+
+
+######
+### Support for looking up information about a target in a web browser
+######
+
+__simbad_browse_query = "http://{host:s}/simbad/sim-coo?CooDefinedFrames=none&CooEquinox={equinox:d}&Coord={ra_hr:d}%20{ra_min:d}%20{ra_sec:.2f}%20{dec_sign:1s}{dec_deg:d}%20{dec_min:d}%20{dec_sec:.2f}&submit=submit%20query&Radius.unit=arcmin&CooEqui={equinox:d}&CooFrame=FK5&Radius={radius_amin:d}&output.format=HTML"
+
+__ned_browse_query = "http://{host:s}/cgi-bin/nph-objsearch?search_type=Near+Position+Search&in_csys=Equatorial&in_equinox=J{equinox:d}&lon={ra_hr:d}%3A{ra_min:d}%3A{ra_sec:.2f}&lat={dec_sign:s}{dec_deg:d}%3A{dec_min:d}%3A{dec_sec:.2f}&radius={radius_amin:d}&hconst=73&omegam=0.27&omegav=0.73&corr_z=1&z_constraint=Unconstrained&z_value1=&z_value2=&z_unit=z&ot_include=ANY&nmp_op=ANY&out_csys=Equatorial&out_equinox=J{equinox:d}&obj_sort=Distance+to+search+center&of=pre_text&zv_breaker=30000.0&list_limit=5&img_stamp=YES"
+
+browse_dct = {
+    'SIMBAD': {'host': 'simbad.u-strasbg.fr', 'query': __simbad_browse_query},
+    'NED': {'host': 'ned.ipac.caltech.edu', 'query': __ned_browse_query},
+}
+
+
+def get_browse_service_names():
+    return list(browse_dct.keys())
+
+
+def get_browse_url(tgt, service):
+    ra_hr, ra_min, ra_sec = wcs.degToHms(tgt.ra)
+    dec_sign, dec_deg, dec_min, dec_sec = wcs.degToDms(tgt.dec)
+    dec_sign = '-' if dec_sign < 0 else '+'
+    equinox = int(tgt.equinox)
+
+    service_dct = browse_dct[service]
+
+    query_dct = dict(ra_hr=ra_hr, ra_min=ra_min, ra_sec=ra_sec,
+                     dec_sign=dec_sign, dec_deg=dec_deg, dec_min=dec_min,
+                     dec_sec=dec_sec, radius_amin=2, equinox=equinox,
+                     host=service_dct['host'])
+    url = service_dct['query'].format(**query_dct)
+    return url

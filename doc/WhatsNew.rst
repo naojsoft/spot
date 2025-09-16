@@ -13,6 +13,8 @@ Ver 1.1.0 (unreleased)
 - Allow FindImage image size to be set in fractional arcminutes in a range
   (from 1.0 to 120.0)
 - Fixed "Sync integgui2" feature (available from spot-subaru package)
+- Added "Browse" menu to Targets toolbar to allow a search by target
+  coordinates and present the results in a web browser
 
 Ver 1.0.1 (2025-08-27)
 ======================
