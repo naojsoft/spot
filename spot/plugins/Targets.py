@@ -26,7 +26,6 @@ naojsoft packages
 # stdlib
 import os
 from collections import OrderedDict
-import webbrowser
 
 # 3rd party
 import numpy as np
@@ -1272,8 +1271,7 @@ class Targets(GingaPlugin.LocalPlugin):
         # prepare URL
         tgt = list(self.selected)[0]
         url = spot_target.get_browse_url(tgt, service_name)
-        self.logger.info(f"url is: {url}")
-        self.fv.nongui_do(webbrowser.open, url, new=2, autoraise=True)
+        self.fv.nongui_do(spot_target.browse_url, self.logger, url)
 
     def color_select_cb(self, w, color):
         hex_color = w.get_color(format='hex')

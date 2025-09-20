@@ -1,4 +1,5 @@
 from datetime import UTC
+import webbrowser
 
 import numpy as np
 from astropy.time import Time
@@ -298,3 +299,28 @@ def get_browse_url(tgt, service):
                      host=service_dct['host'])
     url = service_dct['query'].format(**query_dct)
     return url
+
+
+browsers = ['firefox', 'chromium', 'chrome', 'safari', 'opera']
+
+
+def browse_url(logger, url):
+    controller = None
+    for name in browsers:
+        try:
+            controller = webbrowser.get(using=name)
+
+        except webbrowser.Error as e:
+            continue
+
+        logger.info(f"found browser '{name}'; trying to open url: {url}")
+        try:
+            res = controller.open_new_tab(url)
+            if res:
+                # <-- success
+                return
+
+        except webbrowser.Error as e:
+            continue
+
+    logger.error("could not successfully invoke a web browser")
