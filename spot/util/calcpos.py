@@ -418,7 +418,10 @@ class Observer:
             time_stop = self.sunrise(date=time_start)
 
         # create date array
-        dt_arr = np.arange(time_start, time_stop + timedelta(minutes=time_interval),
+        # NOTE: numpy does not like to parse timezone-aware datetimes
+        # to np.datetime64
+        dt_arr = np.arange(time_start.astimezone(tz.UTC).replace(tzinfo=None),
+                           (time_stop + timedelta(minutes=time_interval)).astimezone(tz.UTC).replace(tzinfo=None),
                            timedelta(minutes=time_interval))
         return target.calc(self, dt_arr)
 
