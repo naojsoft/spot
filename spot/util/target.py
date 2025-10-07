@@ -301,7 +301,7 @@ def get_browse_url(tgt, service):
     return url
 
 
-browsers = ['firefox', 'chromium', 'chrome', 'safari', 'opera']
+browsers = ['firefox', 'chromium', 'chrome', 'safari', 'opera', 'windows-default', 'macosx']
 
 
 def browse_url(logger, url):
