@@ -55,5 +55,4 @@ Operation Menu
     debug
     planning
     rgb
-    system
     utils

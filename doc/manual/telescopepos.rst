@@ -23,24 +23,26 @@ pointing or slewing, is shown along with the slew time in
 h:mm:ss.
 
 The "Plot telescope position" button will show the 
-Target and Telescope positions on the Targets window when 
+Target and Telescope positions on the :ref:`TargetsChannel` viewer when 
 the button is selected. 
 
-The "Rotate view to azimuth" button will orient the Targets 
-window so the telescope azimuth is always facing towards the 
-top of the screen.
+.. The "Rotate view to azimuth" button will orient the Targets 
+.. window so the telescope azimuth is always facing towards the 
+.. top of the screen.
 
-The "Pan to telescope position" button will pan the polar 
-sky plot to center the target in the Targets window.
+The "Target follow telescope" option will cause a target to be selected
+in the :doc:`targetlist` plugin table when the telescope is "close" to that target
+(close being defined as within approximately 10 arc minutes). The closest
+actual target to the telescope's coordinate is selected.
 
-.. note:: If you have working telescope status integration, the
-          "Target follows telescope" button will select a target from 
-          the target list which matches the telescope pointing.
-          Similarly, selecting this option will unselect all targets
-          if the telescope is not pointing toward a target from the
-          target list. If a target is manually selected from the
-          target list while this option is selected, this option
-          will be unselected to avoid conflicts. 
+.. note:: If a target is manually selected by the user after checking this
+          box it will automatically uncheck the option.  To restore the
+          target following the telescope, simply recheck the box.
+
+The "Pan to telescope position" option will cause the :ref:`TargetsChannel` 
+viewer to pan to the telescope position.  This can be helpful when there are 
+a lot of targets plotted and you have zoomed in to show only a part of the polar
+sky field.
 
 ===============
 Enabling Plugin

@@ -9,4 +9,5 @@ Subaru.
    :maxdepth: 1
 
    hsc
-
+   targetlistg2
+   ltcs

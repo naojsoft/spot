@@ -36,13 +36,15 @@ Loading an image from an image source
 Once RA/DEC coordinates are displayed in the "Pointing" area, an image
 can be downloaded using the controls in the "Image Source" area.
 Choose an image source from the drop-down control labeled "Source",
-select a size (in arcminutes) using the "Size" control and click the
+select a size (in arcminutes) then press "Set" and click the
 "Find Image" button.  It may take a little while for the image to be
 downloaded and displayed in the finder viewer.
 
-.. note:: Alternatively, you can click "Create Blank" to create a blank
-          image with a WCS set to the desired location.  This may
-          possibly be useful if an image source is not available.
+.. note:: Alternatively, "Load FITS" can be used to load a local FITS
+          file with a working WCS of the region, or you can click
+          "Create Blank" to create a blank image with a WCS set to the
+          desired location.  Either of these may possibly be useful if
+          an image source is not available via download.
 
 .. note::   Images will fail to load if the pointing position is outside
             the surveyed regions. Details about each of the surveys including 
