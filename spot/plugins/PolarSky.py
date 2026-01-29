@@ -61,6 +61,7 @@ class PolarSky(GingaPlugin.LocalPlugin):
         canvas = self.dc.DrawingCanvas()
         canvas.set_surface(self.fitsimage)
         self.canvas = canvas
+        canvas.add_callback('cursor_info', self.cursor_info_cb)
 
         self.orig_bg = self.viewer.get_bg()
         self.orig_fg = self.viewer.get_fg()
@@ -472,17 +473,44 @@ class PolarSky(GingaPlugin.LocalPlugin):
         t = np.arctan(y / x)
         return (r, t)
 
-    # def _info_xy(self, data_x, data_y, settings):
-    #     info = super().info_xy(data_x, data_y, settings)
+    def xy2altaz(self, x, y):
+        # fancy code to avoid division by zero error
+        if x < 0:
+            r, t = self.r2p(x, y)
+            t += np.radians(90.0)
+        elif x > 0:
+            r, t = self.r2p(x, y)
+            t -= np.radians(90.0)
+        elif y >= 0:
+            r = np.sqrt(x ** 2 + y ** 2)
+            t = np.radians(0.0)
+        else:
+            r = np.sqrt(x ** 2 + y ** 2)
+            t = np.radians(180.0)
 
-    #     r, t = self.r2p(data_x, data_y)
-    #     az = t - 90.0
-    #     alt = 90.0 - r
-    #     ra_lbl, dec_lbl = "Az", "El"
-    #     ra_txt, dec_txt = "%+.3f" % (az), "%+.3f" % (alt)
-    #     info.update(dict(itype='astro', ra_txt=ra_txt, dec_txt=dec_txt,
-    #                      ra_lbl=ra_lbl, dec_lbl=dec_lbl))
-    #     return info
+        ang_deg = np.degrees(t)
+        az = normalize_angle(ang_deg, limit='full')
+        alt = 90.0 - r / self.get_scale()
+
+        status_dict = self.site_obj.get_status()
+        if status_dict['azimuth_start_direction'] == 'S':
+            az = normalize_angle(az, limit='full', ang_offset=180.0)
+        if self.settings['limit_az_180']:
+            az = normalize_angle(az, limit='half')
+
+        return (alt, az)
+
+    def cursor_info_cb(self, canvas, pt, viewer, settings):
+        data_x, data_y = pt[:2]
+        info = Bunch.Bunch(itype='base', data_x=data_x, data_y=data_y,
+                           x=data_x, y=data_y, value=None)
+
+        alt, az = self.xy2altaz(data_x, data_y)
+        ra_lbl, dec_lbl = "A", "E"
+        ra_txt, dec_txt = "%+.3f" % (az), "%+.3f" % (alt)
+        info.update(dict(itype='astro', ra_txt=ra_txt, dec_txt=dec_txt,
+                         ra_lbl=ra_lbl, dec_lbl=dec_lbl))
+        return info
 
     def tel_posn_toggle_cb(self, w, tf):
         self.fv.gui_do(self.update_telescope_plot)

@@ -200,7 +200,7 @@ def make_target_array_azel(recs, time_t=None, site=None):
 
 
 def get_window_status(time_t, windows):
-    """Make an array of PAM targets, with coordinates in AZ/EL.
+    """Check the status of a time within a set of target windows.
 
     Parameters
     ----------
