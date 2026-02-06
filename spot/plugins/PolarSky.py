@@ -61,7 +61,7 @@ class PolarSky(GingaPlugin.LocalPlugin):
         canvas = self.dc.DrawingCanvas()
         canvas.set_surface(self.fitsimage)
         self.canvas = canvas
-        canvas.add_callback('cursor_info', self.cursor_info_cb)
+        canvas.add_callback('pixel-info', self.pixel_info_cb)
 
         self.orig_bg = self.viewer.get_bg()
         self.orig_fg = self.viewer.get_fg()
@@ -500,7 +500,7 @@ class PolarSky(GingaPlugin.LocalPlugin):
 
         return (alt, az)
 
-    def cursor_info_cb(self, canvas, pt, viewer, settings):
+    def pixel_info_cb(self, canvas, pt, viewer, settings):
         data_x, data_y = pt[:2]
         info = Bunch.Bunch(itype='base', data_x=data_x, data_y=data_y,
                            x=data_x, y=data_y, value=None)
