@@ -3,9 +3,9 @@
 #
 name: spot
 dependencies:
-  - python=3.11
+  - python=3.13
   - pip
-  - astropy
+  - astropy>=7.2.0
   - scipy
   - matplotlib
   - pillow
