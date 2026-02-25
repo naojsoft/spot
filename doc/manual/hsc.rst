@@ -2,9 +2,9 @@
 Instrument FOV - HSC Planner
 ++++++++++++++++++++++++++++
 
-The :doc:`intfov` plugin may be used to assist with planning 
-HSC observations and contains additional options when "HSC" is 
-selected from the instrument list. 
+The :doc:`intfov` plugin may be used to assist with planning
+HSC observations and contains additional options when "HSC" is
+selected from the instrument list.
 
 The HSC Planner works according to the following steps:
 
@@ -23,18 +23,18 @@ We will go over each of these steps in turn.
 Establishing Pointing
 =====================
 
-The easiest way to establish pointing is to load the :doc:`targetlist` 
+The easiest way to establish pointing is to load the :doc:`targetlist`
 plugin with your targets from an OPE or CSV file.  Then, select exactly one
-of the targets and then click the "Get Selected" button on the 
-:doc:`findchart` window.  The RA, DEC, Equinox and Name fields should 
+of the targets and then click the "Get Selected" button on the
+:doc:`findchart` window.  The RA, DEC, Equinox and Name fields should
 be filled out.
 
 If you prefer to set it manually, you can type RA and DEC coordinates
-into the corresponding boxes under the "From RA/DEC Coordinate" section 
-of the :doc:`telgen` window and click "Add Target". You can use sexagesimal 
-format, with RA in H:M:S and DEC in D:M:S or decimal numbers interpreted 
-as degrees. The pointing will be added to :doc:`targetlist`. Then, select 
-the target and click the "Get Selected" button on the :doc:`findchart` 
+into the corresponding boxes under the "From RA/DEC Coordinate" section
+of the :doc:`telgen` window and click "Add Target". You can use sexagesimal
+format, with RA in H:M:S and DEC in D:M:S or decimal numbers interpreted
+as degrees. The pointing will be added to :doc:`targetlist`. Then, select
+the target and click the "Get Selected" button on the :doc:`findchart`
 window.  The RA, DEC, Equinox and Name fields should be filled out.
 
 ==========================
@@ -50,8 +50,8 @@ download a survey image of the field (select a survey and click
 "Find image"). If you'd prefer to use your own locally stored FITS
 image, you can load it using the "Load FITS" button.
 
-.. .. note:: Note that a blank field is perfectly fine for visualizing
-..           where your targets will land on the detectors.
+.. note:: Note that a blank field is perfectly fine for visualizing
+          where your targets will land on the detectors.
 
 .. ================================
 .. Placing Targets within the Field
@@ -75,20 +75,20 @@ Dither type:
     1 for a single shot, 5 for a 5-point box pattern, and N
     for an N-point circular pattern
 
-Dither steps: 
+Dither steps:
     Only settable for N-type dither, set it to the number
     of dither positions
 
-PA (deg): 
+PA (deg):
     This parameter will set up the instrument rotator to set
     the rotation of the field on the CCD plane--see the instrument
     documentation for details
 
-RA Offset, DEC Offset: 
+RA Offset, DEC Offset:
     Offsets in arc seconds from the pointing
     position in the center of the field
 
-Dith1, Dith2 (Delta RA, Delta DEC or RDITH, TDITH): 
+Dith1, Dith2 (Delta RA, Delta DEC or RDITH, TDITH):
     The names of these parameters change according to the dither type selected.
     For Dither Type 1 they are not used.  For Dither Type 5, these
     parameters specify the offsets in arc seconds for Delta RA and Delta DEC
@@ -97,11 +97,11 @@ Dith1, Dith2 (Delta RA, Delta DEC or RDITH, TDITH):
     degrees (TDITH) for the circular dither.  See the instrument documentation
     for more information.
 
-Skip: 
+Skip:
     The number of shots to skip from the beginning of a dither.
     Leave at the default for the full dither.
 
-Stop: 
+Stop:
     Used to terminate a dither early after a certain number of shots.
     Leave at the default for the full dither.
 
@@ -111,21 +111,21 @@ to step through your dither.
 
 .. image:: figures/HSC2.*
 
-Image contains data from the WISE 3.4 :math:`\mu`\ m survey. 
+Image contains data from the WISE 3.4 :math:`\mu`\ m survey.
 (`Wright et al (2010)`_, `Mainzer et al (2011)`_)
 
-.. note::   It may be helpful to view the field first with the image 
-            zoomed out, and then later to pan to your target (hint: 
-            use Shift+click to set pan position or enter the coordinates 
-            under "Pointing") and zoom in to more 
-            closely watch the detailed positioning of the target(s) on 
+.. note::   It may be helpful to view the field first with the image
+            zoomed out, and then later to pan to your target (hint:
+            use Shift+click to set pan position or enter the coordinates
+            under "Pointing") and zoom in to more
+            closely watch the detailed positioning of the target(s) on
             the detector grid.
 
 =================
 Repeat as Desired
 =================
 
-You can go back to any step and repeat from there as needed.  
+You can go back to any step and repeat from there as needed.
 
 .. It may be
 .. helpful when repositioning targets to press the "Clear Overlays" button,

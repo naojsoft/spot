@@ -24,15 +24,15 @@ desired instrument. Once the instrument is selected the name will be
 filled in by "Instrument:" and an outline of the instrument's
 field of view will appear in the :ref:`FindChannel` window.
 
-.. note:: The HSC intrument overlay has additional features. See 
+.. note:: The HSC intrument overlay has additional features. See
           :doc:`hsc` for more information.
 
 The position angle can be adjusted, which will adjust the angle of
 the instrument FOV overlay on the image.  If the "Rotate w/PA" box is
 checked then the viewer image will be rotated so that the FOV overlay
-remains in the same orientation. If "Rotate w/PA" is not selected, the 
+remains in the same orientation. If "Rotate w/PA" is not selected, the
 instrument overlay will rotate while the image remains static.
-The image can also be flipped across the vertical axis by checking the 
+The image can also be flipped across the vertical axis by checking the
 "Flip" box.
 
 The RA and DEC will be autofilled by setting the pan position in the
