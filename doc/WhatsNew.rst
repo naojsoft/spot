@@ -2,7 +2,7 @@
 What's New
 ++++++++++
 
-Ver 1.1.0 (unreleased)
+Ver 1.1.0 (2026-02-25)
 ======================
 - Added a feature to InsFov where it rotates the image by the position
   angle to keep the orientation of the FOV overlay
@@ -15,6 +15,7 @@ Ver 1.1.0 (unreleased)
 - Fixed "Sync integgui2" feature (available from spot-subaru package)
 - Added "Browse" menu to Targets toolbar to allow a search by target
   coordinates and present the results in a web browser
+- Updates to documentation
 
 Ver 1.0.1 (2025-08-27)
 ======================

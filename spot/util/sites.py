@@ -115,8 +115,6 @@ def get_site(name):
 
 
 def configure_sites(yml_dct):
-    global site_dict, site_names
-
     site_dict.clear()
     site_names.clear()
     for name, dct in yml_dct.items():
