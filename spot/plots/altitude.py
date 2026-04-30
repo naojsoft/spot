@@ -26,26 +26,14 @@ class AltitudePlot(plots.Plot):
     def setup(self):
         pass
 
-    def get_figure(self):
-        return self.fig
-
-    def clear(self):
-        #self.ax.cla()
-        self.fig.clf()
-        self.redraw()
-
-    def redraw(self):
-        canvas = self.fig.canvas
-        if canvas is not None:
-            canvas.draw()
-
     def plot_altitude(self, site, tgt_data, tz, current_time=None,
                       plot_moon_distance=False,
                       show_target_legend=False,
                       center_time=None,
                       satellite_barh_data=None,
                       collision_barh_data=None):
-        self._plot_altitude(self.fig, site, tgt_data, tz, current_time=current_time,
+        self._plot_altitude(self.figure, site, tgt_data, tz,
+                            current_time=current_time,
                             plot_moon_distance=plot_moon_distance,
                             show_target_legend=show_target_legend,
                             center_time=center_time,
@@ -138,9 +126,9 @@ class AltitudePlot(plots.Plot):
 
         # legend target list
         if show_target_legend:
-            self.fig.legend(legend, targets,
-                            loc='upper right', fontsize=9, framealpha=0.5,
-                            frameon=True, ncol=1, bbox_to_anchor=[0.3, 0.865, .7, 0.1])
+            self.figure.legend(legend, targets,
+                               loc='upper right', fontsize=9, framealpha=0.5,
+                               frameon=True, ncol=1, bbox_to_anchor=[0.3, 0.865, .7, 0.1])
 
         ax1.set_ylim(0.0, 90.0)
         ax1.set_xlim(lt_data_first[0], lt_data_first[-1])
@@ -228,10 +216,6 @@ class AltitudePlot(plots.Plot):
         if collision_barh_data is not None:
             self._plot_collision_windows(ax1, collision_barh_data, lt_data_first[-1])
 
-        canvas = self.fig.canvas
-        if canvas is not None:
-            canvas.draw()
-
     def _plot_twilight(self, ax, site, localdate, tz, show_legend=False):
         # plot sunset
         t = site.sunset(date=localdate).astimezone(tz)
@@ -258,10 +242,10 @@ class AltitudePlot(plots.Plot):
             nautical_twi = "Nautical Twi {}".format(et12.strftime("%H:%M:%S"))
             astro_twi = "Astronomical Twi {}".format(et18.strftime("%H:%M:%S"))
 
-            self.fig.legend((ss, ct, nt, at),
-                            (sunset, civil_twi, nautical_twi, astro_twi),
-                            loc='lower left', fontsize=7, framealpha=0.5,
-                            bbox_to_anchor=[0.045, -0.02, .7, 0.113])
+            self.figure.legend((ss, ct, nt, at),
+                               (sunset, civil_twi, nautical_twi, astro_twi),
+                               loc='lower left', fontsize=7, framealpha=0.5,
+                               bbox_to_anchor=[0.045, -0.02, .7, 0.113])
 
         # plot morning twilight 6/12/18 degrees
         mt6 = site.morning_twilight_6(et6).astimezone(tz)
@@ -287,10 +271,10 @@ class AltitudePlot(plots.Plot):
             nautical_twi = "Nautical Twi {}".format(mt12.strftime("%H:%M:%S"))
             astro_twi = "Astronomical Twi {}".format(mt18.strftime("%H:%M:%S"))
 
-            self.fig.legend((sr, ct, nt, at),
-                            (sunrise, civil_twi, nautical_twi, astro_twi),
-                            loc='lower right', fontsize=7, framealpha=0.5,
-                            bbox_to_anchor=[-0.043, -0.02, .7, 0.113])
+            self.figure.legend((sr, ct, nt, at),
+                               (sunrise, civil_twi, nautical_twi, astro_twi),
+                               loc='lower right', fontsize=7, framealpha=0.5,
+                               bbox_to_anchor=[-0.043, -0.02, .7, 0.113])
 
     def _plot_current_time(self, ax, lo, hi):
         ax.axvspan(lo, hi, facecolor='#7FFFD4', alpha=0.25)

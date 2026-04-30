@@ -34,7 +34,6 @@ import pandas as pd
 from dateutil import tz
 
 # ginga
-from ginga.gw import Widgets, Plot
 from ginga.misc import Bunch
 from ginga import GingaPlugin, colors
 
@@ -168,6 +167,8 @@ class Visibility(GingaPlugin.LocalPlugin):
         if not self.chname.endswith('_TGTS'):
             raise Exception(f"This plugin is not designed to run in channel {self.chname}")
 
+        Widgets = self.fv.get_widget_classes()
+
         # initialize site and date/time/tz
         obj = self.channel.opmon.get_plugin('SiteSelector')
         with self.lock:
@@ -200,8 +201,7 @@ class Visibility(GingaPlugin.LocalPlugin):
         #obj = self.channel.opmon.get_plugin('Targets')
         #self.plot.colors = obj.colors
 
-        plot_w = Plot.PlotWidget(self.plot, width=700, height=500)
-
+        plot_w = self.plot.get_ginga_widget()
         top.add_widget(plot_w, stretch=1)
 
         self.w.toolbar2 = Widgets.Toolbar(orientation='horizontal')
@@ -237,7 +237,7 @@ class Visibility(GingaPlugin.LocalPlugin):
 
         plot_moon_sep = menu.add_name("Plot moon separation", checkable=True)
         plot_moon_sep.set_state(self.plot_moon_sep)
-        plot_moon_sep.add_callback('activated', self.toggle_mon_sep_cb)
+        plot_moon_sep.add_callback('activated', self.toggle_moon_sep_cb)
         plot_moon_sep.set_tooltip("Show moon separation on plot lines")
 
         plot_polar_azel = menu.add_name("Plot polar AzEl", checkable=True)
@@ -298,7 +298,7 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.plot.setup()
 
     def clear_plot(self):
-        self.plot.clear()
+        self.plot.clear_data()
         self.canvas.delete_object_by_tag('targets')
 
     def calc_targets(self, targets):
@@ -394,7 +394,7 @@ class Visibility(GingaPlugin.LocalPlugin):
                                center_time=center_time,
                                satellite_barh_data=satellite_barh_data,
                                collision_barh_data=collision_barh_data)
-        self.fv.error_wrap(self.plot.draw)
+        self.fv.error_wrap(self.plot.redraw)
 
         self.plot_azalt(target_data, 'targets')
 
@@ -496,7 +496,7 @@ class Visibility(GingaPlugin.LocalPlugin):
             textbg = '#FFFFFF00'
         return color, alpha, zorder, textbg
 
-    def toggle_mon_sep_cb(self, w, tf):
+    def toggle_moon_sep_cb(self, w, tf):
         self.plot_moon_sep = tf
         self.replot()
 

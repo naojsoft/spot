@@ -73,9 +73,13 @@ class SPOTMenubar(Menubar.Menubar):
         # create dialog for banner
         title = f"SPOT v{__version__}"
         top = Widgets.Dialog(title=title, parent=self.w.menubar,
-                             buttons=[["Close", 0]], modal=False)
+                             buttons=[["Close", 0]], autoclose=True,
+                             modal=True)
+        top.resize(400, 400)
 
         def _close_banner(*args):
+            print("dialog closing", args)
+            #w.hide()
             self.fv.ds.remove_dialog(top)
 
         top.add_callback('activated', _close_banner)

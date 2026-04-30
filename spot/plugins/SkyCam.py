@@ -91,7 +91,6 @@ import tempfile
 
 # ginga
 from ginga import trcalc
-from ginga.gw import Widgets
 from ginga.AstroImage import AstroImage
 from ginga.RGBImage import RGBImage
 from ginga import GingaPlugin
@@ -215,6 +214,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
         if not self.chname.endswith('_TGTS'):
             raise Exception(f"This plugin is not designed to run in channel {self.chname}")
 
+        Widgets = self.fv.get_widget_classes()
         # re-read skycams config, in case user is tweaking settings
         self.read_skycams_config()
 

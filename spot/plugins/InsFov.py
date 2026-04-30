@@ -11,7 +11,6 @@ naojsoft packages
 import numpy as np
 
 # ginga
-from ginga.gw import Widgets
 from ginga import GingaPlugin, trcalc
 from ginga.util import wcs
 from ginga.misc import Bunch
@@ -105,6 +104,9 @@ class InsFov(GingaPlugin.LocalPlugin):
 
         if not self.chname.endswith('_FIND'):
             raise Exception(f"This plugin is not designed to run in channel {self.chname}")
+
+        Widgets = self.fv.get_widget_classes()
+
         wsname, _ = self.chname.split('_')
         channel = self.fv.get_channel(wsname + '_TGTS')
         obj = channel.opmon.get_plugin('SiteSelector')
@@ -142,7 +144,7 @@ class InsFov(GingaPlugin.LocalPlugin):
                                    telname, insname)
         b.instrument.set_text('None')
         b.choose.add_callback('activated',
-                              lambda w: self.w.insmenu.popup(widget=w))
+                              lambda w: self.w.insmenu.popup(w))
         b.choose.set_tooltip("Choose instrument overlay")
 
         b.pa.set_text(f"{self.pa_deg:.2f}")

@@ -22,7 +22,6 @@ from astropy import units as u
 from astropy.table import Table
 
 # ginga
-from ginga.gw import Widgets
 from ginga import GingaPlugin
 from ginga.util import wcs, catalog, dp
 from ginga.AstroImage import AstroImage
@@ -198,6 +197,7 @@ class FindImage(GingaPlugin.LocalPlugin):
         if not self.chname.endswith('_FIND'):
             raise Exception(f"This plugin is not designed to run in channel {self.chname}")
 
+        Widgets = self.fv.get_widget_classes()
         wsname, _ = self.channel.name.split('_')
         channel = self.fv.get_channel(wsname + '_TGTS')
         obj = channel.opmon.get_plugin('SiteSelector')

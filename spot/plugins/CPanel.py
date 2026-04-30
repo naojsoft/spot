@@ -26,7 +26,6 @@ import os
 import json
 
 # ginga
-from ginga.gw import Widgets
 from ginga import GingaPlugin
 from ginga.misc import Bunch
 from ginga.util.paths import ginga_home
@@ -108,6 +107,7 @@ class CPanel(GingaPlugin.GlobalPlugin):
 
     def build_gui(self, container):
 
+        Widgets = self.fv.get_widget_classes()
         top = Widgets.VBox()
         top.set_border_width(4)
 
@@ -222,6 +222,7 @@ class CPanel(GingaPlugin.GlobalPlugin):
         ch_find.opmon.add_callback('deactivate-plugin', self.deactivate_cb, cb_dct)
         ch_find.viewer.show_pan_mark(True, color='red')
 
+        Widgets = self.fv.get_widget_classes()
         vbox = Widgets.VBox()
         vbox.set_spacing(2)
         plugins = self.fv.get_plugins()

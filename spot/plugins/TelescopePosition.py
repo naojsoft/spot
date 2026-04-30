@@ -15,7 +15,6 @@ from datetime import timedelta
 import numpy as np
 
 # ginga
-from ginga.gw import Widgets
 from ginga import GingaPlugin
 from ginga.misc.Callback import Callbacks
 from ginga.util import wcs
@@ -157,6 +156,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         if not self.chname.endswith('_TGTS'):
             raise Exception(f"This plugin is not designed to run in channel {self.chname}")
 
+        Widgets = self.fv.get_widget_classes()
         # initialize site
         obj = self.channel.opmon.get_plugin('SiteSelector')
         self.site = obj.get_site()

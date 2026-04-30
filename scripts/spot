@@ -70,6 +70,14 @@ default_layout = ['seq', {},
 
 if __name__ == "__main__":
 
+    from astropy.utils import iers
+    # Turn off auto download
+    iers.conf.auto_download = False
+    # Optional: Set to None if you want to allow older IERS data without warning
+    iers.conf.auto_max_age = None
+    import sys
+    sys.setrecursionlimit(10000)
+
     # Tweak the sys.path here if you are loading plugins from some
     # special area
     pluginHome = os.path.split(sys.modules['spot.plugins'].__file__)[0]

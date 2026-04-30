@@ -14,7 +14,6 @@ from datetime import datetime, timedelta
 from dateutil import tz, parser
 
 # ginga
-from ginga.gw import Widgets, GwHelp
 from ginga import GingaPlugin
 from ginga.misc import Bunch
 from ginga.misc.Callback import Callbacks
@@ -138,7 +137,8 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         self.almanac = None
         self._update_almanac()
 
-        self.tmr = GwHelp.Timer(duration=self.settings['timer_update_interval'])
+        Widgets = self.fv.get_widget_classes()
+        self.tmr = Widgets.Timer(duration=self.settings['timer_update_interval'])
         self.tmr.add_callback('expired', self.update_timer_cb)
 
         self.gui_up = False
@@ -148,6 +148,7 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         if not self.chname.endswith('_TGTS'):
             raise Exception(f"This plugin is not designed to run in channel {self.chname}")
 
+        Widgets = self.fv.get_widget_classes()
         status = self.site_obj.get_status()
 
         top = Widgets.VBox()
@@ -189,6 +190,7 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         w, b = Widgets.build_info(captions)
         self.w.update(b)
         b.datetime.set_tooltip("Set date time for visibility calculations")
+        b.datetime.set_text(self.dt_utc.strftime("%Y-%m-%d %H:%M:%S"))
         b.datetime.add_callback('activated', self.set_datetime_cb)
         b.datetime.set_enabled(False)
         b.timeoff.set_text(str(status.timezone_offset_min))

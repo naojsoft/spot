@@ -34,7 +34,6 @@ from dateutil.parser import parse as parse_date
 from datetime import UTC
 
 # ginga
-from ginga.gw import Widgets
 from ginga import GingaPlugin, colors
 from ginga.util.paths import ginga_home, home as user_home
 from ginga.util import wcs
@@ -227,23 +226,41 @@ class Targets(GingaPlugin.LocalPlugin):
         self.table_shelf = Shelf()
         self.table_stocker = self.table_shelf.get_stocker()
 
-        self.columns = [('Tagged', 'tagged'),
-                        ('Index', 'index'),
-                        ('Name', 'name'),
-                        ('Az', 'az_deg'),
-                        ('Alt', 'alt_deg'),
-                        ('Dir', 'icon'),
-                        ('HA', 'ha'),
-                        ('AM', 'airmass'),
-                        # ('Slew', 'slew'),
-                        ('AD', 'ad'),
-                        ('Pang', 'parang_deg'),
-                        ('Moon Sep', 'moon_sep'),
-                        ('RA', 'ra'),
-                        ('DEC', 'dec'),
-                        ('Eq', 'equinox'),
-                        ('Priority', 'priority'),
-                        ('Comment', 'comment'),
+        # self.columns = [('Tagged', 'tagged', 'bool'),
+        #                 ('Index', 'index', 'int'),
+        #                 ('Name', 'name', 'str'),
+        #                 ('Az', 'az_deg', 'float'),
+        #                 ('Alt', 'alt_deg', 'float'),
+        #                 ('Dir', 'icon', 'icon'),
+        #                 ('HA', 'ha', 'float'),
+        #                 ('AM', 'airmass', 'float'),
+        #                 # ('Slew', 'slew', 'float'),
+        #                 ('AD', 'ad', 'float'),
+        #                 ('Pang', 'parang_deg', 'float'),
+        #                 ('Moon Sep', 'moon_sep', 'float'),
+        #                 ('RA', 'ra', 'str'),
+        #                 ('DEC', 'dec', 'str'),
+        #                 ('Eq', 'equinox', 'float'),
+        #                 ('Priority', 'priority', 'float'),
+        #                 ('Comment', 'comment', 'str'),
+        #                 ]
+        self.columns = [('Tagged', 'tagged', 'str'),
+                        ('Index', 'index', 'int'),
+                        ('Name', 'name', 'str'),
+                        ('Az', 'az_deg', 'str'),
+                        ('Alt', 'alt_deg', 'str'),
+                        ('Dir', 'icon', 'icon'),
+                        ('HA', 'ha', 'str'),
+                        ('AM', 'airmass', 'str'),
+                        # ('Slew', 'slew', 'float'),
+                        ('AD', 'ad', 'str'),
+                        ('Pang', 'parang_deg', 'str'),
+                        ('Moon Sep', 'moon_sep', 'str'),
+                        ('RA', 'ra', 'str'),
+                        ('DEC', 'dec', 'str'),
+                        ('Eq', 'equinox', 'str'),
+                        ('Priority', 'priority', 'float'),
+                        ('Comment', 'comment', 'str'),
                         ]
 
         # the solar system objects
@@ -290,6 +307,8 @@ class Targets(GingaPlugin.LocalPlugin):
         if not self.chname.endswith('_TGTS'):
             raise Exception(f"This plugin is not designed to run in channel {self.chname}")
 
+        Widgets = self.fv.get_widget_classes()
+
         # initialize site and date/time/tz
         obj = self.channel.opmon.get_plugin('SiteSelector')
         self.site = obj.get_site()
@@ -300,15 +319,23 @@ class Targets(GingaPlugin.LocalPlugin):
         top = Widgets.VBox()
         top.set_border_width(4)
 
-        captions = (('Load File', 'button', 'File Path', 'entryset',
-                     'Color', 'button'),
-                    )
+        hbox = Widgets.HBox()
+        hbox.set_spacing(4)
+        btn = Widgets.Button("File")
+        btn.add_callback('activated', lambda w: self.w.fileselect.popup())
+        btn.set_tooltip("Select target file")
+        hbox.add_widget(btn, stretch=0)
 
-        w, b = Widgets.build_info(captions)
-        self.w = b
+        # captions = [('Load File', 'button',
+        #              'File Path', 'textentryset',
+        #              'Color', 'button'),
+        #             ]
 
-        b.load_file.set_text("File")
-        self.w.fileselect = Widgets.FileDialog(parent=b.load_file,
+        # w, b = Widgets.build_info(captions)
+        # self.w = b
+
+        # b.load_file.set_text("File")
+        self.w.fileselect = Widgets.FileDialog(parent=btn,
                                                title="Select target files")
         self.w.fileselect.set_mode('files')
         self.w.fileselect.set_directory(self.home)
@@ -321,23 +348,32 @@ class Targets(GingaPlugin.LocalPlugin):
             self.w.fileselect.add_ext_filter(name, ext)
 
         self.w.fileselect.add_callback('activated', self.load_file_cb)
-        b.file_path.set_text(self.home)
+        hbox.add_widget(Widgets.Label(''), stretch=1)
 
-        top.add_widget(w, stretch=0)
-        b.load_file.add_callback('activated',
-                                 lambda w: self.w.fileselect.show())
-        b.load_file.set_tooltip("Select target file")
-        b.file_path.add_callback('activated', self.file_setpath_cb)
+        # b.file_path.add_callback('activated', self.file_setpath_cb)
 
-        self.w.colorselect = Widgets.ColorDialog(parent=b.color,
+        btn = Widgets.Button("Color")
+        self.w.color = btn
+        hbox.add_widget(btn, stretch=0)
+
+        self.w.colorselect = Widgets.ColorDialog(parent=btn,
                                                  title="Choose target color")
         self.w.colorselect.add_callback('activated', self.color_select_cb)
         hex_color = colors.lookup_color(self._tgt_color, format='hex')
         self.w.colorselect.set_color(hex_color)
-        b.color.add_callback('activated', lambda w: self.w.colorselect.popup())
-        b.color.set_tooltip("Set the color of the loaded targets")
-        b.color.set_color(bg=hex_color, fg='black')
 
+        def _colorpop(*args):
+            x, y = btn.get_position()
+            try:
+                self.w.colorselect.popup(x, y)
+            except Exception as e:
+                self.logger.error(f"error popping up dialog: {e}")
+
+        # btn.add_callback('activated', lambda w: self.w.colorselect.popup())
+        btn.add_callback('activated', _colorpop)
+        btn.set_tooltip("Set the color of the loaded targets")
+        btn.set_color(bg=hex_color, fg='black')
+        top.add_widget(hbox, stretch=0)
         plot_update_text = "Please select file for list display"
 
         self.w.toolbar1 = Widgets.Toolbar(orientation='horizontal')
@@ -789,7 +825,7 @@ class Targets(GingaPlugin.LocalPlugin):
     def load_file_cb(self, w, paths):
         self.load_files(paths)
 
-    def file_setpath_cb(self, w):
+    def file_setpath_cb(self, w, *args):
         file_path = w.get_text().strip()
         self.load_files([file_path])
 
@@ -810,7 +846,7 @@ class Targets(GingaPlugin.LocalPlugin):
                 self.fv.show_error(f"I don't know how to load files of type '{ext}'")
                 return
 
-        self.w.file_path.set_text(file_path)
+        # self.w.file_path.set_text(file_path)
         hex_color = colors.lookup_color(self._tgt_color, format='hex')
         self.w.colorselect.set_color(hex_color)
         self.w.color.set_color(bg=hex_color, fg='black')
@@ -993,7 +1029,7 @@ class Targets(GingaPlugin.LocalPlugin):
                 ad_observe, ad_guide = (tgt.get('atmos_disp_observing'),
                                         tgt.get('atmos_disp_guiding'))
                 calc_ad = max(ad_observe, ad_guide) - min(ad_observe, ad_guide)
-                dct[tgt.name] = Bunch.Bunch(
+                dct[tgt.name] = dict(
                     tagged=chr(0x2714) if tagged else '',
                     index=tgt.get('index', idx),
                     priority=tgt.get('priority', 1),
