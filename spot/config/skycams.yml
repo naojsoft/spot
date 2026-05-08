@@ -1,6 +1,6 @@
 ---
   Subaru Telescope (Visible):
-    url: "https://allsky.subaru.nao.ac.jp/allsky/api/v0/images/download_most_recent.png"
+    url: "https://www.naoj.hawaii.edu/allsky/current_full.png"
     title: "Subaru Telescope (Visible)"
     ctr_x: 2660
     ctr_y: 1850
