@@ -37,6 +37,7 @@ The first section, titled "All Sky Camera," has two different controls:
 
     * select "Show Sky Image" to portray image from selected source
     * select "Camera Server" dropdown to display available image sources
+    * select "Monochrome" to convert color images to a monochrome
 
 Selecting a different image source inputs different images, which are often
 different sizes. To set an image to the size of the current screen locate
@@ -50,7 +51,8 @@ The second section, titled "Differential Image," has one control:
 The differential image for a specific image source is created using the current
 and previous images retrieved from said image source. It subtracts the current
 image from the previous, resulting in the changes between images left behind.
-These changes are what is portrayed.
+These changes are what is portrayed.  Note that if you change from color to
+monochrome, it may take an extra download cycle to show the differential image.
 
 If the source was recently selected from the "Camera Server" and a
 second image from the source has not been displayed yet, a message on screen
@@ -184,6 +186,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
                           image_transform=(self.config.get('flip_x', False),
                                            self.config.get('flip_y', False),
                                            False),
+                          image_convert_monochrome=self.config.get('convert_monochrome', True),
                           image_update_interval=self.config.get(
                               'update_interval', 120.0))
 
@@ -223,7 +226,8 @@ class SkyCam(GingaPlugin.LocalPlugin):
         top.set_border_width(4)
         fr = Widgets.Frame("All Sky Camera")
 
-        captions = (('Show Sky Image', 'checkbutton'),
+        captions = (('Show Sky Image', 'checkbox',
+                     'Monochrome', 'checkbox'),
                     ('Camera Server:', 'label',
                      'Image Source', 'combobox'),
                     )
@@ -238,6 +242,11 @@ class SkyCam(GingaPlugin.LocalPlugin):
                                       self.sky_image_toggle_cb)
         b.show_sky_image.set_tooltip(
             "Place the all sky image on the background")
+        b.monochrome.set_state(self.settings['image_convert_monochrome'])
+        b.monochrome.add_callback('activated',
+                                  self.mono_image_toggle_cb)
+        b.monochrome.set_tooltip(
+            "Convert a color image to monochrome by channel mixing")
 
         for name in self.configs.keys():
             b.image_source.append_text(name)
@@ -332,6 +341,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
         self.logger.info(f"image to be loaded is: {imgpath}")
         flip_x, flip_y, swap_xy = self.settings['image_transform']
         rot_deg = self.settings['image_rotation']
+        cvt_mono = self.settings['image_convert_monochrome']
 
         if imgpath.endswith('.fits'):
             img = AstroImage(logger=self.logger)
@@ -362,15 +372,15 @@ class SkyCam(GingaPlugin.LocalPlugin):
             # flip RGB images
             data_np = np.flipud(data_np)
 
-            if len(data_np.shape) == 3 and data_np.shape[2] > 2:
+            if len(data_np.shape) == 3 and data_np.shape[2] > 2 and cvt_mono:
                 # if this is a color RGB image, convert to monochrome
                 # via the standard channel mixing technique
                 data_np = (data_np[:, :, 0] * self.std[0] +
                            data_np[:, :, 1] * self.std[1] +
                            data_np[:, :, 2] * self.std[2])
 
-        ht, wd = data_np.shape[:2]
-        data_np = data_np.reshape((ht, wd))
+                ht, wd = data_np.shape[:2]
+                data_np = data_np.reshape((ht, wd))
 
         self.old_data = self.cur_data
         self.cur_data = data_np
@@ -509,6 +519,16 @@ class SkyCam(GingaPlugin.LocalPlugin):
             # initiate a download; otherwise timed loop will pull one in
             # eventually
             self.download_sky_image()
+
+    def mono_image_toggle_cb(self, w, tf):
+        self.settings['image_convert_monochrome'] = tf
+        # need similar depth of data for subtraction
+        self.cur_data = None
+        self.old_data = None
+        message = "Waiting for the next image to create a differential sky..."
+        if self.flag_use_diff_image:
+            self.w.select_image_info.set_text(message)
+        self.fv.gui_do(self.update_sky_image)
 
     def diff_image_toggle_cb(self, w, tf):
         self.flag_use_diff_image = tf
