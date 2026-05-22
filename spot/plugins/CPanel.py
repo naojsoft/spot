@@ -198,6 +198,9 @@ class CPanel(GingaPlugin.GlobalPlugin):
             with open(path, 'r') as in_f:
                 try:
                     cfg_d = json.loads(in_f.read())
+                    # set overall desktop size
+                    self.fv.ds.set_ds_size(cfg_d['ds_wd'], cfg_d['ds_ht'])
+                    # populate information to size and position titled children
                     ws.child_catalog = cfg_d['tabs']
                 except Exception as e:
                     self.logger.error("Error reading workspace '{path}': {e}",
@@ -311,6 +314,8 @@ class CPanel(GingaPlugin.GlobalPlugin):
     def save_ws_layout_cb(self, w, wsname):
         ws = self.fv.ds.get_ws(wsname)
         cfg_d = ws.get_configuration()
+        wd, ht = self.fv.ds.get_ds_size()
+        cfg_d.update(dict(ds_wd=wd, ds_ht=ht))
         path = os.path.join(ginga_home, wsname + '.json')
         try:
             with open(path, 'w') as out_f:
