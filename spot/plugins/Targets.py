@@ -25,6 +25,7 @@ naojsoft packages
 """
 # stdlib
 import os
+import io
 from collections import OrderedDict
 
 # 3rd party
@@ -308,6 +309,8 @@ class Targets(GingaPlugin.LocalPlugin):
             raise Exception(f"This plugin is not designed to run in channel {self.chname}")
 
         Widgets = self.fv.get_widget_classes()
+        # are we running in a browser?
+        self.is_web = self.fv.is_web_backend()
 
         # initialize site and date/time/tz
         obj = self.channel.opmon.get_plugin('SiteSelector')
@@ -335,17 +338,27 @@ class Targets(GingaPlugin.LocalPlugin):
         # self.w = b
 
         # b.load_file.set_text("File")
-        self.w.fileselect = Widgets.FileDialog(parent=btn,
-                                               title="Select target files")
-        self.w.fileselect.set_mode('files')
-        self.w.fileselect.set_directory(self.home)
-        add_order = [("CSV", ".csv"), ("OPE", ".ope"), ("EPH", ".eph")]
-        if self.settings.get('load_selection_order', 'csv_first') == 'ope_first':
-            add_order = [("OPE", ".ope"), ("CSV", ".csv"), ("EPH", ".eph")]
-        for name, ext in add_order:
-            if name == 'OPE' and not have_oscript:
-                continue
-            self.w.fileselect.add_ext_filter(name, ext)
+        if self.is_web:
+            self.w.fileselect = Widgets.BrowserFileDialog(mode="file",
+                                                          accept=".ope,.csv")
+            drop_lbl = Widgets.Label("[Drop file here]", interactive=True)
+            drop_lbl.set_halign("center")
+            drop_lbl.set_color("#e8f0fe", "#4a86c8")
+            #drop_lbl.set_font(None, 14)
+            drop_lbl.add_callback('drop-end', self.drop_file_cb)
+            hbox.add_widget(drop_lbl, stretch=0)
+        else:
+            self.w.fileselect = Widgets.FileDialog(parent=btn,
+                                                   title="Select target files")
+            self.w.fileselect.set_mode('files')
+            self.w.fileselect.set_directory(self.home)
+            add_order = [("CSV", ".csv"), ("OPE", ".ope"), ("EPH", ".eph")]
+            if self.settings.get('load_selection_order', 'csv_first') == 'ope_first':
+                add_order = [("OPE", ".ope"), ("CSV", ".csv"), ("EPH", ".eph")]
+            for name, ext in add_order:
+                if name == 'OPE' and not have_oscript:
+                    continue
+                self.w.fileselect.add_ext_filter(name, ext)
 
         self.w.fileselect.add_callback('activated', self.load_file_cb)
         hbox.add_widget(Widgets.Label(''), stretch=1)
@@ -822,8 +835,32 @@ class Targets(GingaPlugin.LocalPlugin):
             #self._last_tgt_update_dt = time_utc
             self.update_all()
 
-    def load_file_cb(self, w, paths):
-        self.load_files(paths)
+    def load_file_cb(self, w, *args):
+        if not self.is_web:
+            # <-- local files
+            paths = args[0]
+            self.load_files(paths)
+        else:
+            # <-- uploaded... args[0] is like a drop event
+            self.drop_file_cb(w, args[0])
+
+    def drop_file_cb(self, w, evt):
+        for f_dct in evt["files"]:
+            filename = f_dct['name']
+            if f_dct.get("data", None) is not None:
+                # data is a raw buffer of the file
+                buf = f_dct['data'].decode()
+                self.load_buffer(filename, buf)
+
+    def load_buffer(self, filename, buf):
+        _pfx, ext = os.path.splitext(filename.lower())
+        if ext == ".ope":
+            self.process_ope_buffer_for_targets(filename, buf)
+        elif ext == ".csv":
+            self.process_csv_buffer_for_targets(filename, buf)
+        else:
+            self.fv.show_error(f"I don't know how to load files of type '{ext}'")
+        return
 
     def file_setpath_cb(self, w, *args):
         file_path = w.get_text().strip()
@@ -923,18 +960,25 @@ class Targets(GingaPlugin.LocalPlugin):
         self.issue_targets_changed()
 
     def process_csv_file_for_targets(self, csv_path):
+        with open(csv_path, 'r') as in_f:
+            buf = in_f.read()
+
+        return self.process_csv_buffer_for_targets(csv_path, buf)
+
+    def process_csv_buffer_for_targets(self, filename, buf):
         # NOTE: to allow reading "SOSS-like" coordinates
         type_dct = {'RA': str, 'DEC': str, 'Equinox': str}
-        tgt_df = pd.read_csv(csv_path, dtype=type_dct)
+        csv_f = io.StringIO(buf)
+        tgt_df = pd.read_csv(csv_f, dtype=type_dct)
         if 'Equinox' not in tgt_df:
             tgt_df['Equinox'] = [2000.0] * len(tgt_df)
         if 'IsRef' not in tgt_df:
             tgt_df['IsRef'] = [True] * len(tgt_df)
         if 'Comment' not in tgt_df:
-            tgt_df['Comment'] = [os.path.basename(csv_path)] * len(tgt_df)
+            tgt_df['Comment'] = [os.path.basename(filename)] * len(tgt_df)
 
         merge = self.settings.get('merge_targets', False)
-        category = csv_path if not merge else "Targets"
+        category = filename if not merge else "Targets"
         self.add_targets(category, tgt_df, merge=merge)
         self.w.tgt_tbl.set_optimal_column_widths()
 
@@ -963,16 +1007,22 @@ class Targets(GingaPlugin.LocalPlugin):
         if not have_oscript:
             self.fv.show_error("Please install the 'oscript' module to use this feature")
 
+        # read OPE file
+        with open(ope_file, 'r') as in_f:
+            ope_buf = in_f.read()
+
+        return self.process_ope_buffer_for_targets(ope_file, ope_buf)
+
+    def process_ope_buffer_for_targets(self, filename, ope_buf):
+        if not have_oscript:
+            self.fv.show_error("Please install the 'oscript' module to use this feature")
+
         proc_home = os.path.join(self.home, 'Procedure')
         if not os.path.isdir(proc_home):
             proc_home = self.home
         prm_dirs = [proc_home, os.path.join(proc_home, 'COMMON'),
                     os.path.join(proc_home, 'COMMON', 'prm'),
                     os.path.join(ginga_home, 'prm')]
-
-        # read OPE file
-        with open(ope_file, 'r') as in_f:
-            ope_buf = in_f.read()
 
         # gather target info from OPE
         tgt_res = ope.get_targets(ope_buf, prm_dirs)
@@ -995,7 +1045,7 @@ class Targets(GingaPlugin.LocalPlugin):
 
         # process into Target object list
         new_targets = []
-        comment = os.path.basename(ope_file)
+        comment = os.path.basename(filename)
         for idx, tgt_info in enumerate(tgt_info_lst):
             objname = tgt_info.objname
             ra_str = tgt_info.ra
@@ -1009,7 +1059,7 @@ class Targets(GingaPlugin.LocalPlugin):
                               columns=["Index", "Name", "RA", "DEC", "Equinox",
                                        "Comment", "IsRef"])
         merge = self.settings.get('merge_targets', False)
-        category = ope_file if not merge else "Targets"
+        category = filename if not merge else "Targets"
         self.add_targets(category, tgt_df, merge=merge)
         self.w.tgt_tbl.set_optimal_column_widths()
 
