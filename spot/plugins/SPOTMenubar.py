@@ -67,18 +67,18 @@ class SPOTMenubar(Menubar.Menubar):
 
     def banner(self, w):
         # load banner image
-        banner_file = os.path.join(icondir, "spot.svg")
-        img_native = GwHelp.get_image(banner_file, size=(400, 400))
+        wd, ht = 627, 627    # 1/2 size
+        banner_file = os.path.join(icondir, "spot_logo.png")
+        img_native = GwHelp.get_image(banner_file, size=(wd, ht))
 
         # create dialog for banner
         title = f"SPOT v{__version__}"
         top = Widgets.Dialog(title=title, parent=self.w.menubar,
                              buttons=[["Close", 0]], autoclose=True,
                              modal=True)
-        top.resize(400, 400)
+        #top.resize(wd, ht)
 
         def _close_banner(*args):
-            print("dialog closing", args)
             #w.hide()
             self.fv.ds.remove_dialog(top)
 

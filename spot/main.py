@@ -198,30 +198,30 @@ class SPOT(g_main.ReferenceViewer):
         # general settings control initialization of viewer
         settings = self.prefs.create_category('general')
         settings.set_defaults(appname=self.appname,
-                              title=self.appname.capitalize(),
                               useMatplotlibColormaps=False,
                               widgetSet='choose',
-                              WCSpkg='astropy', FITSpkg='astropy',
-                              suppress_fits_warnings=False,
-                              recursion_limit=10000,
                               # this is only used with the PG widgets
                               # backend
                               http_server=True,
                               min_threads=2,
                               num_threads=max(os.cpu_count(), 10),
                               threadpool_analyze_interval_sec=None,
-                              pluginmgr_allow_nonsingletons=False,
                               icc_working_profile=None,
                               font_scaling_factor=None,
-                              save_layout=True,
                               use_opengl=False,
-                              channels=[],
-                              layout_file='layout.json',
                               plugin_file='plugins.yml',
                               channel_prefix="Image")
         settings.load(onError='silent')
         self.settings = settings
 
+        settings.set(title="SPOT (Site Planning and Observation Tool)",
+                     WCSpkg='astropy', FITSpkg='astropy',
+                     suppress_fits_warnings=False,
+                     recursion_limit=10000,
+                     pluginmgr_allow_nonsingletons=False,
+                     ignore_saved_layout=True,
+                     save_layout=False,
+                     channels=[])
         # ------ command line overrides for various settings -----
         #
         if hasattr(options, 'toolkit') and options.toolkit is not None:
