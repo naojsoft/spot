@@ -860,7 +860,8 @@ class Targets(GingaPlugin.LocalPlugin):
             self.process_csv_buffer_for_targets(filename, buf)
         else:
             self.fv.show_error(f"I don't know how to load files of type '{ext}'")
-        return
+
+        self._rotate_colors()
 
     def file_setpath_cb(self, w, *args):
         file_path = w.get_text().strip()
@@ -884,10 +885,13 @@ class Targets(GingaPlugin.LocalPlugin):
                 return
 
         # self.w.file_path.set_text(file_path)
+        self._rotate_colors()
+        #self.w.tgt_tbl.set_optimal_column_widths()
+
+    def _rotate_colors(self):
         hex_color = colors.lookup_color(self._tgt_color, format='hex')
         self.w.colorselect.set_color(hex_color)
         self.w.color.set_color(bg=hex_color, fg='black')
-        #self.w.tgt_tbl.set_optimal_column_widths()
 
     def add_targets(self, category, tgt_df, merge=False):
         """Add targets from a Pandas dataframe."""
