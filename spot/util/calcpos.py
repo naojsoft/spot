@@ -39,8 +39,12 @@ earth_radius_m = 6378136.6
 solar_radius_deg = 0.25
 moon_radius_deg = 0.26
 
-ssbodies = load('de421.bsp')
-timescale = load.timescale()
+# see get_ssbodies()
+_ssbodies = None
+# see get_ss()
+_SS = None
+# see get_timescale()
+_timescale = None
 
 # used for almanac calculations
 horizon_6 = -6.0
@@ -101,11 +105,30 @@ class Observer:
         if horizon_deg is None:
             horizon_deg = np.degrees(- np.arccos(earth_radius_m / (earth_radius_m + self.elev_m)))
         self.horizon_deg = horizon_deg
+        self._ssbodies = None
+        self._location = None
+        self._timescale = None
 
-        earth = ssbodies['earth']
-        self.location = earth + wgs84.latlon(latitude_degrees=self.lat_deg,
-                                             longitude_degrees=self.lon_deg,
-                                             elevation_m=self.elev_m)
+    @property
+    def location(self):
+        if self._location is None:
+            earth = self.ssbodies['earth']
+            self._location = earth + wgs84.latlon(latitude_degrees=self.lat_deg,
+                                                  longitude_degrees=self.lon_deg,
+                                                  elevation_m=self.elev_m)
+        return self._location
+
+    @property
+    def ssbodies(self):
+        if self._ssbodies is None:
+            self._ssbodies = get_ssbodies()
+        return self._ssbodies
+
+    @property
+    def timescale(self):
+        if self._timescale is None:
+            self._timescale = get_timescale()
+        return self._timescale
 
     @property
     def timezone(self):
@@ -157,7 +180,7 @@ class Observer:
     def radec_of(self, az_deg, alt_deg, date=None):
         if date is None:
             date = self.date
-        obstime = timescale.from_datetime(date)
+        obstime = self.timescale.from_datetime(date)
         apparent = self.location.at(obstime).from_altaz(alt_degrees=alt_deg,
                                                         az_degrees=az_deg)
         ra, dec, distance = apparent.radec()
@@ -168,7 +191,7 @@ class Observer:
         if date is None:
             date = self.date
         coord = Star(ra_hours=ra_deg / 15.0, dec_degrees=dec_deg)
-        obstime = timescale.from_datetime(date)
+        obstime = self.timescale.from_datetime(date)
         astrometric = self.location.at(obstime).observe(coord)
         apparent = astrometric.apparent()
         alt, az, distance = apparent.altaz(temperature_C=self.temp_C,
@@ -210,8 +233,8 @@ class Observer:
     def _find_setting(self, coord, start_dt, stop_dt, horizon_deg):
         # NOTE: fractional seconds seems to cause an exception inside
         # skyfield
-        t0 = timescale.from_datetime(start_dt.replace(microsecond=0))
-        t1 = timescale.from_datetime(stop_dt.replace(microsecond=0))
+        t0 = self.timescale.from_datetime(start_dt.replace(microsecond=0))
+        t1 = self.timescale.from_datetime(stop_dt.replace(microsecond=0))
         # TODO: refraction function does not appear to work as expected
         r = refraction(0.0, temperature_C=self.temp_C,
                        pressure_mbar=self.pressure_mbar)
@@ -223,8 +246,8 @@ class Observer:
     def _find_rising(self, coord, start_dt, stop_dt, horizon_deg):
         # NOTE: fractional seconds seems to cause an exception inside
         # skyfield
-        t0 = timescale.from_datetime(start_dt.replace(microsecond=0))
-        t1 = timescale.from_datetime(stop_dt.replace(microsecond=0))
+        t0 = self.timescale.from_datetime(start_dt.replace(microsecond=0))
+        t1 = self.timescale.from_datetime(stop_dt.replace(microsecond=0))
         # TODO: refraction function does not appear to work as expected
         r = refraction(0.0, temperature_C=self.temp_C,
                        pressure_mbar=self.pressure_mbar)
@@ -254,7 +277,7 @@ class Observer:
         else:
             date = self.get_date(date)
 
-        t, y = self._find_setting(ssbodies['sun'], date,
+        t, y = self._find_setting(self.ssbodies['sun'], date,
                                   date + timedelta(days=1, hours=1),
                                   self.horizon_deg - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
@@ -266,7 +289,7 @@ class Observer:
         else:
             date = self.get_date(date)
 
-        t, y = self._find_rising(ssbodies['sun'], date,
+        t, y = self._find_rising(self.ssbodies['sun'], date,
                                  date + timedelta(days=1, hours=1),
                                  self.horizon_deg - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
@@ -279,7 +302,7 @@ class Observer:
         else:
             date = self.get_date(date)
 
-        t, y = self._find_setting(ssbodies['sun'], date,
+        t, y = self._find_setting(self.ssbodies['sun'], date,
                                   date + timedelta(days=1, hours=0),
                                   horizon_6 - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
@@ -292,7 +315,7 @@ class Observer:
         else:
             date = self.get_date(date)
 
-        t, y = self._find_setting(ssbodies['sun'], date,
+        t, y = self._find_setting(self.ssbodies['sun'], date,
                                   date + timedelta(days=1, hours=0),
                                   horizon_12 - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
@@ -305,7 +328,7 @@ class Observer:
         else:
             date = self.get_date(date)
 
-        t, y = self._find_setting(ssbodies['sun'], date,
+        t, y = self._find_setting(self.ssbodies['sun'], date,
                                   date + timedelta(days=1, hours=0),
                                   horizon_18 - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
@@ -318,7 +341,7 @@ class Observer:
         else:
             date = self.get_date(date)
 
-        t, y = self._find_rising(ssbodies['sun'], date,
+        t, y = self._find_rising(self.ssbodies['sun'], date,
                                  date + timedelta(days=1, hours=0),
                                  horizon_6 - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
@@ -331,7 +354,7 @@ class Observer:
         else:
             date = self.get_date(date)
 
-        t, y = self._find_rising(ssbodies['sun'], date,
+        t, y = self._find_rising(self.ssbodies['sun'], date,
                                  date + timedelta(days=1, hours=0),
                                  horizon_12 - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
@@ -344,7 +367,7 @@ class Observer:
         else:
             date = self.get_date(date)
 
-        t, y = self._find_rising(ssbodies['sun'], date,
+        t, y = self._find_rising(self.ssbodies['sun'], date,
                                  date + timedelta(days=1, hours=0),
                                  horizon_18 - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
@@ -368,7 +391,7 @@ class Observer:
         else:
             date = self.get_date(date)
 
-        t, y = self._find_rising(ssbodies['moon'], date,
+        t, y = self._find_rising(self.ssbodies['moon'], date,
                                  date + timedelta(days=2, hours=0),
                                  self.horizon_deg - moon_radius_deg)
         return t[0].astimezone(self.tz_local)
@@ -380,7 +403,7 @@ class Observer:
         else:
             date = self.get_date(date)
 
-        t, y = self._find_setting(ssbodies['moon'], date,
+        t, y = self._find_setting(self.ssbodies['moon'], date,
                                   date + timedelta(days=2, hours=0),
                                   self.horizon_deg - moon_radius_deg)
         return t[0].astimezone(self.tz_local)
@@ -392,6 +415,7 @@ class Observer:
         else:
             date = self.get_date(date)
 
+        Moon = get_ss('Moon')
         cres = Moon.calc(self, date)
         return cres.moon_pct
 
@@ -485,6 +509,7 @@ class Body:
                 epoch = [self._get_epoch(eq) for eq in self.equinox]
             else:
                 epoch = [self._get_epoch(self.equinox)] * len(self.ra)
+            #timescale = get_timescale()
             #epoch = timescale.tt(np.array(epoch))
             epoch = np.array(epoch)
 
@@ -559,9 +584,9 @@ class CalculationResult(object):
         if isinstance(date, np.ndarray):
             # NOTE: need to convert numpy.datetime64 to astropy time
             at = Time(date)
-            self.obstime = timescale.from_astropy(at)
+            self.obstime = self.observer.timescale.from_astropy(at)
         else:
-            self.obstime = timescale.from_datetime(date)
+            self.obstime = self.observer.timescale.from_datetime(date)
 
         # properties
         self._ut = None
@@ -751,6 +776,7 @@ class CalculationResult(object):
         """Return the moon's altitude at the time of observation (in degrees)."""
         if self._moon_alt is None:
             # calculate moon altitude
+            ssbodies = get_ssbodies()
             moon = ssbodies['moon']
             astrometric = self.observer.location.at(self.obstime).observe(moon)
             apparent = astrometric.apparent()
@@ -763,6 +789,7 @@ class CalculationResult(object):
     def moon_pct(self):
         """Return the moon's percentage of illumination (range: 0-1)."""
         if self._moon_pct is None:
+            ssbodies = get_ssbodies()
             e = self.observer.location.at(self.obstime)
             s = e.observe(ssbodies['sun']).apparent()
             m = e.observe(ssbodies['moon']).apparent()
@@ -880,6 +907,7 @@ class CalculationResult(object):
         self._az, self._alt = az, alt
 
         # calculate moon separation from target(s)
+        ssbodies = get_ssbodies()
         moon = ssbodies['moon']
         astrometric_m = self.observer.location.at(self.obstime).observe(moon)
         apparent_m = astrometric_m.apparent()
@@ -909,21 +937,45 @@ class CalculationResult(object):
         return 1
 
 
-Moon = SSBody('Moon', ssbodies['moon'])
-Sun = SSBody('Sun', ssbodies['sun'])
-Mercury = SSBody('Mercury', ssbodies['mercury'])
-Venus = SSBody('Venus', ssbodies['venus'])
-Mars = SSBody('Mars', ssbodies['mars'])
-Jupiter = SSBody('Jupiter', ssbodies['jupiter barycenter'])
-Saturn = SSBody('Saturn', ssbodies['saturn barycenter'])
-Uranus = SSBody('Uranus', ssbodies['uranus barycenter'])
-Neptune = SSBody('Neptune', ssbodies['neptune barycenter'])
-Pluto = SSBody('Pluto', ssbodies['pluto barycenter'])
+def get_timescale():
+    # lazy loader for timescale
+    global _timescale
+    if _timescale is None:
+        _timescale = load.timescale()
+
+    return _timescale
+
+
+def get_ssbodies():
+    # lazy loader for ephemeris
+    global _ssbodies
+    if _ssbodies is None:
+        _ssbodies = load('de421.bsp')
+
+    return _ssbodies
+
+
+def get_ss(name):
+    global _SS
+    if _SS is None:
+        ssbodies = get_ssbodies()
+        _SS = Bunch(Moon=SSBody('Moon', ssbodies['moon']),
+                    Sun=SSBody('Sun', ssbodies['sun']),
+                    Mercury=SSBody('Mercury', ssbodies['mercury']),
+                    Venus=SSBody('Venus', ssbodies['venus']),
+                    Mars=SSBody('Mars', ssbodies['mars']),
+                    Jupiter=SSBody('Jupiter', ssbodies['jupiter barycenter']),
+                    Saturn=SSBody('Saturn', ssbodies['saturn barycenter']),
+                    Uranus=SSBody('Uranus', ssbodies['uranus barycenter']),
+                    Neptune=SSBody('Neptune', ssbodies['neptune barycenter']),
+                    Pluto=SSBody('Pluto', ssbodies['pluto barycenter']))
+    return _SS[name]
 
 
 def get_ssbody(lookup_name, myname=None):
     if myname is None:
         myname = lookup_name
+    ssbodies = get_ssbodies()
     return SSBody(myname, ssbodies[lookup_name.lower()])
 
 #END

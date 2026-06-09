@@ -107,7 +107,7 @@ class PolarSky(GingaPlugin.LocalPlugin):
             night_center=sun_info.night_center.strftime("%H:%M [%m/%d]")))
 
         # update with moon info
-        moon_data = calcpos.Moon.calc(site, dt)
+        moon_data = calcpos.get_ss('Moon').calc(site, dt)
         info.update(dict(
             # Moon info here
             moon_rise=(site.moon_rise(dt)).strftime("%H:%M [%m/%d]"),

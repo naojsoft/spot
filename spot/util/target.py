@@ -8,13 +8,16 @@ from astropy.table import Table
 from ginga.util import wcs
 from ginga.misc import Bunch
 
-from spot.util.calcpos import Body, SSBody, ssbodies
+from spot.util.calcpos import Body, SSBody, get_ssbodies
 
 try:
     from oscript.util import ope
     have_oscript = True
 except ImportError:
     have_oscript = False
+
+# see get_ss_target()
+_ss_targets = None
 
 
 class TargetMixin:
@@ -249,22 +252,34 @@ def make_jplhorizons_target(name, eph_table, dt=None, category='Non-sidereal'):
     return target
 
 
-Moon = NSTarget('Moon', ssbodies['moon'])
-Sun = NSTarget('Sun', ssbodies['sun'])
-Mercury = NSTarget('Mercury', ssbodies['mercury'])
-Venus = NSTarget('Venus', ssbodies['venus'])
-Mars = NSTarget('Mars', ssbodies['mars'])
-Jupiter = NSTarget('Jupiter', ssbodies['jupiter barycenter'])
-Saturn = NSTarget('Saturn', ssbodies['saturn barycenter'])
-Uranus = NSTarget('Uranus', ssbodies['uranus barycenter'])
-Neptune = NSTarget('Neptune', ssbodies['neptune barycenter'])
-Pluto = NSTarget('Pluto', ssbodies['pluto barycenter'])
-
-
 def get_nstarget(lookup_name, myname=None):
     if myname is None:
         myname = lookup_name
+    ssbodies = get_ssbodies()
     return NSTarget(myname, ssbodies[lookup_name.lower()])
+
+
+def get_ss_target(name):
+    global _ss_targets
+    if _ss_targets is None:
+        ssbodies = get_ssbodies()
+        _ss_targets = Bunch.Bunch(Moon=NSTarget('Moon', ssbodies['moon']),
+                                  Sun=NSTarget('Sun', ssbodies['sun']),
+                                  Mercury=NSTarget('Mercury',
+                                                   ssbodies['mercury']),
+                                  Venus=NSTarget('Venus', ssbodies['venus']),
+                                  Mars=NSTarget('Mars', ssbodies['mars']),
+                                  Jupiter=NSTarget('Jupiter',
+                                                   ssbodies['jupiter barycenter']),
+                                  Saturn=NSTarget('Saturn',
+                                                  ssbodies['saturn barycenter']),
+                                  Uranus=NSTarget('Uranus',
+                                                  ssbodies['uranus barycenter']),
+                                  Neptune=NSTarget('Neptune',
+                                                   ssbodies['neptune barycenter']),
+                                  Pluto=NSTarget('Pluto',
+                                                 ssbodies['pluto barycenter']))
+    return _ss_targets[name]
 
 
 ######

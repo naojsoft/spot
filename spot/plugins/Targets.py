@@ -263,20 +263,8 @@ class Targets(GingaPlugin.LocalPlugin):
                         ('Priority', 'priority', 'float'),
                         ('Comment', 'comment', 'str'),
                         ]
-
-        # the solar system objects
-        ss = [(spot_target.Moon, 'navajowhite2'),
-              (spot_target.Sun, 'darkgoldenrod1'),
-              (spot_target.Mercury, 'gray'), (spot_target.Venus, 'gray80'),
-              (spot_target.Mars, 'mistyrose'), (spot_target.Jupiter, 'gray90'),
-              (spot_target.Saturn, 'gray70'), (spot_target.Uranus, 'gray'),
-              (spot_target.Neptune, 'gray'), (spot_target.Pluto, 'gray'),
-              ]
+        # set up in build_gui()
         self.ss = []
-        for tup in ss:
-            tgt, color = tup
-            self.ss.append(tgt)
-            tgt.set(color=color)
 
         self.diricon = dict()
         for name, filename in [('invisible', 'no_go.svg'),
@@ -307,6 +295,24 @@ class Targets(GingaPlugin.LocalPlugin):
 
         if not self.chname.endswith('_TGTS'):
             raise Exception(f"This plugin is not designed to run in channel {self.chname}")
+
+        # set up the solar system objects
+        ss = [(spot_target.get_ss_target('Moon'), 'navajowhite2'),
+              (spot_target.get_ss_target('Sun'), 'darkgoldenrod1'),
+              (spot_target.get_ss_target('Mercury'), 'gray'),
+              (spot_target.get_ss_target('Venus'), 'gray80'),
+              (spot_target.get_ss_target('Mars'), 'mistyrose'),
+              (spot_target.get_ss_target('Jupiter'), 'gray90'),
+              (spot_target.get_ss_target('Saturn'), 'gray70'),
+              (spot_target.get_ss_target('Uranus'), 'gray'),
+              (spot_target.get_ss_target('Neptune'), 'gray'),
+              (spot_target.get_ss_target('Pluto'), 'gray'),
+              ]
+        self.ss = []
+        for tup in ss:
+            tgt, color = tup
+            self.ss.append(tgt)
+            tgt.set(color=color)
 
         Widgets = self.fv.get_widget_classes()
         # are we running in a browser?
