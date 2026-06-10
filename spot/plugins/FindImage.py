@@ -185,6 +185,10 @@ class FindImage(GingaPlugin.LocalPlugin):
         self.size = (3, 3)
         self.targets = None
         self._cur_target = None
+        # set True when a download is initiated, cleared once the resulting
+        # image is actually displayed (in redo()); used to post the
+        # "download complete" message at the right time
+        self._download_pending = False
 
         settings = self.viewer.get_settings()
         settings.get_setting('scale').add_callback('set', self.redraw_cb)
@@ -282,12 +286,17 @@ class FindImage(GingaPlugin.LocalPlugin):
                                  lambda w: self.load_fits_image())
 
         fr = Widgets.Frame("Image Download Info")
+        di_vbox = Widgets.VBox()
+        di_vbox.set_spacing(2)
+        self.w.download_prog = Widgets.ProgressBar()
+        di_vbox.add_widget(self.w.download_prog, stretch=0)
         image_info_text = "Please select 'Find image' to find your selected image"
         self.w.select_image_info = Widgets.Label(image_info_text)
         # TODO - Need to find place for 'image download failed' message as
         # error messages aren't thrown from FindImage file
+        di_vbox.add_widget(self.w.select_image_info, stretch=0)
 
-        fr.set_widget(self.w.select_image_info)
+        fr.set_widget(di_vbox)
         top.add_widget(fr, stretch=0)
 
         btns = Widgets.HBox()
@@ -346,6 +355,17 @@ class FindImage(GingaPlugin.LocalPlugin):
         """This is called when a new image arrives or the data in the
         existing image changes.
         """
+        # if this image arrived from a download we initiated, post the
+        # "complete" message now that it is actually displayed
+        if self._download_pending:
+            self._download_pending = False
+            if self.gui_up:
+                image_timestamp = datetime.datetime.now()
+                image_info_text = "Image download complete, displayed at: " + \
+                    image_timestamp.strftime("%D %H:%M:%S")
+                self.w.select_image_info.set_text(image_info_text)
+                self.w.download_prog.set_value(1.0)
+
         tgt = self._cur_target
         if tgt is not None:
             # if we have a target set, then pan to that position
@@ -401,6 +421,8 @@ class FindImage(GingaPlugin.LocalPlugin):
             image_info_text = "Initiating image download at: " + \
                 image_timestamp.strftime("%D %H:%M:%S")
             self.w.select_image_info.set_text(image_info_text)
+            self.w.download_prog.set_value(0.0)
+            self._download_pending = True
 
             self.fv.nongui_do(self.download_image, ra_deg, dec_deg,
                               equinox, service_name, survey, arcmin)
@@ -419,15 +441,14 @@ class FindImage(GingaPlugin.LocalPlugin):
         try:
             self.fv.assert_nongui_thread()
 
+            # NOTE: this only *initiates* the download (via open_uris);
+            # the "download complete, displayed" message is posted later,
+            # in redo(), once the resulting image is actually displayed.
             self.do_download_image(ra_deg, dec_deg, equinox, service_name,
                                    survey, arcmin)
 
-            image_timestamp = datetime.datetime.now()
-            image_info_text = "Image download complete, displayed at: " + \
-                image_timestamp.strftime("%D %H:%M:%S")
-            self.fv.gui_do(self.w.select_image_info.set_text, image_info_text)
-
         except Exception as e:
+            self._download_pending = False
             image_timestamp = datetime.datetime.now()
             image_info_text = "Image download failed at: " + \
                 image_timestamp.strftime("%D %H:%M:%S")
@@ -435,6 +456,13 @@ class FindImage(GingaPlugin.LocalPlugin):
             errmsg = f"failed to find image: {e}"
             self.logger.error(errmsg, exc_info=True)
             self.fv.gui_do(self.fv.show_error, errmsg)
+
+    def _download_progress_cb(self, fraction):
+        # Called (off the GUI thread) as the download proceeds; reflect
+        # progress in our progress bar.
+        if not self.gui_up:
+            return
+        self.fv.gui_do(self.w.download_prog.set_value, fraction)
 
     def do_download_image(self, ra_deg, dec_deg, equinox, service_name,
                           survey, arcmin):
@@ -474,7 +502,8 @@ class FindImage(GingaPlugin.LocalPlugin):
             service_url = service_url.format(**params)
             self.logger.debug(f'SkyView url={service_url}')
             self.fv.gui_do(self.fv.open_uris, [service_url],
-                           chname=self.channel.name)
+                           chname=self.channel.name,
+                           download_cb=self._download_progress_cb)
 
         elif service == "ESO":
             self.logger.debug('ESO...')
@@ -495,7 +524,8 @@ class FindImage(GingaPlugin.LocalPlugin):
             service_url = service_url.format(**params)
             self.logger.debug(f'ESO url={service_url}')
             self.fv.gui_do(self.fv.open_uris, [service_url],
-                           chname=self.channel.name)
+                           chname=self.channel.name,
+                           download_cb=self._download_progress_cb)
 
         elif service == "PANSTARRS-1":
             self.logger.debug('Panstarrs 1...')
@@ -551,7 +581,8 @@ class FindImage(GingaPlugin.LocalPlugin):
 
             self.logger.debug(f'Panstarrs1 url={service_url}')
             self.fv.gui_do(self.fv.open_uris, [service_url],
-                           chname=self.channel.name)
+                           chname=self.channel.name,
+                           download_cb=self._download_progress_cb)
 
         elif service == "STSCI":
             self.logger.debug('STScI...')
@@ -572,7 +603,8 @@ class FindImage(GingaPlugin.LocalPlugin):
             service_url = service_url.format(**params)
             self.logger.debug(f'STScI url={service_url}')
             self.fv.gui_do(self.fv.open_uris, [service_url],
-                           chname=self.channel.name)
+                           chname=self.channel.name,
+                           download_cb=self._download_progress_cb)
 
     def create_blank_image(self):
         self.viewer.onscreen_message("Creating blank field...",

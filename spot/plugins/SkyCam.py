@@ -85,7 +85,6 @@ import datetime
 
 # 3rd party
 import numpy as np
-import requests
 import yaml
 import tempfile
 
@@ -94,6 +93,7 @@ from ginga import trcalc
 from ginga.AstroImage import AstroImage
 from ginga.RGBImage import RGBImage
 from ginga import GingaPlugin
+from ginga.misc import Future
 from ginga.util.paths import ginga_home
 
 # where our config files are stored
@@ -445,67 +445,33 @@ class SkyCam(GingaPlugin.LocalPlugin):
             image_info_text = "Initiating image download at: " + \
                 image_timestamp.strftime("%D %H:%M:%S")
             self.w.select_image_info.set_text(image_info_text)
-            self.fv.nongui_do(self.do_download_sky_image)
 
-        except Exception as e:
-            image_timestamp = datetime.datetime.now()
-            image_info_text = "Image download failed at: " + \
-                image_timestamp.strftime("%D %H:%M:%S")
-            self.w.select_image_info.set_text(image_info_text)
-            self.logger.error("failed to download/update sky image: {}"
-                              .format(e), exc_info=True)
-
-    def do_download_sky_image(self):
-        # Dispatched via nongui_do().  Pick a fetch strategy based on the
-        # active task pool so this works for both backends:
-        #   * threaded pool  -> synchronous ``requests`` download, run on
-        #     a worker thread (the normal native path).
-        #   * async pool     -> the browser's async fetch (e.g. Pyodide,
-        #     where sockets/``requests`` don't work).  We return the
-        #     coroutine here; nongui_do builds an AsyncFuncTask that
-        #     awaits the returned value on the event loop.
-        if self.fv.get_taskpool_type() == 'async':
-            return self._do_download_sky_image_async()
-        return self._do_download_sky_image_sync()
-
-    def _do_download_sky_image_sync(self):
-        try:
-            self.fv.assert_nongui_thread()
-            start_time = time.time()
             url = self.settings['image_url']
             _, ext = os.path.splitext(url)
-            self.logger.info("downloading '{}'...".format(url))
-            interval = self.settings.get('image_update_interval')
-            r = requests.get(url, timeout=(120, interval))
-            self._save_sky_image(url, ext, r.content, start_time)
+            outpath = os.path.join(self.settings['download_folder'],
+                                   'allsky' + ext)
+            start_time = time.time()
+            # Delegate the actual download to the central object, which
+            # transparently handles both the threaded backend (desktop /
+            # pg-over-websocket) and the in-situ async backend (Pyodide,
+            # routing through a CORS proxy).
+            future = Future.Future()
+            future.add_callback('resolved', self._sky_image_downloaded_cb,
+                                start_time)
+            self.fv.nongui_do(self.fv.download_file, url, outpath, future)
 
         except Exception as e:
             self._notify_download_failed(e)
 
-    async def _do_download_sky_image_async(self):
+    def _sky_image_downloaded_cb(self, future, start_time):
         try:
-            start_time = time.time()
-            url = self.settings['image_url']
-            _, ext = os.path.splitext(url)
-            self.logger.info("downloading (async) '{}'...".format(url))
-            # browser fetch -- the only way to do network I/O under Pyodide
-            from pyodide.http import pyfetch
-            resp = await pyfetch(url)
-            data = await resp.bytes()
-            self._save_sky_image(url, ext, data, start_time)
-
+            filepath = future.get_value(block=False)
         except Exception as e:
             self._notify_download_failed(e)
-
-    def _save_sky_image(self, url, ext, data, start_time):
-        outpath = os.path.join(self.settings['download_folder'],
-                               'allsky' + ext)
-        with open(outpath, 'wb') as out_f:
-            out_f.write(bytes(data))
+            return
         self.logger.info("download finished in %.4f sec" % (
             time.time() - start_time))
-        self.sky_image_path = outpath
-
+        self.sky_image_path = filepath
         self.fv.gui_do(self.update_sky_image)
 
     def _notify_download_failed(self, e):
