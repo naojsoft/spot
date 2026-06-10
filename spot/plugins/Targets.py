@@ -645,7 +645,12 @@ class Targets(GingaPlugin.LocalPlugin):
             is_ref = tgt.get('IsRef', False)
             if tag == 'ss' or self.show_unref_tgts or is_ref:
                 az_deg, alt_deg = tgt['az_deg'], tgt['alt_deg']
-                alpha = 1.0 if alt_deg > 0 else 0.0
+                if alt_deg <= 0:
+                    if tag == 'targets':
+                        tgt.set(plotted=None)
+                    continue
+
+                alpha = 1.0
                 color = self._get_target_color(tgt)
                 selected = tgt in self.selected
                 t, r = self.map_azalt(az_deg, alt_deg)
@@ -854,8 +859,11 @@ class Targets(GingaPlugin.LocalPlugin):
         for f_dct in evt["files"]:
             filename = f_dct['name']
             if f_dct.get("data", None) is not None:
-                # data is a raw buffer of the file
-                buf = f_dct['data'].decode()
+                # data is a raw buffer of the file.  Normalize to bytes
+                # first: the websocket backend delivers it as ``bytes``,
+                # but the in-situ (Pyodide) backend hands over the JS
+                # ArrayBuffer as a ``memoryview`` (no .decode()).
+                buf = bytes(f_dct['data']).decode()
                 self.load_buffer(filename, buf)
 
     def load_buffer(self, filename, buf):
