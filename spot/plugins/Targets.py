@@ -1375,7 +1375,12 @@ class Targets(GingaPlugin.LocalPlugin):
         # prepare URL
         tgt = list(self.selected)[0]
         url = spot_target.get_browse_url(tgt, service_name)
-        self.fv.nongui_do(spot_target.browse_url, self.logger, url)
+        # Open in the *user's* browser, appropriate to the backend (desktop
+        # -> webbrowser; pg in-situ -> window.open; pg websocket -> a command
+        # to the remote browser).  Call directly on the GUI thread (not via
+        # nongui_do) so the in-situ window.open stays within the click's
+        # user-activation window and isn't suppressed by a popup blocker.
+        self.fv.open_url(url)
 
     def color_select_cb(self, w, color):
         hex_color = w.get_color(format='hex')

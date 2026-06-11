@@ -164,7 +164,13 @@ class FindImage(GingaPlugin.LocalPlugin):
         for d in name_sources:
             typ = d.get('type', None)
             obj = None
-            if typ == 'astroquery.names':
+            if typ == 'name.sesame':
+                # Sesame works both natively and in-situ; no astroquery
+                obj = catalog.SesameNameServer(self.logger,
+                                               d['fullname'],
+                                               d['shortname'], None,
+                                               d['fullname'])
+            elif typ == 'astroquery.names':
                 if catalog.have_astroquery:
                     obj = catalog.AstroqueryNameServer(self.logger,
                                                        d['fullname'],

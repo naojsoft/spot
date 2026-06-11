@@ -2,8 +2,10 @@ from datetime import UTC
 import webbrowser
 
 import numpy as np
+from dateutil.parser import parse as parse_date
 from astropy.time import Time
 from astropy.table import Table
+import astropy.units as u
 
 from ginga.util import wcs
 from ginga.misc import Bunch
@@ -227,6 +229,107 @@ def load_jplephem_target(eph_path, dt=None):
     if dt is not None:
         update_nonsidereal_targets([target], dt)
     return target
+
+
+class HorizonsQuery:
+    """Build a JPL Horizons OBSERVER ephemeris query and parse the result.
+
+    This is a small stand-in for ``astroquery.jplhorizons`` covering only
+    the quantities SPOT needs (datetime, RA, DEC, range) by talking to the
+    documented Horizons HTTP API directly.  Because the HTTP *transport* is
+    supplied by the caller (e.g. Ginga's ``fetch_url``), the same query
+    works natively and in-situ in the browser (where it can be routed
+    through a CORS proxy and astroquery cannot run).
+
+    Parameters
+    ----------
+    name : str
+        Target id / designation (Horizons ``COMMAND``).
+    location : dict
+        ``dict(lat=<Quantity deg>, lon=<Quantity deg>, elevation=<Quantity m>)``
+        -- same form accepted by ``astroquery.jplhorizons.Horizons``.
+    epochs : dict
+        ``dict(start=<str>, stop=<str>, step=<str>)`` time specification.
+    """
+
+    api_url = "https://ssd.jpl.nasa.gov/api/horizons.api"
+
+    def __init__(self, name, location, epochs):
+        self.name = name
+        self.location = location
+        self.epochs = epochs
+
+    def make_url(self):
+        from urllib.parse import urlencode, quote
+        lon_deg = self.location['lon'].to_value(u.deg)
+        lat_deg = self.location['lat'].to_value(u.deg)
+        elev_km = self.location['elevation'].to_value(u.km)
+
+        # String values are wrapped in single quotes per the Horizons API.
+        # QUANTITIES '1,20' -> astrometric RA/DEC (matches astroquery's
+        # default RA/DEC) + range/range-rate (delta).  ANG_FORMAT=DEG and
+        # CSV_FORMAT=YES make the output decimal-degree and comma-delimited
+        # so it parses deterministically.
+        params = {
+            'format': 'text',
+            'COMMAND': "'%s'" % (self.name,),
+            'EPHEM_TYPE': 'OBSERVER',
+            'CENTER': "'coord@399'",
+            'COORD_TYPE': 'GEODETIC',
+            'SITE_COORD': "'%.8f,%.8f,%.6f'" % (lon_deg, lat_deg, elev_km),
+            'START_TIME': "'%s'" % (self.epochs['start'],),
+            'STOP_TIME': "'%s'" % (self.epochs['stop'],),
+            'STEP_SIZE': "'%s'" % (self.epochs['step'],),
+            'QUANTITIES': "'1,20'",
+            'ANG_FORMAT': 'DEG',
+            'CSV_FORMAT': 'YES',
+        }
+        return self.api_url + '?' + urlencode(params, quote_via=quote)
+
+    def parse(self, data):
+        """Parse a Horizons response into an astropy Table with columns
+        ``datetime_jd``, ``RA``, ``DEC`` and ``delta`` (the subset consumed
+        by `make_jplhorizons_target`).
+
+        *data* may be ``bytes`` (the in-situ fetch returns bytes) or ``str``.
+        """
+        if isinstance(data, (bytes, bytearray, memoryview)):
+            data = bytes(data).decode('utf-8', errors='replace')
+
+        # the ephemeris rows live between the $$SOE / $$EOE markers
+        try:
+            block = data.split('$$SOE', 1)[1].split('$$EOE', 1)[0]
+        except IndexError:
+            # surface Horizons' own message (e.g. ambiguous/unknown target)
+            raise ValueError("No ephemeris returned by Horizons: %s" %
+                             (data.strip()[:400],))
+
+        dts, ras, decs, deltas = [], [], [], []
+        for line in block.strip().splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            fields = [f.strip() for f in line.split(',')]
+            # OBSERVER CSV columns for QUANTITIES='1,20':
+            #   0 date  1 solar-flag  2 lunar-flag  3 RA(deg)  4 DEC(deg)
+            #   5 delta(AU)  6 deldot(km/s)
+            if len(fields) < 6:
+                continue
+            dt = parse_date(fields[0])
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=UTC)
+            dts.append(dt)
+            ras.append(float(fields[3]))
+            decs.append(float(fields[4]))
+            deltas.append(float(fields[5]))
+
+        if len(dts) == 0:
+            raise ValueError("Horizons ephemeris was empty")
+
+        jds = Time(dts, scale='utc').jd
+        return Table(data=[np.asarray(jds), np.asarray(ras),
+                           np.asarray(decs), np.asarray(deltas)],
+                     names=['datetime_jd', 'RA', 'DEC', 'delta'])
 
 
 def make_jplhorizons_target(name, eph_table, dt=None, category='Non-sidereal'):

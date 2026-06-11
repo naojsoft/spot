@@ -14,11 +14,11 @@ import numpy as np
 import pandas as pd
 
 import astropy.units as u
-from astroquery.jplhorizons import Horizons
 
 # ginga
 from ginga import GingaPlugin
 from ginga.util import wcs
+from ginga.misc import Future
 
 from spot.util import target as spot_target
 
@@ -241,33 +241,44 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
     def getname_cb(self):
         name = self.w.obj_name.get_text().strip()
         server = self.w.server.get_text()
+        if len(name) == 0:
+            self.fv.show_error("Please enter a name to look up")
+            return
 
         srvbank = self.fv.get_server_bank()
         namesvc = srvbank.get_name_server(server)
 
-        self.fv.nongui_do(self._getname_bg, name, server, namesvc)
+        # Resolve the name via the name server (Sesame), fetching through
+        # the central object's fetch_url() so it works both natively and
+        # in-situ (browser fetch + CORS proxy).  The name server abstracts
+        # the URL construction and response parsing; fetch_url handles the
+        # transport (and picks threaded vs. async automatically).
+        self.logger.info("looking up name '{}' at {}".format(name, server))
+        url = namesvc.make_url(name)
+        future = Future.Future()
+        future.add_callback('resolved', self._getname_done, namesvc, name)
+        self.fv.nongui_do(self.fv.fetch_url, url, future)
 
-    def _getname_bg(self, name, server, namesvc):
-        self.fv.assert_nongui_thread()
+    def _getname_done(self, future, namesvc, name):
         try:
-            self.logger.info("looking up name '{}' at {}".format(name, server))
-
-            ra_str, dec_str = namesvc.search(name)
-
-            def _update_gui():
-                # populate the image server UI coordinate
-                self.w.ra.set_text(ra_str)
-                self.w.dec.set_text(dec_str)
-                self.w.equinox.set_text('2000.0')  # ??!!
-                self.w.tgt_name.set_text(name)
-
-            self.fv.gui_do(_update_gui)
+            data = future.get_value(block=False)
+            ra_str, dec_str = namesvc.parse(data)
 
         except Exception as e:
             errmsg = "Name service query exception: %s" % (str(e))
             self.logger.error(errmsg, exc_info=True)
             # pop up the error in the GUI under "Errors" tab
             self.fv.gui_do(self.fv.show_error, errmsg)
+            return
+
+        def _update_gui():
+            # populate the image server UI coordinate
+            self.w.ra.set_text(ra_str)
+            self.w.dec.set_text(dec_str)
+            self.w.equinox.set_text('2000.0')  # ??!!
+            self.w.tgt_name.set_text(name)
+
+        self.fv.gui_do(_update_gui)
 
     def get_radec_eq(self):
         ra_str = self.w.ra.get_text().strip()
@@ -316,17 +327,39 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
                           stop=dt_stop.strftime('%Y-%m-%d %H:%M:%S'),
                           step=step)
 
-            obj = Horizons(id=name, location=location, epochs=epochs)
-            # returns an astropy Table
-            eph_tbl = obj.ephemerides()
-
-            obj = self.channel.opmon.get_plugin('Targets')
-            obj.process_eph_table_for_target(name, eph_tbl)
+            # Resolve the ephemeris via JPL Horizons, fetching through the
+            # central object's fetch_url() so it works both natively and
+            # in-situ (browser fetch + CORS proxy).  HorizonsQuery abstracts
+            # the URL construction and response parsing; fetch_url handles
+            # the transport (threaded vs. async automatically).
+            query = spot_target.HorizonsQuery(name, location, epochs)
+            url = query.make_url()
+            future = Future.Future()
+            future.add_callback('resolved', self._nonsidereal_done, query,
+                                name)
+            self.fv.nongui_do(self.fv.fetch_url, url, future)
 
         except Exception as e:
             errmsg = f"Exception looking up name '{name}': {e}"
             self.logger.error(errmsg, exc_info=True)
             self.fv.show_error(errmsg)
+
+    def _nonsidereal_done(self, future, query, name):
+        try:
+            data = future.get_value(block=False)
+            eph_tbl = query.parse(data)
+
+        except Exception as e:
+            errmsg = f"Exception looking up name '{name}': {e}"
+            self.logger.error(errmsg, exc_info=True)
+            self.fv.gui_do(self.fv.show_error, errmsg)
+            return
+
+        def _finish():
+            obj = self.channel.opmon.get_plugin('Targets')
+            obj.process_eph_table_for_target(name, eph_tbl)
+
+        self.fv.gui_do(_finish)
 
     def site_changed_cb(self, cb, site_obj):
         self.logger.debug("site has changed")
