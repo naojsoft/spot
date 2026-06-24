@@ -139,6 +139,14 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.plot_which = 'selected'
         self._satellite_barh_data = None
         self._collisions = None
+        # bumped on each (re)calculation so an in-flight per-target calc
+        # aborts between targets when the selection or time changes
+        self._calc_gen = 0
+        # cache of assembled per-target DataFrames (building them is very
+        # expensive under pyodide); keyed by target, invalidated when the
+        # plotted time period changes
+        self._df_cache = {}
+        self._df_cache_period = None
         self.gui_up = False
 
         self.time_axis_options = ('Night Center', 'Day Center', 'Current')
@@ -160,7 +168,7 @@ class Visibility(GingaPlugin.LocalPlugin):
 
         self.tmr_replot = self.fv.make_timer()
         self.tmr_replot.add_callback('expired', lambda tmr: self.replot())
-        self.replot_after_sec = 0.2
+        self.replot_after_sec = 0.02
 
     def build_gui(self, container):
 
@@ -228,6 +236,19 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.w.plot.set_tooltip("Choose what is plotted")
         self.w.toolbar2.add_widget(Widgets.Label("Plot:"))
         self.w.toolbar2.add_widget(self.w.plot)
+
+        # progress bar, just after the Plot selector; updated while target
+        # visibilities are being calculated, sits at 0 when idle.  Pin a
+        # definite size: on pg the bar's CSS is width:100% so without a max
+        # it fills the toolbar and hides the other controls; on qt the
+        # toolbar forces a Fixed size policy, so min==max gives it a
+        # concrete (non-collapsing) size.
+        self.w.progress = Widgets.ProgressBar()
+        self.w.progress.set_tooltip("Target visibility calculation progress")
+        self.w.progress.set_min_size(120, 22)
+        self.w.progress.set_max_size(120, 22)
+        self.w.progress.set_value(0.0)
+        self.w.toolbar2.add_widget(self.w.progress)
 
         self.w.toolbar2.add_spacer()
 
@@ -309,6 +330,10 @@ class Visibility(GingaPlugin.LocalPlugin):
 
         # remove no longer used targets
         with self.lock:
+            # bump the generation: any per-target calc still in flight for
+            # a previous selection/time will see a mismatch and abort
+            self._calc_gen += 1
+            my_gen = self._calc_gen
             self._targets = targets
             if not self.gui_up:
                 return
@@ -359,21 +384,58 @@ class Visibility(GingaPlugin.LocalPlugin):
         stop_time = stop_time.replace(minute=stop_minute,
                                       second=0, microsecond=0)
 
-        # this does the heavy lifting
-        target_data = self.get_target_data(targets, start_time, stop_time,
-                                           interval_min)
+        start_time_utc = start_time.astimezone(tz.UTC)
+        stop_time_utc = stop_time.astimezone(tz.UTC)
 
-        collision_barh_data = None
-        if self._telescope_target in targets and collisions is not None:
-            # only plot the laser collision windows if we are viewing
-            # one of the targets that the telescope is pointing at
-            collision_barh_data = self.calc_collision_windows(start_time,
-                                                              stop_time,
-                                                              collisions)
+        # the cached DataFrames are only valid for a given time period;
+        # drop them when the period changes (a selection/color change keeps
+        # the same period, so its frames are reused)
+        period = (start_time_utc, stop_time_utc)
+        if period != self._df_cache_period:
+            self._df_cache = {}
+            self._df_cache_period = period
 
-        # plot results back in the GUI thread
-        self.fv.gui_do(self._plot_targets, site, target_data, dt_utc, cur_tz,
-                       center_time, satellite_barh_data, collision_barh_data)
+        # The heavy lifting (one skyfield calc per target over the time
+        # grid) is dispatched one target at a time through nongui_foreach,
+        # so on the single-event-loop (browser) backend the UI stays
+        # responsive: control returns to the loop between targets.
+        num = len(targets)
+        progress = {'done': 0}
+
+        def is_cancelled():
+            # a newer calc (selection/time change) supersedes this one
+            return my_gen != self._calc_gen
+
+        def worker(tgt):
+            return self._calc_one_target(tgt, start_time_utc, stop_time_utc)
+
+        def on_each(tgt, info):
+            progress['done'] += 1
+            if self.gui_up and my_gen == self._calc_gen:
+                self.w.progress.set_value(progress['done'] / num)
+
+        def on_done(target_data):
+            if my_gen != self._calc_gen or not self.gui_up:
+                return
+            # reset the progress bar to idle
+            self.w.progress.set_value(0.0)
+
+            collision_barh_data = None
+            if self._telescope_target in targets and collisions is not None:
+                # only plot the laser collision windows if we are viewing
+                # one of the targets that the telescope is pointing at
+                collision_barh_data = self.calc_collision_windows(start_time,
+                                                                  stop_time,
+                                                                  collisions)
+            self._plot_targets(site, target_data, dt_utc, cur_tz,
+                               center_time, satellite_barh_data,
+                               collision_barh_data)
+
+        if self.gui_up and num > 0:
+            self.fv.gui_do(self.w.progress.set_value, 0.0)
+
+        self.fv.nongui_foreach(targets, worker, on_each=on_each,
+                               on_done=on_done, is_cancelled=is_cancelled)
 
     def _plot_targets(self, site, target_data, dt_utc, cur_tz,
                       center_time, satellite_barh_data, collision_barh_data):
@@ -398,38 +460,56 @@ class Visibility(GingaPlugin.LocalPlugin):
 
         self.plot_azalt(target_data, 'targets')
 
-    def get_target_data(self, targets, start_time, stop_time, interval_min):
-        num_tgts = len(targets)
-        target_data = []
-        if num_tgts == 0:
-            return target_data
+    def _target_key(self, tgt):
+        """Stable ephemeris-cache key for a target.
 
+        A target's object identity is *not* stable across replots in-situ
+        (targets can be re-created when the selection changes), which would
+        defeat the ephemeris cache -- every lookup would miss and re-run the
+        expensive position calculation.  Key on (name, ra, dec) instead, so
+        the cache hits whenever the same logical target recurs.  Including
+        the coordinates means a wrong hit is impossible: a moved/renamed
+        target gets a different key (worst case a harmless spurious miss).
+        """
+        return (getattr(tgt, 'name', None),
+                getattr(tgt, 'ra', None), getattr(tgt, 'dec', None))
+
+    def _calc_one_target(self, tgt, start_time_utc, stop_time_utc):
+        """Compute one target's visibility over the period and build its
+        plot Bunch.  Runs off the GUI (must not touch widgets).
+
+        ``keep_old=False`` only trims this target's cached samples that
+        fall outside the current period; the bulk of the period is reused
+        across the usual minute-by-minute time shifts.
+        """
         # TODO: work with site object directly, not observer
         site = self.site.observer
-
-        start_time_utc = start_time.astimezone(tz.UTC)
-        stop_time_utc = stop_time.astimezone(tz.UTC)
-
-        # populate ephemeris cache
-        tgt_dct = {tgt: tgt for tgt in targets}
+        # cache by a stable key (not object identity) -- see _target_key
+        key = self._target_key(tgt)
+        tgt_dct = {key: tgt}
         periods = [(start_time_utc, stop_time_utc)]
         self.eph_cache.populate_periods(tgt_dct, site, periods,
                                         keep_old=False)
 
-        for tgt in targets:
-            vis_dct = self.eph_cache.get_target_data(tgt)
-
+        # reuse the assembled DataFrame across replots within the same time
+        # period -- building it is the dominant per-target cost in pyodide
+        df = self._df_cache.get(key)
+        if df is None:
+            vis_dct = self.eph_cache.get_target_data(key)
             df = pd.DataFrame.from_dict(vis_dct, orient='columns')
-            color, alpha, zorder, textbg = self._get_target_color(tgt)
-            color = colors.lookup_color(color, format='hash')
-            target_data.append(Bunch.Bunch(history=df,
-                                           color=color,
-                                           alpha=alpha,
-                                           zorder=zorder,
-                                           textbg=textbg,
-                                           target=tgt))
+            self._df_cache[key] = df
+        color, alpha, zorder, textbg = self._get_target_color(tgt)
+        color = colors.lookup_color(color, format='hash')
+        return Bunch.Bunch(history=df, color=color, alpha=alpha,
+                           zorder=zorder, textbg=textbg, target=tgt)
 
-        return target_data
+    def get_target_data(self, targets, start_time, stop_time, interval_min=None):
+        if len(targets) == 0:
+            return []
+        start_time_utc = start_time.astimezone(tz.UTC)
+        stop_time_utc = stop_time.astimezone(tz.UTC)
+        return [self._calc_one_target(tgt, start_time_utc, stop_time_utc)
+                for tgt in targets]
 
     def plot_azalt(self, target_data, tag):
         """Plot targets.

@@ -85,10 +85,17 @@ class AltitudePlot(plots.Plot):
 
         # plot targets elevation vs. time
         for i, info in enumerate(tgt_data):
-            lt_data = np.array([t.astimezone(tz)
-                                for t in info.history['ut']])
+            # all targets share the same time grid, so reuse the
+            # (Python-level, and under pyodide fairly expensive) UT->local
+            # conversion computed once above instead of redoing it per
+            # target; fall back to a per-target conversion only if some
+            # target's history has a different length.
+            ut_data = info.history['ut']
+            if len(ut_data) == len(lt_data_first):
+                lt_data = lt_data_first
+            else:
+                lt_data = np.array([t.astimezone(tz) for t in ut_data])
             alt_data = info.history['alt_deg']
-            alt_min = np.argmin(alt_data)
             alt_data_dots = alt_data
             color = info.get('color', self.colors[i % len(self.colors)])
             alpha = info.get('alpha', 1.0)
@@ -119,8 +126,9 @@ class AltitudePlot(plots.Plot):
 
             # plot object label
             targname = info.target.name
-            ax1.text(mpl_dt.date2num(lt_data[alt_data.argmax()]),
-                     alt_data.max() + 4.0, targname, color=color,
+            i_max = alt_data.argmax()
+            ax1.text(mpl_dt.date2num(lt_data[i_max]),
+                     alt_data[i_max] + 4.0, targname, color=color,
                      alpha=alpha, zorder=zorder, backgroundcolor=textbg,
                      ha='center', va='center', clip_on=True)
 
