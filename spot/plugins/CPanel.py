@@ -312,19 +312,28 @@ class CPanel(GingaPlugin.GlobalPlugin):
             cb_dct[p_info.name].set_state(False)
 
     def save_ws_layout_cb(self, w, wsname):
-        ws = self.fv.ds.get_ws(wsname)
-        cfg_d = ws.get_configuration()
-        wd, ht = self.fv.ds.get_ds_size()
-        cfg_d.update(dict(ds_wd=wd, ds_ht=ht))
-        path = os.path.join(ginga_home, wsname + '.json')
+        self.logger.info(f"save_ws_layout_cb called for wsname={wsname}")
         try:
+            ws = self.fv.ds.get_ws(wsname)
+            cfg_d = ws.get_configuration()
+            wd, ht = self.fv.ds.get_ds_size()
+            cfg_d.update(dict(ds_wd=wd, ds_ht=ht))
+            path = os.path.join(ginga_home, wsname + '.json')
+            self.logger.info(f"saving workspace layout to: {path} "
+                             f"(ginga_home={ginga_home})")
             with open(path, 'w') as out_f:
                 out_f.write(json.dumps(cfg_d, indent=4))
             self.fv.show_status(f"Workspace positions saved for {wsname}")
+            # in-situ (browser) the home dir is backed by IndexedDB; ask the
+            # shell to flush it so the layout survives a reload.  No-op on
+            # backends that don't provide the hook.
+            persist = getattr(self.fv, 'persist_config', None)
+            if persist is not None:
+                persist()
 
         except Exception as e:
             errmsg = f"Error saving workspace {wsname}: {e}"
-            self.logger.error(errmsg)
+            self.logger.error(errmsg, exc_info=True)
             self.fv.show_error(errmsg)
 
     def close_ws_cb(self, w, wsname):
