@@ -22,6 +22,7 @@ from ginga.util.syncops import Shelf
 
 # local
 from spot.util.target import Target
+from spot.util.config import get_workspace_settings
 from spot.util.rot import normalize_angle
 
 
@@ -77,8 +78,9 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
             return
 
         # get TelescopePosition preferences
-        prefs = self.fv.get_preferences()
-        self.settings = prefs.create_category('plugin_TelescopePosition')
+        wsname = self.chname.rsplit('_', 1)[0]
+        self.settings = get_workspace_settings(wsname, 'TelescopePosition',
+                                               logger=self.logger)
         self.settings.add_defaults(pan_to_telescope_position=False,
                                    tel_fov_deg=1.5,
                                    color_telescope='skyblue1',

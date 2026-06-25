@@ -18,6 +18,7 @@ from ginga.util.wcs import ra_deg_to_str, dec_deg_to_str
 
 # local
 from spot.util import calcpos
+from spot.util.config import get_workspace_settings
 from spot.util.rot import normalize_angle
 
 
@@ -43,8 +44,9 @@ class PolarSky(GingaPlugin.LocalPlugin):
             return
 
         # get PolarSky preferences
-        prefs = self.fv.get_preferences()
-        self.settings = prefs.create_category('plugin_PolarSky')
+        wsname = self.chname.rsplit('_', 1)[0]
+        self.settings = get_workspace_settings(wsname, 'PolarSky',
+                                               logger=self.logger)
         self.settings.add_defaults(image_radius=1850,
                                    elevations=[10, 30, 50, 70, 85],
                                    danger_elevations=[10],

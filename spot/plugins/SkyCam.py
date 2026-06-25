@@ -98,6 +98,7 @@ from ginga.util.paths import ginga_home
 
 # where our config files are stored
 from spot import __file__
+from spot.util.config import get_workspace_settings, save_settings
 cfgdir = os.path.join(os.path.dirname(__file__), 'config')
 
 
@@ -147,8 +148,9 @@ class SkyCam(GingaPlugin.LocalPlugin):
             return
 
         # get SkyCam preferences
-        prefs = self.fv.get_preferences()
-        self.settings = prefs.create_category('plugin_SkyCam')
+        wsname = self.chname.rsplit('_', 1)[0]
+        self.settings = get_workspace_settings(wsname, 'SkyCam',
+                                               logger=self.logger)
         self.settings.add_defaults(download_folder=tempfile.gettempdir(),
                                    image_update_interval=60.0,
                                    default_camera=None,
@@ -286,6 +288,10 @@ class SkyCam(GingaPlugin.LocalPlugin):
         btn = Widgets.Button("Help")
         btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
+        btn = Widgets.Button("Save config")
+        btn.add_callback('activated', lambda w: self.save_config())
+        btn.set_tooltip("Save this plugin's configuration for the workspace")
+        btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
         top.add_widget(btns, stretch=0)
@@ -300,6 +306,15 @@ class SkyCam(GingaPlugin.LocalPlugin):
     def help(self):
         name = str(self).capitalize()
         self.fv.help_text(name, self.__doc__, trim_pfx=4)
+
+    def save_config(self):
+        try:
+            # record the current selection (more settings may be added later)
+            self.settings.set(default_camera=self.img_src_name)
+            save_settings(self.settings, self.fv)
+            self.fv.show_status(f"Saved configuration for {str(self)}")
+        except Exception as e:
+            self.fv.show_error(f"Error saving {str(self)} config: {e}")
 
     def start(self):
         # set up some settings in our channel

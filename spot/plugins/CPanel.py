@@ -80,13 +80,14 @@ class CPanel(GingaPlugin.GlobalPlugin):
     Saving the workspace layout
     ---------------------------
     By pressing the "Save <wsname> layout" button, you will save the current
-    position and size of the plugins that you have opened in the given
-    workspace.  Each workspace's layout can be saved separately under its
-    unique name, under $HOME/.spot
+    size and position of the plugin windows you have opened in the given
+    workspace, along with which plugins are currently running.  Each
+    workspace's layout is saved separately, in
+    ``$HOME/.spot/<wsname>/workspace.json``.
 
     When you start up SPOT the next time and open a workspace with the same
-    name, it will remember the positions and sizes of the windows when you
-    reopen plugins.
+    name, it will recreate the windows in their saved sizes and positions
+    and restart the plugins that were running when you saved.
     """
     def __init__(self, fv):
         super().__init__(fv)
@@ -191,7 +192,10 @@ class CPanel(GingaPlugin.GlobalPlugin):
                                    use_toolbar=False)
         self.fv.init_workspace(ws)
 
-        path = os.path.join(ginga_home, wsname + '.json')
+        # plugins that were running when this workspace's layout was saved
+        running_plugins = []
+
+        path = os.path.join(ginga_home, wsname, 'workspace.json')
         if os.path.exists(path):
             # if a saved configuration for this workspace exists, load it
             # so that windows will be created in the appropriate places
@@ -202,6 +206,8 @@ class CPanel(GingaPlugin.GlobalPlugin):
                     self.fv.ds.set_ds_size(cfg_d['ds_wd'], cfg_d['ds_ht'])
                     # populate information to size and position titled children
                     ws.child_catalog = cfg_d['tabs']
+                    # remember which plugins were running, to restart below
+                    running_plugins = cfg_d.get('plugins', [])
                 except Exception as e:
                     self.logger.error("Error reading workspace '{path}': {e}",
                                       exc_info=True)
@@ -228,6 +234,8 @@ class CPanel(GingaPlugin.GlobalPlugin):
         Widgets = self.fv.get_widget_classes()
         vbox = Widgets.VBox()
         vbox.set_spacing(2)
+        # plugins to (re)start once the workspace is fully set up
+        to_start = []
         plugins = self.fv.get_plugins()
         for spec in plugins:
             if 'ch_sfx' in spec and spec.get('enabled', True):
@@ -239,6 +247,8 @@ class CPanel(GingaPlugin.GlobalPlugin):
                 vbox.add_widget(cb, stretch=0)
                 cb.add_callback('activated', self.activate_plugin_cb,
                                 wsname, plname, chname)
+                if plname in running_plugins:
+                    to_start.append((cb, plname, chname))
 
         hbox = Widgets.HBox()
         hbox.set_border_width(4)
@@ -262,6 +272,12 @@ class CPanel(GingaPlugin.GlobalPlugin):
         index = self.w.stk.index_of(vbox)
         self.w.stk.set_index(index)
         self.fv.ds.raise_tab(wsname)
+
+        # restart the plugins that were running when the layout was saved.
+        # to_start preserves plugin spec order, so dependencies (e.g.
+        # SiteSelector, the time source) come up before the others.
+        for cb, plname, chname in to_start:
+            self.activate_plugin_cb(cb, True, wsname, plname, chname)
 
     def select_workspace_cb(self, w, idx):
         wsname = w.get_text()
@@ -318,9 +334,16 @@ class CPanel(GingaPlugin.GlobalPlugin):
             cfg_d = ws.get_configuration()
             wd, ht = self.fv.ds.get_ds_size()
             cfg_d.update(dict(ds_wd=wd, ds_ht=ht))
-            path = os.path.join(ginga_home, wsname + '.json')
+            # record which plugins are currently running so they can be
+            # restarted when this workspace is reopened
+            info = self.ws_dct.get(wsname)
+            if info is not None:
+                cfg_d['plugins'] = [plname for plname, cb
+                                    in info.cb_dct.items() if cb.get_state()]
+            path = os.path.join(ginga_home, wsname, 'workspace.json')
             self.logger.info(f"saving workspace layout to: {path} "
                              f"(ginga_home={ginga_home})")
+            os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, 'w') as out_f:
                 out_f.write(json.dumps(cfg_d, indent=4))
             self.fv.show_status(f"Workspace positions saved for {wsname}")

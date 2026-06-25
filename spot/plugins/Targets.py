@@ -50,6 +50,7 @@ except ImportError:
 
 # local
 from spot.util import calcpos
+from spot.util.config import get_workspace_settings
 from spot.util import target as spot_target
 
 # where our icons are stored
@@ -181,8 +182,9 @@ class Targets(GingaPlugin.LocalPlugin):
             return
 
         # get preferences
-        prefs = self.fv.get_preferences()
-        self.settings = prefs.create_category('plugin_Targets')
+        wsname = self.chname.rsplit('_', 1)[0]
+        self.settings = get_workspace_settings(wsname, 'Targets',
+                                               logger=self.logger)
         self.settings.add_defaults(targets_update_interval=60.0,
                                    color_selected='royalblue',
                                    color_tagged='mediumorchid1',

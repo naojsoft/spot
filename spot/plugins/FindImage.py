@@ -27,6 +27,7 @@ from ginga.util import wcs, catalog, dp
 from ginga.AstroImage import AstroImage
 
 from spot.util import target as spot_target
+from spot.util.config import get_workspace_settings
 
 image_sources = {
     'SkyView: DSS1+Blue': dict(),
@@ -126,8 +127,9 @@ class FindImage(GingaPlugin.LocalPlugin):
             return
 
         # get FOV preferences
-        prefs = self.fv.get_preferences()
-        self.settings = prefs.create_category('plugin_FindImage')
+        wsname = self.chname.rsplit('_', 1)[0]
+        self.settings = get_workspace_settings(wsname, 'FindImage',
+                                               logger=self.logger)
         self.settings.add_defaults(name_sources=catalog.default_name_sources,
                                    sky_radius_arcmin=3,
                                    follow_telescope=False,

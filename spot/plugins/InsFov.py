@@ -16,6 +16,7 @@ from ginga.util import wcs
 from ginga.misc import Bunch
 
 from spot.util import target as spot_target
+from spot.util.config import get_workspace_settings
 from spot.util.rot import normalize_angle
 # get all overlays
 from spot.instruments import inst_dict
@@ -71,8 +72,9 @@ class InsFov(GingaPlugin.LocalPlugin):
             return
 
         # get FOV preferences
-        prefs = self.fv.get_preferences()
-        self.settings = prefs.create_category('plugin_InsFov')
+        wsname = self.chname.rsplit('_', 1)[0]
+        self.settings = get_workspace_settings(wsname, 'InsFov',
+                                               logger=self.logger)
         self.settings.add_defaults(sky_radius_arcmin=3,
                                    fov_update_interval=60.0,
                                    rotate_with_pa=True)

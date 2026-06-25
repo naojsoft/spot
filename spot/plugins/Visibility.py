@@ -38,6 +38,7 @@ from ginga.misc import Bunch
 from ginga import GingaPlugin, colors
 
 from spot.plots.altitude import AltitudePlot
+from spot.util.config import get_workspace_settings
 from spot.util.eph_cache import EphemerisCache
 
 
@@ -108,8 +109,9 @@ class Visibility(GingaPlugin.LocalPlugin):
             return
 
         # get preferences
-        prefs = self.fv.get_preferences()
-        self.settings = prefs.create_category('plugin_Visibility')
+        wsname = self.chname.rsplit('_', 1)[0]
+        self.settings = get_workspace_settings(wsname, 'Visibility',
+                                               logger=self.logger)
         self.settings.add_defaults(targets_update_interval=60.0,
                                    color_selected='dodgerblue1',
                                    color_tagged='mediumorchid1',

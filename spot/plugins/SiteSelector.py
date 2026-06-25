@@ -24,6 +24,7 @@ import yaml
 
 # local
 from spot.util import sites
+from spot.util.config import get_workspace_settings, save_settings
 
 # where our config files are stored
 from spot import __file__
@@ -94,8 +95,9 @@ class SiteSelector(GingaPlugin.LocalPlugin):
             return
 
         # get SiteSelector preferences
-        prefs = self.fv.get_preferences()
-        self.settings = prefs.create_category('plugin_SiteSelector')
+        wsname = self.chname.rsplit('_', 1)[0]
+        self.settings = get_workspace_settings(wsname, 'SiteSelector',
+                                               logger=self.logger)
         self.settings.add_defaults(default_site=None,
                                    timer_update_interval=1.0)
         self.settings.load(onError='silent')
@@ -215,6 +217,10 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         btn = Widgets.Button("Help")
         btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
+        btn = Widgets.Button("Save config")
+        btn.add_callback('activated', lambda w: self.save_config())
+        btn.set_tooltip("Save this plugin's configuration for the workspace")
+        btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
         top.add_widget(btns, stretch=0)
@@ -229,6 +235,15 @@ class SiteSelector(GingaPlugin.LocalPlugin):
     def help(self):
         name = str(self).capitalize()
         self.fv.help_text(name, self.__doc__, trim_pfx=4)
+
+    def save_config(self):
+        try:
+            # record the current selection (more settings may be added later)
+            self.settings.set(default_site=self.site_dict.get(str(self.site_obj)))
+            save_settings(self.settings, self.fv)
+            self.fv.show_status(f"Saved configuration for {str(self)}")
+        except Exception as e:
+            self.fv.show_error(f"Error saving {str(self)} config: {e}")
 
     def start(self):
         self.update_timer_cb(self.tmr)

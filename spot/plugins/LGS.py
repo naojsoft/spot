@@ -34,6 +34,7 @@ from ginga import GingaPlugin
 from ginga.util.paths import home
 
 from spot.util import pamsat, calcpos
+from spot.util.config import get_workspace_settings
 from spot.util.target import Target
 
 
@@ -48,8 +49,9 @@ class LGS(GingaPlugin.LocalPlugin):
         super().__init__(fv, fitsimage)
 
         # get preferences
-        prefs = self.fv.get_preferences()
-        self.settings = prefs.create_category('plugin_LGS')
+        wsname = self.chname.rsplit('_', 1)[0]
+        self.settings = get_workspace_settings(wsname, 'LGS',
+                                               logger=self.logger)
         self.settings.add_defaults(pam_dir=default_pam_dir,
                                    pad_sec=0, min_delta_arcsec=600.0)
         self.settings.load(onError='silent')
