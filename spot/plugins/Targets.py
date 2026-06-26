@@ -903,20 +903,50 @@ class Targets(GingaPlugin.LocalPlugin):
         """
         prm_dir = os.path.join(ginga_home, 'prm')
         prm_name = os.path.basename(filename)
+        prm_path = os.path.join(prm_dir, prm_name)
+        # an upload of a same-named PRM file replaces the existing one
+        replaced = os.path.exists(prm_path)
+        # Guard only the actual file write here -- the user-notification
+        # below must not be inside this try, or a notification failure would
+        # be misreported as a save failure (and the file did get saved).
         try:
             os.makedirs(prm_dir, exist_ok=True)
-            prm_path = os.path.join(prm_dir, prm_name)
             with open(prm_path, 'w') as out_f:
                 out_f.write(buf)
-            self.logger.info(f"saved PRM file to '{prm_path}'")
+            self.logger.info("%s PRM file '%s'" %
+                             ("replaced" if replaced else "saved", prm_path))
             persist = getattr(self.fv, 'persist_config', None)
             if persist is not None:
                 persist()
-            self.fv.show_status(f"Saved PRM file '{prm_name}'")
         except Exception as e:
-            errmsg = f"Error saving PRM file '{prm_name}': {e}"
+            errmsg = f"Error saving PRM file '{prm_name}':\n{e}"
             self.logger.error(errmsg, exc_info=True)
             self.fv.show_error(errmsg)
+            self._popup_prm_result('error', "PRM file not saved", errmsg)
+            return
+
+        # success -- keep the status-bar note in addition to the pop-up
+        verb = "Replaced" if replaced else "Saved"
+        self.fv.show_status(f"{verb} PRM file '{prm_name}'")
+        if replaced:
+            text = (f"Replaced existing PRM file '{prm_name}' in\n{prm_dir}")
+        else:
+            text = (f"Saved PRM file '{prm_name}' into\n{prm_dir}")
+        self._popup_prm_result('info', f"PRM file {verb.lower()}", text)
+
+    def _popup_prm_result(self, category, title, text):
+        """Pop up a MessageDialog confirming the result of saving a PRM
+        file: the 'info' category on success, 'error' on failure.  Shown
+        and dismissed via the shell's Desktop (``ds``) so it works across
+        all backends (Qt/Gtk/pg, in-situ or web socket)."""
+        Widgets = self.fv.get_widget_classes()
+        dialog = Widgets.MessageDialog(title=title, parent=self.fv.w.root,
+                                       buttons=[["OK", 0]], autoclose=True,
+                                       modal=True)
+        dialog.set_message(category, text)
+        dialog.add_callback('activated',
+                            lambda *args: self.fv.ds.remove_dialog(dialog))
+        self.fv.ds.show_dialog(dialog)
 
     def file_setpath_cb(self, w, *args):
         file_path = w.get_text().strip()
