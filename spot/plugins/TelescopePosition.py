@@ -82,6 +82,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         self.settings = get_workspace_settings(wsname, 'TelescopePosition',
                                                logger=self.logger)
         self.settings.add_defaults(pan_to_telescope_position=False,
+                                   plot_telescope_position=True,
                                    tel_fov_deg=1.5,
                                    color_telescope='skyblue1',
                                    color_slew='thistle1',
@@ -209,7 +210,8 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         top.add_widget(w, stretch=0)
         b.plot_telescope_position.add_callback('activated',
                                                self.tel_posn_toggle_cb)
-        b.plot_telescope_position.set_state(True)
+        b.plot_telescope_position.set_state(
+            self.settings.get('plot_telescope_position', False))
         b.plot_telescope_position.set_tooltip("Plot the telescope position")
 
         b.target_follows_telescope.set_state(self._follow_target)
@@ -278,7 +280,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
     def update_telescope_plot(self):
         if not self.gui_up:
             return
-        if not self.w.plot_telescope_position.get_state():
+        if not self.settings.get('plot_telescope_position', False):
             try:
                 self.canvas.delete_object_by_tag('telescope')
             except KeyError:
@@ -439,6 +441,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
             self._follow_target = False
 
     def tel_posn_toggle_cb(self, w, tf):
+        self.settings.set(plot_telescope_position=tf)
         self.fv.gui_do(self.update_telescope_plot)
 
     def pan_to_tel_pos_cb(self, w, tf):

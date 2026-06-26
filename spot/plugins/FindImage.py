@@ -27,7 +27,7 @@ from ginga.util import wcs, catalog, dp
 from ginga.AstroImage import AstroImage
 
 from spot.util import target as spot_target
-from spot.util.config import get_workspace_settings
+from spot.util.config import get_workspace_settings, save_settings
 
 image_sources = {
     'SkyView: DSS1+Blue': dict(),
@@ -137,6 +137,7 @@ class FindImage(GingaPlugin.LocalPlugin):
                                    telescope_update_interval=3.0,
                                    targets_update_interval=10.0,
                                    nonsidereal_plot_local_time=True,
+                                   default_image_source=None,
                                    color_map='ds9_cool')
         self.settings.load(onError='silent')
 
@@ -279,8 +280,14 @@ class FindImage(GingaPlugin.LocalPlugin):
         fr.set_widget(w)
         top.add_widget(fr, stretch=0)
 
-        for name in image_sources.keys():
+        src_names = list(image_sources.keys())
+        for name in src_names:
             b.image_source.append_text(name)
+        # restore the saved default image source, if any
+        default_source = self.settings.get('default_image_source', None)
+        if default_source in src_names:
+            b.image_source.set_index(src_names.index(default_source))
+        b.image_source.add_callback('activated', self.image_source_cb)
         b.find_image.add_callback('activated', lambda w: self.find_image())
 
         b.size.set_text(f"{self.size[0]:.2f}")
@@ -317,6 +324,10 @@ class FindImage(GingaPlugin.LocalPlugin):
         btn = Widgets.Button("Help")
         btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
+        btn = Widgets.Button("Save config")
+        btn.add_callback('activated', lambda w: self.save_config())
+        btn.set_tooltip("Save this plugin's settings for this workspace")
+        btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
         top.add_widget(btns, stretch=0)
@@ -331,6 +342,19 @@ class FindImage(GingaPlugin.LocalPlugin):
     def help(self):
         name = str(self).capitalize()
         self.fv.help_text(name, self.__doc__, trim_pfx=4)
+
+    def image_source_cb(self, w, idx):
+        # record the chosen image source as the default to restore next time
+        self.settings.set(default_image_source=w.get_text().strip())
+
+    def save_config(self):
+        # persist this plugin's settings to ~/.spot/<wsname>/FindImage.cfg
+        # (in-situ this also flushes to IndexedDB via persist_config)
+        try:
+            save_settings(self.settings, self.fv)
+            self.fv.show_status(f"Saved configuration for {str(self)}")
+        except Exception as e:
+            self.fv.show_error(f"Error saving {str(self)} config: {e}")
 
     def start(self):
         # surreptitiously share setting of sky_radius with InsFov plugin

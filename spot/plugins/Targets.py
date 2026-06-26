@@ -50,7 +50,7 @@ except ImportError:
 
 # local
 from spot.util import calcpos
-from spot.util.config import get_workspace_settings
+from spot.util.config import get_workspace_settings, save_settings
 from spot.util import target as spot_target
 
 # where our icons are stored
@@ -197,11 +197,14 @@ class Targets(GingaPlugin.LocalPlugin):
                                    color_selected='royalblue',
                                    color_tagged='mediumorchid1',
                                    color_normal='seagreen2',
+                                   plot_color=None,
                                    plot_ss_objects=True,
                                    load_directory=user_home,
                                    enable_datetime_setting=False,
+                                   show_unreferenced_targets=False,
                                    rotate_target_colors=True,
                                    merge_targets=False,
+                                   plot_which='uncollapsed',
                                    load_selection_order='csv_first')
         self.settings.load(onError='silent')
 
@@ -217,7 +220,10 @@ class Targets(GingaPlugin.LocalPlugin):
                      'uncollapsed-changed']:
             self.cb.enable_callback(name)
 
-        self._tgt_color = self.settings['color_normal']
+        # plot_color is the user's chosen target color; fall back to the
+        # configured color_normal when one was never saved
+        self._tgt_color = (self.settings.get('plot_color', None) or
+                           self.settings['color_normal'])
         self.tgt_colors = [self._tgt_color, 'slateblue2',
                            'coral', 'olivedrab', 'chocolate', 'darkorange2',
                            'khaki4', 'deeppink2', 'purple']
@@ -226,12 +232,13 @@ class Targets(GingaPlugin.LocalPlugin):
         self.target_dict = {}
         self.full_tgt_list = []
         self.tgt_category_dct = {}
-        self.plot_which = 'uncollapsed'
+        self.plot_which = self.settings.get('plot_which', 'uncollapsed')
         self.plot_ss_objects = self.settings.get('plot_ss_objects', True)
         self.uncollapsed = set([])
         self.tagged = set([])
         self.selected = set([])
-        self.show_unref_tgts = False
+        self.show_unref_tgts = self.settings.get('show_unreferenced_targets',
+                                                 False)
         self.fov_dct = Bunch.Bunch(dict(Sun=6.5, Moon=6.5), caseless=True)
         self._mbody = None
         self.table_shelf = Shelf()
@@ -392,6 +399,8 @@ class Targets(GingaPlugin.LocalPlugin):
         self.w.colorselect.add_callback('activated', self.color_select_cb)
         hex_color = colors.lookup_color(self._tgt_color, format='hex')
         self.w.colorselect.set_color(hex_color)
+        # reflect the restored plot color on the button swatch
+        self.w.color.set_color(bg=hex_color, fg='black')
 
         def _colorpop(*args):
             x, y = btn.get_position()
@@ -533,6 +542,10 @@ class Targets(GingaPlugin.LocalPlugin):
         btn = Widgets.Button("Help")
         btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
+        btn = Widgets.Button("Save config")
+        btn.add_callback('activated', lambda w: self.save_config())
+        btn.set_tooltip("Save this plugin's settings for this workspace")
+        btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
         top.add_widget(btns, stretch=0)
@@ -547,6 +560,15 @@ class Targets(GingaPlugin.LocalPlugin):
     def help(self):
         name = str(self).capitalize()
         self.fv.help_text(name, self.__doc__, trim_pfx=4)
+
+    def save_config(self):
+        # persist this plugin's settings to ~/.spot/<wsname>/Targets.cfg
+        # (in-situ this also flushes to IndexedDB via persist_config)
+        try:
+            save_settings(self.settings, self.fv)
+            self.fv.show_status(f"Saved configuration for {str(self)}")
+        except Exception as e:
+            self.fv.show_error(f"Error saving {str(self)} config: {e}")
 
     def start(self):
         skycam = self.channel.opmon.get_plugin('SkyCam')
@@ -1298,6 +1320,7 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def list_prm_cb(self, w, tf):
         self.show_unref_tgts = tf
+        self.settings.set(show_unreferenced_targets=tf)
         self.targets_to_table()
         self.update_targets(self.full_tgt_list, 'targets')
 
@@ -1415,12 +1438,14 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def plot_ss_cb(self, w, tf):
         self.plot_ss_objects = tf
+        self.settings.set(plot_ss_objects=tf)
         self.clear_plot()
         self.update_plots()
 
     def configure_plot_cb(self, w, idx):
         option = w.get_text()
         self.plot_which = option.lower()
+        self.settings.set(plot_which=self.plot_which)
         self.clear_plot()
         self.update_plots()
 
@@ -1459,6 +1484,7 @@ class Targets(GingaPlugin.LocalPlugin):
     def color_select_cb(self, w, color):
         hex_color = w.get_color(format='hex')
         self._tgt_color = hex_color
+        self.settings.set(plot_color=hex_color)
         self.w.color.set_color(bg=hex_color, fg='black')
 
     def get_datetime(self):

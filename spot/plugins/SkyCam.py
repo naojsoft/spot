@@ -154,6 +154,9 @@ class SkyCam(GingaPlugin.LocalPlugin):
         self.settings.add_defaults(download_folder=tempfile.gettempdir(),
                                    image_update_interval=60.0,
                                    default_camera=None,
+                                   show_sky_image=False,
+                                   show_diff_image=False,
+                                   image_convert_monochrome=True,
                                    image_radius=1000)
         self.settings.load(onError='silent')
 
@@ -168,8 +171,8 @@ class SkyCam(GingaPlugin.LocalPlugin):
 
         self.sky_image_path = None
         self._last_img_update_dt = None
-        self.flag_use_sky_image = False
-        self.flag_use_diff_image = False
+        self.flag_use_sky_image = self.settings.get('show_sky_image', False)
+        self.flag_use_diff_image = self.settings.get('show_diff_image', False)
 
         canvas = self.dc.DrawingCanvas()
         canvas.set_surface(self.viewer)
@@ -187,7 +190,6 @@ class SkyCam(GingaPlugin.LocalPlugin):
                           image_transform=(self.config.get('flip_x', False),
                                            self.config.get('flip_y', False),
                                            False),
-                          image_convert_monochrome=self.config.get('convert_monochrome', True),
                           image_update_interval=self.config.get(
                               'update_interval', 120.0))
 
@@ -328,6 +330,12 @@ class SkyCam(GingaPlugin.LocalPlugin):
         self._sky_image_canvas_setup()
 
         self.canvas.delete_all_objects()
+
+        # if a saved config restored show_sky_image=True, kick off a
+        # download now rather than waiting for the timed update loop
+        # (mirrors what sky_image_toggle_cb does on a manual toggle)
+        if self.flag_use_sky_image and self.sky_image_path is None:
+            self.download_sky_image()
 
     def stop(self):
         self.gui_up = False
@@ -528,6 +536,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
 
     def sky_image_toggle_cb(self, w, tf):
         self.flag_use_sky_image = tf
+        self.settings.set(show_sky_image=tf)
         self._sky_image_canvas_setup()
         if self.flag_use_sky_image and self.sky_image_path is None:
             # if user now wants a background image and we don't have one
@@ -536,7 +545,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
             self.download_sky_image()
 
     def mono_image_toggle_cb(self, w, tf):
-        self.settings['image_convert_monochrome'] = tf
+        self.settings.set(image_convert_monochrome=tf)
         # need similar depth of data for subtraction
         self.cur_data = None
         self.old_data = None
@@ -547,6 +556,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
 
     def diff_image_toggle_cb(self, w, tf):
         self.flag_use_diff_image = tf
+        self.settings.set(show_diff_image=tf)
         message = "Waiting for the next image to create a differential sky..."
         if self.flag_use_diff_image and self.old_data is None:
             self.w.select_image_info.set_text(message)
