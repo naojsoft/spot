@@ -314,7 +314,7 @@ class Targets(GingaPlugin.LocalPlugin):
             raise Exception(f"This plugin is not designed to run in channel {self.chname}")
 
         # set up the solar system objects
-        ss = [(spot_target.get_ss_target('Moon'), 'navajowhite2'),
+        ss = [(spot_target.get_ss_target('Moon'), 'lightgoldenrod1'),
               (spot_target.get_ss_target('Sun'), 'darkgoldenrod1'),
               (spot_target.get_ss_target('Mercury'), 'gray'),
               (spot_target.get_ss_target('Venus'), 'gray80'),
@@ -666,9 +666,7 @@ class Targets(GingaPlugin.LocalPlugin):
         cl_radius = pt_radius * 2
         radius_dct = dict(Sun=cl_radius * pt_radius * 2,
                           Moon=cl_radius * pt_radius * 2)
-        fill = True
-        if tag != 'ss':
-            fill = False
+        fill = (tag == 'ss')
 
         self.logger.info("plotting {} targets tag {}".format(len(targets), tag))
         to_be_raised = []
