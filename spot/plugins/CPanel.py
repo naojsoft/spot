@@ -28,7 +28,8 @@ import json
 # ginga
 from ginga import GingaPlugin
 from ginga.misc import Bunch
-from ginga.util.paths import ginga_home
+
+from spot.util.config import list_workspaces, get_workspace_layout_path
 
 
 class CPanel(GingaPlugin.GlobalPlugin):
@@ -42,11 +43,11 @@ class CPanel(GingaPlugin.GlobalPlugin):
 
     Creating a workspace
     --------------------
-    Use the "Open Workspace" button to open a workspace.  If you want to
-    give it a specific name, put a name in the entry box to the right of the
-    button before pressing the button.  Workspace names must be unique.
-    If you don't provide a name, the workspaces will be created with a generic
-    name.
+    To open a workspace, choose one from the editable drop-down box (it is
+    populated with the workspaces found in ``$HOME/.spot/workspaces``) -- or
+    type a new name into it -- and press the "Open Workspace" button to its
+    right.  Workspace names must be unique.  If you leave the box empty, a
+    workspace is created with a generic name.
 
     Select the opened workspace by selecting its tab in order to see and work
     with the plugins that will be opened there.
@@ -83,7 +84,7 @@ class CPanel(GingaPlugin.GlobalPlugin):
     size and position of the plugin windows you have opened in the given
     workspace, along with which plugins are currently running.  Each
     workspace's layout is saved separately, in
-    ``$HOME/.spot/<wsname>/workspace.json``.
+    ``$HOME/.spot/workspaces/<wsname>/workspace.json``.
 
     When you start up SPOT the next time and open a workspace with the same
     name, it will recreate the windows in their saved sizes and positions
@@ -112,15 +113,21 @@ class CPanel(GingaPlugin.GlobalPlugin):
         top = Widgets.VBox()
         top.set_border_width(4)
 
-        captions = (("Open Workspace", 'button', "wsname", 'entry'),
+        captions = (("wsname", 'comboboxedit', "Open Workspace", 'button'),
                     ("Select Workspace:", 'label', 'sel_ws', 'combobox')
                     )
 
         w, b = Widgets.build_info(captions)
         self.w = b
-        b.wsname.set_tooltip("Name for a new or existing workspace (optional)")
+        # populate the editable combo box with the existing workspaces; the
+        # user can pick one or type a new name into it
+        ws_names = list_workspaces()
+        for name in ws_names:
+            b.wsname.append_text(name)
+        self._ws_choices = set(ws_names)
+        b.wsname.set_tooltip("Select an existing workspace, or type a new name")
         b.open_workspace.add_callback('activated', self.open_workspace_cb)
-        b.open_workspace.set_tooltip("Open a new or existing workspace")
+        b.open_workspace.set_tooltip("Open the selected or named workspace")
         top.add_widget(w, stretch=0)
 
         b.sel_ws.set_tooltip("Select an opened workspace")
@@ -192,10 +199,15 @@ class CPanel(GingaPlugin.GlobalPlugin):
                                    use_toolbar=False)
         self.fv.init_workspace(ws)
 
+        # make this (possibly new) workspace selectable in the combo box
+        if wsname not in self._ws_choices:
+            self._ws_choices.add(wsname)
+            self.w.wsname.append_text(wsname)
+
         # plugins that were running when this workspace's layout was saved
         running_plugins = []
 
-        path = os.path.join(ginga_home, wsname, 'workspace.json')
+        path = get_workspace_layout_path(wsname)
         if os.path.exists(path):
             # if a saved configuration for this workspace exists, load it
             # so that windows will be created in the appropriate places
@@ -340,9 +352,8 @@ class CPanel(GingaPlugin.GlobalPlugin):
             if info is not None:
                 cfg_d['plugins'] = [plname for plname, cb
                                     in info.cb_dct.items() if cb.get_state()]
-            path = os.path.join(ginga_home, wsname, 'workspace.json')
-            self.logger.info(f"saving workspace layout to: {path} "
-                             f"(ginga_home={ginga_home})")
+            path = get_workspace_layout_path(wsname)
+            self.logger.info(f"saving workspace layout to: {path}")
             os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, 'w') as out_f:
                 out_f.write(json.dumps(cfg_d, indent=4))

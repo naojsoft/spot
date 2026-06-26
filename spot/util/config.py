@@ -7,13 +7,16 @@
 """
 Helpers for per-workspace plugin configuration.
 
-SPOT lays out configuration under the home directory (``~/.spot``) with one
-subdirectory per workspace::
+SPOT keeps all per-workspace configuration under ``~/.spot/workspaces``,
+with one subdirectory per workspace::
 
-    ~/.spot/<wsname>/workspace.json     # CPanel-saved window layout
-    ~/.spot/<wsname>/<PluginName>.cfg   # each plugin's settings
+    ~/.spot/workspaces/<wsname>/workspace.json     # CPanel-saved layout
+    ~/.spot/workspaces/<wsname>/<PluginName>.cfg   # each plugin's settings
 
-so that every workspace can carry its own configuration.
+so that every workspace can carry its own configuration, and the set of
+workspaces is simply the set of subdirectories there.  Files shared by all
+workspaces (e.g. ``sites.yml``, ``skycams.yml``, the ``prm/`` and
+``downloads/`` directories) continue to live directly under ``~/.spot``.
 """
 import os
 
@@ -21,17 +24,46 @@ from ginga.util import paths
 from ginga.misc import Settings
 
 
-def get_workspace_dir(wsname):
-    """Return the per-workspace config directory (``~/.spot/<wsname>``),
-    creating it if necessary."""
-    folder = os.path.join(paths.ginga_home, wsname)
+def get_workspaces_root():
+    """Return the directory holding all per-workspace config directories
+    (``~/.spot/workspaces``), creating it if necessary."""
+    folder = os.path.join(paths.ginga_home, 'workspaces')
     os.makedirs(folder, exist_ok=True)
     return folder
 
 
+def get_workspace_dir(wsname):
+    """Return the per-workspace config directory
+    (``~/.spot/workspaces/<wsname>``), creating it if necessary."""
+    folder = os.path.join(get_workspaces_root(), wsname)
+    os.makedirs(folder, exist_ok=True)
+    return folder
+
+
+def list_workspaces():
+    """Return the sorted names of existing workspaces -- i.e. the
+    subdirectories of ``~/.spot/workspaces``."""
+    root = get_workspaces_root()
+    try:
+        return sorted(name for name in os.listdir(root)
+                      if os.path.isdir(os.path.join(root, name)))
+    except OSError:
+        return []
+
+
+def get_workspace_layout_path(wsname):
+    """Return the path to a workspace's saved layout file
+    (``~/.spot/workspaces/<wsname>/workspace.json``).
+
+    Does not create the per-workspace directory (so it is safe to use for an
+    existence check); callers that write should ``makedirs`` the parent.
+    """
+    return os.path.join(get_workspaces_root(), wsname, 'workspace.json')
+
+
 def get_workspace_settings(wsname, name, logger=None):
     """Return a :class:`~ginga.misc.Settings.SettingGroup` backed by the
-    per-workspace config file ``~/.spot/<wsname>/<name>.cfg``.
+    per-workspace config file ``~/.spot/workspaces/<wsname>/<name>.cfg``.
 
     Parameters
     ----------

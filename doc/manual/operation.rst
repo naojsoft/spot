@@ -15,11 +15,11 @@ command "spot". When the program starts it will look like this:
 If it has not been selected by default, switch to the ``Control``
 tab on the right side of the SPOT program to open the 
 SPOT Control Panel.
-At the top of the Control tab, you can press ``Open Workspace``
-to create a blank workspace. If you would like to give the 
-workspace a name, you will need to type a name next to the 
-``Open Workspace`` button in the fillable area. Otherwise,
-the name will default to "WS1", "WS2", etc.
+At the top of the Control tab there is an editable drop-down box listing
+the workspaces found in ``$HOME/.spot/workspaces``.  Select an existing
+workspace from it, or type a new name into it, and then press the
+``Open Workspace`` button to its right to open the workspace.  If you
+leave the box empty, the name will default to "WS1", "WS2", etc.
 
 .. image:: figures/NewWorkspace.*
 
@@ -101,13 +101,15 @@ plugins, and also create, switch, and save workspaces.
 
 .. image:: figures/CPanel.*
 
-A new workspace can be created by typing a name in the fillable box next 
-to "New Workspace" and then pressing "New Workspace". If there is a 
-saved layout under the same (case-sensitive) name, the saved layout will 
-be loaded. The name does not have a character limit, but only the first 
-15 characters are saved and the name of the workspace cannot be changed 
-once it is created. You can swap to another open workspace by opening the 
-drop down menu next to "Select Workspace" and pressing one of the options. 
+A workspace can be opened by selecting it from the editable drop-down box
+(populated with the workspaces found in ``$HOME/.spot/workspaces``), or by
+typing a new name into the box, and then pressing the "Open Workspace"
+button to its right. If there is a saved layout under the same
+(case-sensitive) name, the saved layout will be loaded. The name does not
+have a character limit, but only the first 15 characters are saved, and the
+name of the workspace cannot be changed once it is created. You can swap to
+another open workspace by opening the drop down menu next to "Select
+Workspace" and pressing one of the options.
 Pressing the "Save workspace_name layout" button will save the current 
 size and position of the plugin and channel windows. 
 
