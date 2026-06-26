@@ -108,6 +108,14 @@ class Targets(GingaPlugin.LocalPlugin):
                optional "oscript" package:
                (pip install git+https://github.com/naojsoft/oscript).
 
+    Uploading PRM files
+    ===================
+    OPE files often reference targets defined in separate "PRM" files.
+    Select (or drag and drop) a ``.prm`` file the same way you would a CSV
+    or OPE file: instead of loading targets, it is saved into ``~/.spot/prm``
+    (and persisted) so that subsequently loaded OPE files can resolve the
+    targets they reference.
+
     Table information
     =================
     The target table summarizes information about targets. There are columns
@@ -348,7 +356,7 @@ class Targets(GingaPlugin.LocalPlugin):
         # b.load_file.set_text("File")
         if self.is_web:
             self.w.fileselect = Widgets.BrowserFileDialog(mode="file",
-                                                          accept=".ope,.csv")
+                                                          accept=".ope,.csv,.prm")
             drop_lbl = Widgets.Label("[Drop file here]", interactive=True)
             drop_lbl.set_halign("center")
             drop_lbl.set_color("#e8f0fe", "#4a86c8")
@@ -360,9 +368,11 @@ class Targets(GingaPlugin.LocalPlugin):
                                                    title="Select target files")
             self.w.fileselect.set_mode('files')
             self.w.fileselect.set_directory(self.home)
-            add_order = [("CSV", ".csv"), ("OPE", ".ope"), ("EPH", ".eph")]
+            add_order = [("CSV", ".csv"), ("OPE", ".ope"), ("EPH", ".eph"),
+                         ("PRM", ".prm")]
             if self.settings.get('load_selection_order', 'csv_first') == 'ope_first':
-                add_order = [("OPE", ".ope"), ("CSV", ".csv"), ("EPH", ".eph")]
+                add_order = [("OPE", ".ope"), ("CSV", ".csv"), ("EPH", ".eph"),
+                             ("PRM", ".prm")]
             for name, ext in add_order:
                 if name == 'OPE' and not have_oscript:
                     continue
@@ -874,10 +884,39 @@ class Targets(GingaPlugin.LocalPlugin):
             self.process_ope_buffer_for_targets(filename, buf)
         elif ext == ".csv":
             self.process_csv_buffer_for_targets(filename, buf)
+        elif ext == ".prm":
+            # not a target list: stash it for OPE files to reference
+            self.save_prm_buffer(filename, buf)
         else:
             self.fv.show_error(f"I don't know how to load files of type '{ext}'")
 
         self._rotate_colors()
+
+    def save_prm_buffer(self, filename, buf):
+        """Save an uploaded PRM file into ``~/.spot/prm`` so that OPE files
+        which reference it can find it (see the ``prm_dirs`` in
+        ``process_ope_buffer_for_targets``), then persist it.  In-situ
+        (Pyodide) the home directory is backed by IndexedDB and only
+        persists on an explicit sync, which the shell's ``persist_config``
+        hook performs; on other backends that hook is absent and this is a
+        plain file write.
+        """
+        prm_dir = os.path.join(ginga_home, 'prm')
+        prm_name = os.path.basename(filename)
+        try:
+            os.makedirs(prm_dir, exist_ok=True)
+            prm_path = os.path.join(prm_dir, prm_name)
+            with open(prm_path, 'w') as out_f:
+                out_f.write(buf)
+            self.logger.info(f"saved PRM file to '{prm_path}'")
+            persist = getattr(self.fv, 'persist_config', None)
+            if persist is not None:
+                persist()
+            self.fv.show_status(f"Saved PRM file '{prm_name}'")
+        except Exception as e:
+            errmsg = f"Error saving PRM file '{prm_name}': {e}"
+            self.logger.error(errmsg, exc_info=True)
+            self.fv.show_error(errmsg)
 
     def file_setpath_cb(self, w, *args):
         file_path = w.get_text().strip()
@@ -896,6 +935,9 @@ class Targets(GingaPlugin.LocalPlugin):
                 self.process_csv_file_for_targets(file_path)
             elif ext == ".eph":
                 self.process_eph_file_for_target(file_path)
+            elif ext == ".prm":
+                with open(file_path, 'r') as in_f:
+                    self.save_prm_buffer(file_path, in_f.read())
             else:
                 self.fv.show_error(f"I don't know how to load files of type '{ext}'")
                 return
