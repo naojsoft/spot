@@ -49,7 +49,7 @@ except ImportError:
     have_oscript = False
 
 # local
-from spot.util import calcpos
+from spot.util import calcpos, rot
 from spot.util.config import get_workspace_settings, save_settings
 from spot.util import target as spot_target
 
@@ -266,6 +266,7 @@ class Targets(GingaPlugin.LocalPlugin):
                         ('Index', 'index', 'int'),
                         ('Name', 'name', 'str'),
                         ('Az', 'az_deg', 'str'),
+                        ('Az2', 'az2_deg', 'str'),
                         ('Alt', 'alt_deg', 'str'),
                         ('Dir', 'icon', 'icon'),
                         ('HA', 'ha', 'str'),
@@ -352,15 +353,6 @@ class Targets(GingaPlugin.LocalPlugin):
         btn.set_tooltip("Select target file")
         hbox.add_widget(btn, stretch=0)
 
-        # captions = [('Load File', 'button',
-        #              'File Path', 'textentryset',
-        #              'Color', 'button'),
-        #             ]
-
-        # w, b = Widgets.build_info(captions)
-        # self.w = b
-
-        # b.load_file.set_text("File")
         if self.is_web:
             self.w.fileselect = Widgets.BrowserFileDialog(mode="file",
                                                           accept=".ope,.csv,.prm")
@@ -783,8 +775,8 @@ class Targets(GingaPlugin.LocalPlugin):
 
             # get full information about all targets at `start_time`
             cres = self._mbody.calc(self.site.observer, start_time)
-            columns = ['ra_deg', 'dec_deg', 'equinox', 'az_deg', 'alt_deg',
-                       'ha', 'pang_deg', 'airmass', 'moon_sep',
+            columns = ['ra_deg', 'dec_deg', 'equinox', 'az_deg',
+                       'alt_deg', 'ha', 'pang_deg', 'airmass', 'moon_sep',
                        'atmos_disp_observing', 'atmos_disp_guiding',
                        ]
             # dct_all = cres.get_dict(columns=columns)
@@ -1177,6 +1169,9 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def targets_to_table(self):
         tree_dict = OrderedDict()
+        is_subaru = False
+        if self.site is not None and self.site.name.lower() == 'subaru':
+            is_subaru = True
         for idx, tgt in enumerate(self.full_tgt_list):
             is_ref = tgt.get('IsRef', True)
             if self.show_unref_tgts or is_ref:
@@ -1185,9 +1180,19 @@ class Targets(GingaPlugin.LocalPlugin):
                 # NOTE: AZ values are normalized to standard use
                 az_deg = self.site.norm_to_az(tgt.get('az_deg'))
                 # find shorter of the two azimuth choices
-                az2_deg = (az_deg % 360) - 360
+                az2_deg = rot.calc_alternate_angle(az_deg)
                 if abs(az2_deg) < abs(az_deg):
-                    az_deg = az2_deg
+                    az_deg, az2_deg = az2_deg, az_deg
+                az2_str = "{:>+4d}".format(int(round(az2_deg)))
+                # TODO: need to figure out how to handle this on a telescope
+                # by telescope basis--for Subaru, the azimuth limits are
+                # (-270, +270) with az=0 in the south, so there is only one
+                # direction to go for objects south of the zenith
+                if is_subaru:
+                    if abs(az_deg) < 90.0 or abs(az2_deg) < 90.0:
+                        # southern sky only has one direction we can go
+                        az2_str = 'n/a'
+
                 ad_observe, ad_guide = (tgt.get('atmos_disp_observing'),
                                         tgt.get('atmos_disp_guiding'))
                 calc_ad = max(ad_observe, ad_guide) - min(ad_observe, ad_guide)
@@ -1200,6 +1205,7 @@ class Targets(GingaPlugin.LocalPlugin):
                     dec=wcs.dec_deg_to_str(tgt.get('dec_deg')),
                     equinox="{:>6.1f}".format(tgt.get('equinox')),
                     az_deg="{:>+4d}".format(int(round(az_deg))),
+                    az2_deg=az2_str,
                     alt_deg="{:>3d}".format(int(round(tgt.get('alt_deg')))),
                     parang_deg="{:>3d}".format(int(tgt.get('pang_deg'))),
                     ha="{:>+6.2f}".format(np.degrees(tgt.get('ha')) / 15),
