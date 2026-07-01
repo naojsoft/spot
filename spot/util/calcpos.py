@@ -798,6 +798,14 @@ class CalculationResult(object):
         # Conversion factor for wavelengths (Angstrom -> micrometer)
         self.angstrom_to_mm = 1. / 10000.
 
+    def __len__(self):
+        # leading axis of the computed result: time samples for a single
+        # target (1 x N), else the number of targets (N x 1 or N x M).
+        # (matches the earlier skyfield-based CalculationResult)
+        if isinstance(self.az, np.ndarray):
+            return len(self.az)
+        return 1
+
     @property
     def name(self):
         return self.body.name
