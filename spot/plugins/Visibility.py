@@ -39,8 +39,7 @@ from ginga import GingaPlugin, colors
 
 from spot.plots.altitude import AltitudePlot
 from spot.util.config import get_workspace_settings
-from spot.util.eph_cache import (EphemerisCache, populate_periods_mp,
-                                 have_mp)
+from spot.util.eph_cache import EphemerisCache
 
 
 class Visibility(GingaPlugin.LocalPlugin):
@@ -398,15 +397,13 @@ class Visibility(GingaPlugin.LocalPlugin):
             self._df_cache = {}
             self._df_cache_period = period
 
-        # Pre-populate the ephemeris cache for ALL targets in a single
-        # vectorized astropy grid call (EphemerisCache.populate_periods_grid),
-        # instead of one skyfield calc per target below.  The per-target
-        # workers then find the cache already filled and just assemble their
-        # DataFrames (keeping the browser responsive between targets).
-        # keep_old=False trims samples outside the current period.
+        # Pre-populate the ephemeris cache for ALL targets in one vectorized
+        # astropy grid pass.  The per-target workers below then find the cache
+        # already filled and just assemble their tables (keeping the browser
+        # responsive).  keep_old=False trims samples outside the period.
         grid_tgt_dct = {self._target_key(tgt): tgt for tgt in targets}
-        self.eph_cache.populate_periods_grid(grid_tgt_dct, site, [period],
-                                             keep_old=False)
+        self.eph_cache.populate_periods(grid_tgt_dct, site, [period],
+                                        keep_old=False)
 
         # The heavy lifting (one skyfield calc per target over the time
         # grid) is dispatched one target at a time through nongui_foreach,
@@ -501,14 +498,11 @@ class Visibility(GingaPlugin.LocalPlugin):
         key = self._target_key(tgt)
         tgt_dct = {key: tgt}
         periods = [(start_time_utc, stop_time_utc)]
-        if not have_mp:
-            self.eph_cache.populate_periods(tgt_dct, site, periods,
-                                            keep_old=False)
-        else:
-            # big parallel win using multiprocessing; keep_old=False so
-            # samples outside the current period are trimmed (see docstring)
-            populate_periods_mp(self.eph_cache, tgt_dct, site, periods,
-                                keep_old=False)
+        # single target -> the serial grid (populate_periods); after the
+        # pre-populate pass above this is normally a cache hit.  keep_old=False
+        # so samples outside the current period are trimmed (see docstring)
+        self.eph_cache.populate_periods(tgt_dct, site, periods,
+                                        keep_old=False)
 
         # reuse the assembled DataFrame across replots within the same time
         # period -- building it is the dominant per-target cost in pyodide
@@ -529,12 +523,12 @@ class Visibility(GingaPlugin.LocalPlugin):
             return []
         start_time_utc = start_time.astimezone(tz.UTC)
         stop_time_utc = stop_time.astimezone(tz.UTC)
-        # populate all targets in one vectorized grid call up front; the
-        # per-target calls below then hit the cache (see _calc_one_target)
+        # populate all targets via the vectorized grid up front; the per-target
+        # calls below then hit the cache (see _calc_one_target)
         grid_tgt_dct = {self._target_key(tgt): tgt for tgt in targets}
-        self.eph_cache.populate_periods_grid(grid_tgt_dct, self.site.observer,
-                                             [(start_time_utc, stop_time_utc)],
-                                             keep_old=False)
+        self.eph_cache.populate_periods(grid_tgt_dct, self.site.observer,
+                                        [(start_time_utc, stop_time_utc)],
+                                        keep_old=False)
         return [self._calc_one_target(tgt, start_time_utc, stop_time_utc)
                 for tgt in targets]
 

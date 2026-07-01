@@ -23,8 +23,10 @@ from .calcpos import Observer
 have_mp = sys.platform not in ('emscripten', 'wasi')
 
 # Below this many targets the process-pool startup cost isn't worth it, so
-# populate_periods_mp() runs serially instead.
-_MP_MIN_TARGETS = 16
+# populate_periods_mp() runs the serial grid instead.  Because each worker
+# already runs the vectorized grid (which is fast), process startup only pays
+# off for large catalogs -- keep this threshold high (tune per deployment).
+_MP_MIN_TARGETS = 500
 
 # Logger used inside worker processes: inherits the parent's configuration
 # under fork; a handler-less no-op under spawn.
@@ -126,6 +128,13 @@ class EphemerisCache:
     def populate_periods(self, tgt_dct, site, periods, keep_old=True):
         """Populate ephemeris for many targets over many periods.
 
+        Fixed-star targets are computed in a single vectorized astropy grid
+        (calcpos.calc_targets); solar-system bodies -- and any requested
+        columns the grid can't produce -- fall back to the per-target engine.
+        Incremental over time: only the time slots each target is missing are
+        gridded (their union), so a shifting time window recomputes just the
+        new slot(s) for all N targets in one (N, K) call.
+
         Parameters
         ----------
         tgt_dct : dict
@@ -155,27 +164,6 @@ class EphemerisCache:
         # assumptions in get_closest() and the incremental insert below)
         dt_arr = np.unique(dt_arr)
 
-        self._populate_target_data(self.vis_catalog, tgt_dct, site, dt_arr,
-                                   keep_old=keep_old)
-
-    def populate_periods_grid(self, tgt_dct, site, periods, keep_old=True):
-        """Like populate_periods(), but computes all fixed-star targets in a
-        single vectorized astropy grid call (see calcpos.calc_targets)
-        instead of looping per target.
-
-        Incremental over time: only the time slots each target is missing are
-        gridded (their union), so a shifting time window recomputes just the
-        new slot(s) for all N targets in one (N, K) call -- not the whole
-        window.  Solar-system bodies can't be gridded and fall back to the
-        per-target path.  ``site`` must be an astropy-backend Observer.
-        """
-        start_time, stop_time = periods[0]
-        dt_arr = self.get_date_array(start_time, stop_time)
-        for start_time, stop_time in periods[1:]:
-            dt_arr_n = self.get_date_array(start_time, stop_time)
-            dt_arr = np.append(dt_arr, dt_arr_n, axis=0)
-        dt_arr = np.unique(dt_arr)
-
         self._populate_via_grid(self.vis_catalog, tgt_dct, site, dt_arr,
                                 keep_old=keep_old)
 
@@ -183,14 +171,17 @@ class EphemerisCache:
         # astropy vectorized grid kernel (works with either Observer backend --
         # calc_targets reads only the observer's lat/lon/elev, not its location
         # object)
-        from .calcpos import calc_targets
+        from .calcpos import calc_targets, GRID_COLUMNS
 
-        # Only fixed-star targets (those carrying ra/dec) can be gridded;
-        # solar-system bodies (SSBody, no ra/dec) route to the per-target
-        # path.  Detect by attribute so it works for either backend's classes.
+        # The grid can satisfy this request only if every requested column is
+        # grid-producible; otherwise fall back entirely to the per-target
+        # engine (which computes the full column set).  Independently, only
+        # fixed-star targets (carrying ra/dec) can be gridded; solar-system
+        # bodies (SSBody) route to the per-target path.
+        grid_ok = set(self._columns) <= GRID_COLUMNS
         star_keys, star_bodies, ss_dct = [], [], {}
         for key, tgt in tgt_dct.items():
-            if hasattr(tgt, 'ra') and hasattr(tgt, 'dec'):
+            if grid_ok and hasattr(tgt, 'ra') and hasattr(tgt, 'dec'):
                 star_keys.append(key)
                 star_bodies.append(tgt)
             else:
@@ -469,101 +460,73 @@ def _num_workers():
 
 
 def _process_chunk(items, existing, site_spec, dt_arr, columns, keep_old):
-    """Worker process: populate ephemeris for one chunk of targets.
+    """Worker: vectorized *grid* populate for one chunk (see _populate_via_grid),
+    so each worker combines CPU parallelism with the per-chunk grid.  Fixed
+    stars go through calc_targets; SSBody / non-grid columns fall back to the
+    per-target engine inside _populate_via_grid.
 
-    Parameters
-    ----------
-    items : list of (key, target)
-        The chunk of targets to compute.
-
-    existing : dict
-        Prior cached ``{key: vis_dct}`` for just these keys (possibly
-        empty).  Seeding the worker with it makes the same incremental
-        ``keep_old`` merge used in the serial path apply here too.
-
-    site_spec : dict
-        Observer spec; rebuilt with ``Observer.from_spec`` because skyfield
-        objects inside an Observer don't pickle.
-
-    dt_arr, columns, keep_old
-        As for :meth:`EphemerisCache._populate_target_data`.
-
-    Returns
-    -------
-    dict
-        ``{key: vis_dct}`` for this chunk's targets (merged old + new).
+    `existing` is the prior cached ``{key: vis_dct}`` for just these keys, so
+    the same incremental ``keep_old`` merge used serially applies here too.
+    `site_spec` is rebuilt with ``Observer.from_spec`` (skyfield objects inside
+    an Observer don't pickle).  Returns ``{key: vis_dct}`` for the chunk.
     """
     site = Observer.from_spec(site_spec)
     helper = EphemerisCache(_mp_logger, columns=columns)
     res_dct = dict(existing)
-    helper._populate_target_data(res_dct, dict(items), site, dt_arr,
-                                 keep_old=keep_old)
+    helper._populate_via_grid(res_dct, dict(items), site, dt_arr,
+                              keep_old=keep_old)
     return res_dct
 
 
-def populate_periods_mp(eph_cache, tgt_dct, site, periods, keep_old=True):
-    """Populate ephemeris for many targets, parallelized over processes.
+def _mp_start_method_context():
+    """A multiprocessing context safe for SPOT's multi-threaded GUI: prefer
+    'forkserver' (clean single-threaded fork server -- avoids fork-in-threaded
+    deadlocks and spawn's __main__ re-import), fall back to 'spawn'."""
+    import multiprocessing as mp
+    for method in ('forkserver', 'spawn'):
+        try:
+            return mp.get_context(method)
+        except ValueError:
+            continue
+    return mp.get_context()
 
-    Like :meth:`EphemerisCache.populate_periods`, but splits the targets
-    across worker processes using the standard-library ``concurrent.futures``.
-    Each worker is seeded with the existing cached results for its own
-    targets, so ``keep_old`` incremental merging behaves exactly as in the
-    serial path.
 
-    Falls back to a serial populate for small target counts, a single usable
-    CPU, or where process spawning is unavailable (e.g. Pyodide).
-    """
-    if len(tgt_dct) == 0:
-        return
-
-    # one large date array over all periods (sorted, de-duplicated)
+def _assemble_dt_arr(eph_cache, periods):
+    """One sorted, de-duplicated date array spanning all periods."""
     start_time, stop_time = periods[0]
     dt_arr = eph_cache.get_date_array(start_time, stop_time)
     for start_time, stop_time in periods[1:]:
         dt_arr_n = eph_cache.get_date_array(start_time, stop_time)
         dt_arr = np.append(dt_arr, dt_arr_n, axis=0)
-    dt_arr = np.unique(dt_arr)
+    return np.unique(dt_arr)
 
+
+def _dispatch_mp(eph_cache, tgt_dct, site, dt_arr, keep_old,
+                 worker_fn, serial_fn, min_targets):
+    """Chunk the targets across worker processes (round-robin), running
+    worker_fn on each chunk and merging the results into the cache.  Falls
+    back to serial_fn(vis_catalog, tgt_dct, site, dt_arr, keep_old) when MP
+    isn't worthwhile (few targets, 1 CPU) or unavailable (Pyodide).
+    """
     n_workers = min(_num_workers(), len(tgt_dct))
-    if (not have_mp) or n_workers <= 1 or len(tgt_dct) < _MP_MIN_TARGETS:
-        # not worth (or not possible) to parallelize -- same result, serially
-        eph_cache._populate_target_data(eph_cache.vis_catalog, tgt_dct, site,
-                                        dt_arr, keep_old=keep_old)
+    if (not have_mp) or n_workers <= 1 or len(tgt_dct) < min_targets:
+        serial_fn(eph_cache.vis_catalog, tgt_dct, site, dt_arr,
+                  keep_old=keep_old)
         return
 
-    # round-robin split: every worker gets work even when len(tgt_dct) is
-    # only a little above n_workers, and the shared args are pickled once
-    # per worker rather than once per target
+    # round-robin split: every worker gets work even when len(tgt_dct) is only
+    # a little above n_workers, and shared args are pickled once per worker
     items = list(tgt_dct.items())
     chunks = [items[i::n_workers] for i in range(n_workers)]
     chunks = [chunk for chunk in chunks if len(chunk) > 0]
 
     columns = eph_cache._columns
-    # NOTE: skyfield objects inside Observer don't pickle -- pass a spec and
-    # rebuild it in each worker (Observer.from_spec)
     site_spec = site.get_spec()
 
-    # Imported here rather than at module load: importing multiprocessing
-    # (and ProcessPoolExecutor, which pulls it in) can fail under Pyodide,
-    # so keep it out of the module's import path.  We only reach this point
-    # when have_mp is True.
-    import multiprocessing as mp
+    # Imported here (not at module load): the multiprocessing / ProcessPool
+    # import chain can fail under Pyodide.  We only reach here when have_mp.
     from concurrent.futures import ProcessPoolExecutor
-
-    # Choose a start method that is safe to use from SPOT's multi-threaded
-    # GUI: plain 'fork' can deadlock when forking a multi-threaded process
-    # (a thread may hold a lock at fork time), so prefer 'forkserver' (forks
-    # children from a clean single-threaded server -- this also sidesteps
-    # 'spawn's re-import of __main__), and fall back to 'spawn'.
-    ctx = None
-    for _method in ('forkserver', 'spawn'):
-        try:
-            ctx = mp.get_context(_method)
-            break
-        except ValueError:
-            continue
-    if ctx is None:
-        ctx = mp.get_context()
+    ctx = _mp_start_method_context()
 
     with ProcessPoolExecutor(max_workers=len(chunks), mp_context=ctx) as ex:
         futures = []
@@ -571,7 +534,27 @@ def populate_periods_mp(eph_cache, tgt_dct, site, periods, keep_old=True):
             existing = {key: eph_cache.vis_catalog[key]
                         for key, _tgt in chunk
                         if key in eph_cache.vis_catalog}
-            futures.append(ex.submit(_process_chunk, chunk, existing,
+            futures.append(ex.submit(worker_fn, chunk, existing,
                                      site_spec, dt_arr, columns, keep_old))
         for future in futures:
             eph_cache.vis_catalog.update(future.result())
+
+
+def populate_periods_mp(eph_cache, tgt_dct, site, periods, keep_old=True):
+    """Parallel version of populate_periods(): chunk the targets across worker
+    processes (stdlib concurrent.futures, no joblib) where *each worker runs
+    the vectorized grid* (calc_targets) over its chunk -- combining the
+    per-chunk grid with CPU parallelism.  Each worker is seeded with its
+    targets' prior cached data, so keep_old incremental merging behaves as in
+    the serial path.
+
+    Because the grid is already fast, process-startup cost only pays off for
+    large catalogs: below _MP_MIN_TARGETS (or with one CPU, or under Pyodide)
+    it falls back to the serial grid populate (populate_periods).
+    """
+    if len(tgt_dct) == 0:
+        return
+    dt_arr = _assemble_dt_arr(eph_cache, periods)
+    _dispatch_mp(eph_cache, tgt_dct, site, dt_arr, keep_old,
+                 _process_chunk, eph_cache._populate_via_grid,
+                 _MP_MIN_TARGETS)

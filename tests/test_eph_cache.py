@@ -16,7 +16,8 @@ import pytest
 
 from spot.util import calcpos
 from spot.util.eph_cache import (EphemerisCache, split_array,
-                                 populate_periods_mp, _process_chunk, have_mp)
+                                 populate_periods_mp,
+                                 _process_chunk, have_mp)
 
 COLS = ['alt_deg', 'az_deg']
 BASE = np.datetime64('2020-01-01T00:00:00')
@@ -229,8 +230,10 @@ class TestPopulatePeriodsMP:
         assert len(res['s0']['time_utc']) > len(first)
 
     @pytest.mark.skipif(not have_mp, reason="no process-based parallelism")
-    def test_populate_mp_matches_serial(self):
-        # end-to-end pool run (>= _MP_MIN_TARGETS targets triggers the pool)
+    def test_populate_mp_matches_serial(self, monkeypatch):
+        # end-to-end pool run; force the pool with a low target threshold
+        import spot.util.eph_cache as ec
+        monkeypatch.setattr(ec, '_MP_MIN_TARGETS', 1)
         obs, tgts = self._setup(20)
         c_ser = make_cache_default()
         c_ser.populate_periods(tgts, obs, [PERIOD], keep_old=True)
@@ -240,11 +243,13 @@ class TestPopulatePeriodsMP:
             self._assert_same(c_ser.get_target_data(k), c_mp.get_target_data(k))
 
     @pytest.mark.skipif(not have_mp, reason="no process-based parallelism")
-    def test_populate_mp_keep_old_false_prunes(self):
+    def test_populate_mp_keep_old_false_prunes(self, monkeypatch):
         # keep_old=False must trim samples outside the new period (the
         # Visibility time-axis switch relies on this).  Populate an initial
         # window, then a shifted/overlapping one with keep_old=False; the
         # result must equal a fresh populate of only the second window.
+        import spot.util.eph_cache as ec
+        monkeypatch.setattr(ec, '_MP_MIN_TARGETS', 1)
         obs, tgts = self._setup(20)
         first = (P_START, P_MID)                 # 20:00 - 20:30
         second = (P_MID, P_STOP)                 # 20:30 - 21:00
@@ -258,8 +263,10 @@ class TestPopulatePeriodsMP:
             self._assert_same(ref.get_target_data(k), c_mp.get_target_data(k))
 
     @pytest.mark.skipif(not have_mp, reason="no process-based parallelism")
-    def test_populate_mp_keep_old_extends(self):
+    def test_populate_mp_keep_old_extends(self, monkeypatch):
         # two MP passes with keep_old=True == one full serial populate
+        import spot.util.eph_cache as ec
+        monkeypatch.setattr(ec, '_MP_MIN_TARGETS', 1)
         obs, tgts = self._setup(20)
         c_mp = make_cache_default()
         populate_periods_mp(c_mp, tgts, obs, [(P_START, P_MID)], keep_old=True)
@@ -274,8 +281,8 @@ class TestPopulatePeriodsMP:
 
 
 class TestGridPopulate:
-    # astropy vectorized grid populate (populate_periods_grid): equals the
-    # serial populate, and a shifting window grids only the NEW slot(s)
+    # populate_periods is the vectorized grid: equals the per-target engine,
+    # and a shifting window grids only the NEW slot(s)
     FLOATS = ['alt_deg', 'az_deg', 'airmass', 'pang_deg', 'moon_alt', 'moon_sep']
     H = tz.gettz('US/Hawaii')
 
@@ -297,14 +304,50 @@ class TestGridPopulate:
         for c in self.FLOATS:
             assert np.allclose(a[c], b[c], atol=1e-6, equal_nan=True), c
 
-    def test_grid_matches_serial(self):
+    def test_grid_matches_per_target(self):
+        # populate_periods (grid) == the per-target engine (_populate_target_data)
         w = (datetime(2024, 5, 16, 20, 0, tzinfo=self.H),
              datetime(2024, 5, 16, 20, 50, tzinfo=self.H))
         t = self._tgts(25)
-        cg = make_cache_default(); cg.populate_periods_grid(t, self._obs(), [w], keep_old=False)
-        cs = make_cache_default(); cs.populate_periods(t, self._obs(), [w], keep_old=False)
+        cg = make_cache_default()
+        cg.populate_periods(t, self._obs(), [w], keep_old=False)
+        cs = make_cache_default()
+        dt = np.unique(cs.get_date_array(*w))
+        cs._populate_target_data(cs.vis_catalog, t, self._obs(), dt, keep_old=False)
         for k in t:
             self._same(cs.get_target_data(k), cg.get_target_data(k))
+
+    def test_grid_supports_moon_pct_and_name(self):
+        # a cache asking for moon_pct/name/moon_sep/moon_alt stays on the grid
+        # (all grid columns) and matches the per-target engine exactly
+        cols = ['alt_deg', 'moon_pct', 'moon_sep', 'moon_alt', 'name']
+        log = logging.getLogger('test_eph_cache')
+        log.addHandler(logging.NullHandler())
+        w = (datetime(2024, 5, 16, 20, 0, tzinfo=self.H),
+             datetime(2024, 5, 16, 20, 50, tzinfo=self.H))
+        t = self._tgts(10)
+        cg = EphemerisCache(log, precision_minutes=5, columns=cols)
+        calls = {'n': 0}
+        orig = calcpos.calc_targets
+
+        def spy(*a, **k):
+            calls['n'] += 1
+            return orig(*a, **k)
+        calcpos.calc_targets = spy
+        try:
+            cg.populate_periods(t, self._obs(), [w], keep_old=False)
+        finally:
+            calcpos.calc_targets = orig
+        assert calls['n'] > 0                    # took the grid path, not fallback
+        cs = EphemerisCache(log, precision_minutes=5, columns=cols)
+        dt = np.unique(cs.get_date_array(*w))
+        cs._populate_target_data(cs.vis_catalog, t, self._obs(), dt, keep_old=False)
+        for k in t:
+            g, s = cg.get_target_data(k), cs.get_target_data(k)
+            assert np.allclose(g['moon_pct'], s['moon_pct'], atol=1e-9)
+            assert np.allclose(g['moon_sep'], s['moon_sep'], atol=1e-6)
+            assert np.allclose(g['moon_alt'], s['moon_alt'], atol=1e-6)
+            assert list(g['name']) == [k] * len(g['name'])
 
     def test_shift_grids_only_new_slot(self):
         w1 = (datetime(2024, 5, 16, 20, 0, tzinfo=self.H),
@@ -312,20 +355,61 @@ class TestGridPopulate:
         w2 = (datetime(2024, 5, 16, 20, 5, tzinfo=self.H),
               datetime(2024, 5, 16, 20, 55, tzinfo=self.H))
         t = self._tgts(25)
-        c = make_cache_default(); c.populate_periods_grid(t, self._obs(), [w1], keep_old=False)
+        c = make_cache_default()
+        c.populate_periods(t, self._obs(), [w1], keep_old=False)
         sizes, orig = [], calcpos.calc_targets
+
         def spy(site, keys, bodies, union, columns=None):
             sizes.append(len(union))
             return orig(site, keys, bodies, union, columns=columns)
         calcpos.calc_targets = spy
         try:
-            c.populate_periods_grid(t, self._obs(), [w2], keep_old=False)  # shift 1 slot
+            c.populate_periods(t, self._obs(), [w2], keep_old=False)  # shift 1 slot
         finally:
             calcpos.calc_targets = orig
         assert sizes and sizes[-1] == 1        # only the new slot gridded
-        ref = make_cache_default(); ref.populate_periods_grid(t, self._obs(), [w2], keep_old=False)
+        ref = make_cache_default()
+        ref.populate_periods(t, self._obs(), [w2], keep_old=False)
         for k in t:
             self._same(ref.get_target_data(k), c.get_target_data(k))
+
+    @pytest.mark.skipif(not have_mp, reason="no process-based parallelism")
+    def test_grid_mp_matches_serial_grid(self, monkeypatch):
+        # MP+grid: chunk targets across processes, each worker running the grid
+        # over its chunk.  Force the MP path (low threshold) and check parity
+        # with the single-process grid populate.
+        import spot.util.eph_cache as ec
+        monkeypatch.setattr(ec, '_MP_MIN_TARGETS', 1)
+        w = (datetime(2024, 5, 16, 20, 0, tzinfo=self.H),
+             datetime(2024, 5, 16, 20, 50, tzinfo=self.H))
+        t = self._tgts(20)
+        c_ser = make_cache_default()
+        c_ser.populate_periods(t, self._obs(), [w], keep_old=False)
+        c_mp = make_cache_default()
+        populate_periods_mp(c_mp, t, self._obs(), [w], keep_old=False)
+        for k in t:
+            self._same(c_ser.get_target_data(k), c_mp.get_target_data(k))
+
+    @pytest.mark.skipif(not have_mp, reason="no process-based parallelism")
+    def test_grid_mp_keep_old_extends(self, monkeypatch):
+        # two MP+grid passes with keep_old=True == one full serial grid populate
+        import spot.util.eph_cache as ec
+        monkeypatch.setattr(ec, '_MP_MIN_TARGETS', 1)
+        w1 = (datetime(2024, 5, 16, 20, 0, tzinfo=self.H),
+              datetime(2024, 5, 16, 20, 25, tzinfo=self.H))
+        w2 = (datetime(2024, 5, 16, 20, 25, tzinfo=self.H),
+              datetime(2024, 5, 16, 20, 50, tzinfo=self.H))
+        t = self._tgts(20)
+        c_mp = make_cache_default()
+        populate_periods_mp(c_mp, t, self._obs(), [w1], keep_old=True)
+        populate_periods_mp(c_mp, t, self._obs(), [w2], keep_old=True)
+        ref = make_cache_default()
+        ref.populate_periods(t, self._obs(),
+                             [(datetime(2024, 5, 16, 20, 0, tzinfo=self.H),
+                               datetime(2024, 5, 16, 20, 50, tzinfo=self.H))],
+                             keep_old=True)
+        for k in t:
+            self._same(ref.get_target_data(k), c_mp.get_target_data(k))
 
 
 class TestSplitArray:

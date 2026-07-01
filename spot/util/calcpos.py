@@ -1121,6 +1121,7 @@ def calc_targets(observer, keys, bodies, dt_arr, columns=None):
 
     # target RA/Dec (deg); parse any string (hms/dms) coords, gather pm + equinox
     ra_list, dec_list, pmra_list, pmdec_list, eq_list = [], [], [], [], []
+    name_list = []
     for b in bodies:
         rd_ra, rd_dec = _radec_deg(b.ra, b.dec)
         ra_list.append(float(rd_ra))
@@ -1130,6 +1131,7 @@ def calc_targets(observer, keys, bodies, dt_arr, columns=None):
         pmra_list.append(0.0 if pmra is None else float(pmra))
         pmdec_list.append(0.0 if pmdec is None else float(pmdec))
         eq_list.append(float(_epoch_years(b.equinox)))
+        name_list.append(getattr(b, 'name', None))
     # convert catalog RA/Dec -> ICRS (per-target equinox frame) and apply
     # proper motion, once, to the first time (see _to_icrs_deg)
     ra_deg, dec_deg = _to_icrs_deg(np.asarray(ra_list), np.asarray(dec_list),
@@ -1146,6 +1148,19 @@ def calc_targets(observer, keys, bodies, dt_arr, columns=None):
     moon = get_body('moon', times, location=location)
     moon_alt = moon.transform_to(frame).alt.deg          # (M,)
     lmst = times.sidereal_time('mean', longitude=location)   # (M,) hrs
+
+    # moon illumination fraction (time-only, same for every target).  Computed
+    # only when asked -- it's an extra skyfield observe().  Uses skyfield so it
+    # matches CalculationResult.moon_pct exactly (per-target fallback parity).
+    moon_pct = None
+    if 'moon_pct' in columns:
+        sf_loc = ssbodies['earth'] + \
+            wgs84.latlon(latitude_degrees=observer.lat_deg,
+                         longitude_degrees=observer.lon_deg,
+                         elevation_m=observer.elev_m)
+        sf_e = sf_loc.at(timescale.from_astropy(times))
+        sf_moon = sf_e.observe(ssbodies['moon']).apparent()
+        moon_pct = np.atleast_1d(sf_moon.fraction_illuminated(ssbodies['sun']))
 
     # --- the grid: all targets at all times in one transform ---
     coord = SkyCoord(ra_deg[:, None] * u.deg, dec_deg[:, None] * u.deg,
@@ -1174,26 +1189,54 @@ def calc_targets(observer, keys, bodies, dt_arr, columns=None):
     lt = times.to_datetime(timezone=observer.tz_local)
 
     def col_for(col, i):
-        if col == 'alt_deg':  return alt_deg[i]
-        if col == 'az_deg':   return az_deg[i]
-        if col == 'alt':      return np.radians(alt_deg[i])
-        if col == 'az':       return np.radians(az_deg[i])
-        if col == 'airmass':  return airmass[i]
-        if col == 'pang':     return pang_rad[i]
-        if col == 'pang_deg': return np.degrees(pang_rad[i])
-        if col == 'moon_sep': return moon_sep[i]
-        if col == 'moon_alt': return moon_alt
-        if col == 'ha':       return ha_rad[i]
-        if col == 'ra_deg':   return np.full(M, ra_deg[i])
-        if col == 'dec_deg':  return np.full(M, dec_deg[i])
-        if col == 'ra':       return np.full(M, np.radians(ra_deg[i]))
-        if col == 'dec':      return np.full(M, np.radians(dec_deg[i]))
-        if col == 'ut':       return ut
-        if col == 'lt':       return lt
+        if col == 'alt_deg':
+            return alt_deg[i]
+        if col == 'az_deg':
+            return az_deg[i]
+        if col == 'alt':
+            return np.radians(alt_deg[i])
+        if col == 'az':
+            return np.radians(az_deg[i])
+        if col == 'airmass':
+            return airmass[i]
+        if col == 'pang':
+            return pang_rad[i]
+        if col == 'pang_deg':
+            return np.degrees(pang_rad[i])
+        if col == 'moon_sep':
+            return moon_sep[i]
+        if col == 'moon_alt':
+            return moon_alt
+        if col == 'moon_pct':
+            return moon_pct
+        if col == 'name':
+            return np.full(M, name_list[i])
+        if col == 'ha':
+            return ha_rad[i]
+        if col == 'ra_deg':
+            return np.full(M, ra_deg[i])
+        if col == 'dec_deg':
+            return np.full(M, dec_deg[i])
+        if col == 'ra':
+            return np.full(M, np.radians(ra_deg[i]))
+        if col == 'dec':
+            return np.full(M, np.radians(dec_deg[i]))
+        if col == 'ut':
+            return ut
+        if col == 'lt':
+            return lt
         raise KeyError(f"calc_targets: unsupported column {col!r}")
 
     return {key: {col: col_for(col, i) for col in columns}
             for i, key in enumerate(keys)}
+
+
+# columns calc_targets() can produce -- lets callers decide whether the
+# vectorized grid path can satisfy the requested columns
+GRID_COLUMNS = frozenset({
+    'ut', 'lt', 'alt_deg', 'az_deg', 'alt', 'az', 'airmass', 'pang',
+    'pang_deg', 'moon_sep', 'moon_alt', 'moon_pct', 'name',
+    'ha', 'ra_deg', 'dec_deg', 'ra', 'dec'})
 
 
 Moon = SSBody('Moon')
