@@ -57,6 +57,19 @@ def alt2airmass(alt_deg):
     return xp
 
 
+def alt_to_airmass(alt_deg):
+    """Standardized airmass from altitude (degrees).
+
+    Uses the same formula as the skyfield backend (spot.util.calcpos) so the
+    'airmass' column is backend-independent regardless of whether alt/az came
+    from skyfield or astropy.  (alt2airmass() above is a different formula,
+    kept only for the airmass->altitude inversion in observable().)
+    """
+    alt_deg = np.clip(alt_deg, 3.0, None)
+    sz = 1.0 / np.sin(np.radians(alt_deg)) - 1.0
+    return 1.0 + sz * (0.9981833 - sz * (0.002875 + 0.0008083 * sz))
+
+
 am_inv = np.array([(alt2airmass(alt), alt) for alt in range(0, 91, 1)])
 
 
@@ -866,10 +879,9 @@ class CalculationResult(object):
         geom = self.observer._obs_geometry(self.obstime)
         coord = self.body._get_coord(self.obstime)
         altaz = coord.transform_to(geom['frame'])
-        # NOTE: airmass available from frame with 'secz' attribute
-        self._am = altaz.secz
-
         self._az, self._alt = altaz.az, altaz.alt
+        # standardized airmass (matches the skyfield backend), not secz
+        self._am = alt_to_airmass(self._alt.deg)
 
         # moon separation from target(s): reuse the Moon position (identical
         # for all targets at these times) instead of re-fetching it per target
@@ -953,6 +965,100 @@ class CalculationResult(object):
                         atmos_disp_guiding=self.atmos_disp['guiding'])
         else:
             return {colname: getattr(self, colname) for colname in columns}
+
+
+def calc_targets(observer, keys, bodies, dt_arr, columns=None):
+    """Vectorized ephemeris for many fixed-star targets over ``dt_arr``.
+
+    Computes *all* targets in a single ``(N, 1) x (M,)`` astropy grid --
+    one AltAz transform, with the Moon and sidereal time computed once --
+    and returns ``{key: {col: array(M)}}`` for the requested columns
+    (defaults to the EphemerisCache column set).  This is the fast path the
+    per-target CalculationResult can't provide.
+
+    Only fixed-star ``Body`` targets are handled here; solar-system bodies
+    (``SSBody``) can't be gridded across different bodies and must be
+    computed separately by the caller.
+    """
+    if columns is None:
+        columns = ['ut', 'lt', 'alt_deg', 'az_deg', 'airmass', 'pang_deg',
+                   'moon_alt', 'moon_sep']
+
+    times = Time(np.atleast_1d(np.asarray(dt_arr)))
+    M = times.size
+
+    # target RA/Dec (deg); parse any string (hms/dms) coords
+    ra_list, dec_list = [], []
+    for b in bodies:
+        r, d = b.ra, b.dec
+        if isinstance(r, str):
+            c = SkyCoord(r, d, unit=(u.hourangle, u.deg), frame=ICRS)
+            ra_list.append(c.ra.deg)
+            dec_list.append(c.dec.deg)
+        else:
+            ra_list.append(float(r))
+            dec_list.append(float(d))
+    ra_deg = np.asarray(ra_list)     # (N,)
+    dec_deg = np.asarray(dec_list)
+
+    # --- observer-level, target-independent: computed once ---
+    frame = AltAz(obstime=times, location=observer.location,
+                  pressure=observer.pressure_mbar * u.mbar,
+                  temperature=observer.temp_C * u.deg_C,
+                  relative_humidity=observer.rh_pct,
+                  #obswl=observer.wavelength
+                  )
+    moon = get_body('moon', times, location=observer.location)
+    moon_alt = moon.transform_to(frame).alt.deg          # (M,)
+    lmst = times.sidereal_time('mean', longitude=observer.location)   # (M,) hrs
+
+    # --- the grid: all targets at all times in one transform ---
+    coord = SkyCoord(ra_deg[:, None] * u.deg, dec_deg[:, None] * u.deg,
+                     frame=ICRS)                          # (N, 1)
+    altaz = coord.transform_to(frame)                     # (N, M)
+    alt_deg = altaz.alt.deg
+    az_deg = altaz.az.deg
+    airmass = alt_to_airmass(alt_deg)
+
+    if ASTROPY_LT_6_0_0:
+        moon_sep = moon.separation(coord).deg             # (N, M)
+    else:
+        moon_sep = moon.separation(coord, origin_mismatch='ignore').deg
+
+    # hour angle -> parallactic angle, vectorized over (N, M)
+    ha_hours = lmst.hour[None, :] - (ra_deg[:, None] / 15.0)
+    ha_rad = np.radians(((ha_hours + 12.0) % 24.0 - 12.0) * 15.0)
+    lat_rad = np.radians(observer.lat_deg)
+    dec_rad = np.radians(dec_deg[:, None])
+    pang_rad = np.arctan2(np.sin(ha_rad),
+                          np.tan(lat_rad) * np.cos(dec_rad) -
+                          np.sin(dec_rad) * np.cos(ha_rad))   # (N, M)
+
+    # time columns (same for every target)
+    ut = times.to_datetime(timezone=tz.UTC)
+    lt = times.to_datetime(timezone=observer.tz_local)
+
+    def col_for(col, i):
+        if col == 'alt_deg':  return alt_deg[i]
+        if col == 'az_deg':   return az_deg[i]
+        if col == 'alt':      return np.radians(alt_deg[i])
+        if col == 'az':       return np.radians(az_deg[i])
+        if col == 'airmass':  return airmass[i]
+        if col == 'pang':     return pang_rad[i]
+        if col == 'pang_deg': return np.degrees(pang_rad[i])
+        if col == 'moon_sep': return moon_sep[i]
+        if col == 'moon_alt': return moon_alt
+        if col == 'ha':       return ha_rad[i]
+        if col == 'ra_deg':   return np.full(M, ra_deg[i])
+        if col == 'dec_deg':  return np.full(M, dec_deg[i])
+        if col == 'ra':       return np.full(M, np.radians(ra_deg[i]))
+        if col == 'dec':      return np.full(M, np.radians(dec_deg[i]))
+        if col == 'ut':       return ut
+        if col == 'lt':       return lt
+        raise KeyError(f"calc_targets: unsupported column {col!r}")
+
+    return {key: {col: col_for(col, i) for col in columns}
+            for i, key in enumerate(keys)}
 
 
 Moon = SSBody('Moon')
