@@ -160,7 +160,7 @@ class EphemerisCache:
 
     def populate_periods_grid(self, tgt_dct, site, periods, keep_old=True):
         """Like populate_periods(), but computes all fixed-star targets in a
-        single vectorized astropy grid call (see calcpos_astropy.calc_targets)
+        single vectorized astropy grid call (see calcpos.calc_targets)
         instead of looping per target.
 
         Incremental over time: only the time slots each target is missing are
@@ -180,18 +180,21 @@ class EphemerisCache:
                                 keep_old=keep_old)
 
     def _populate_via_grid(self, res_dct, tgt_dct, site, dt_arr, keep_old=True):
-        # astropy backend: vectorized grid kernel + SSBody detection
-        from .calcpos_astropy import calc_targets, SSBody
+        # astropy vectorized grid kernel (works with either Observer backend --
+        # calc_targets reads only the observer's lat/lon/elev, not its location
+        # object)
+        from .calcpos import calc_targets
 
-        # solar-system bodies can't be gridded across different bodies --
-        # route them through the per-target path
+        # Only fixed-star targets (those carrying ra/dec) can be gridded;
+        # solar-system bodies (SSBody, no ra/dec) route to the per-target
+        # path.  Detect by attribute so it works for either backend's classes.
         star_keys, star_bodies, ss_dct = [], [], {}
         for key, tgt in tgt_dct.items():
-            if isinstance(tgt, SSBody):
-                ss_dct[key] = tgt
-            else:
+            if hasattr(tgt, 'ra') and hasattr(tgt, 'dec'):
                 star_keys.append(key)
                 star_bodies.append(tgt)
+            else:
+                ss_dct[key] = tgt
         if ss_dct:
             self._populate_target_data(res_dct, ss_dct, site, dt_arr,
                                        keep_old=keep_old)

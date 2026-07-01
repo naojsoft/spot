@@ -11,7 +11,7 @@ naojsoft packages
 from datetime import UTC
 from dateutil.parser import parse as parse_date
 import numpy as np
-import pandas as pd
+from astropy.table import Table
 
 import astropy.units as u
 
@@ -295,10 +295,10 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
         ra_deg, dec_deg, equinox = self.get_radec_eq()
         if len(name) == 0:
             name = f"ra={ra_deg:.2f},dec={dec_deg:.2f}"
-        tgt_df = pd.DataFrame([(name, ra_deg, dec_deg, equinox, True)],
-                              columns=["Name", "RA", "DEC", "Equinox", "IsRef"])
+        tgt_tbl = Table(rows=[(name, ra_deg, dec_deg, equinox, True)],
+                        names=["Name", "RA", "DEC", "Equinox", "IsRef"])
         obj = self.channel.opmon.get_plugin('Targets')
-        obj.add_targets("Targets", tgt_df, merge=True)
+        obj.add_targets("Targets", tgt_tbl, merge=True)
 
     def get_nonsidereal_cb(self, w):
         # prepare location and epochs as astroquery/JPL Horizons wants them

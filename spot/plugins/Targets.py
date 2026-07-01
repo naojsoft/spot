@@ -25,12 +25,12 @@ naojsoft packages
 """
 # stdlib
 import os
-import io
 from collections import OrderedDict
 
 # 3rd party
 import numpy as np
-import pandas as pd
+from astropy.io import ascii as _ap_ascii
+from astropy.table import Table
 from dateutil.parser import parse as parse_date
 from datetime import UTC
 
@@ -56,6 +56,16 @@ from spot.util import target as spot_target
 # where our icons are stored
 from spot import __file__
 icondir = os.path.join(os.path.dirname(__file__), 'icons')
+
+
+def _to_bool(val, default=True):
+    """Coerce a table cell to bool (astropy reads True/False as strings)."""
+    if isinstance(val, str):
+        return val.strip().lower() in ('true', '1', 'yes', 'y', 't')
+    try:
+        return bool(val)
+    except Exception:
+        return default
 
 
 class Targets(GingaPlugin.LocalPlugin):
@@ -738,7 +748,13 @@ class Targets(GingaPlugin.LocalPlugin):
         names = np.asarray([tgt.name for tgt in self.full_tgt_list])
         arr = np.asarray([(tgt.ra, tgt.dec, tgt.equinox)
                           for tgt in self.full_tgt_list]).T
-        self._mbody = calcpos.Body(names, arr[0], arr[1], arr[2])
+        # carry proper motion (mas/yr) for targets that provide it; 0 = none
+        pmra = np.asarray([float(tgt.get('pmRA', None) or getattr(tgt, 'pmra', None) or 0.0)
+                           for tgt in self.full_tgt_list])
+        pmdec = np.asarray([float(tgt.get('pmDEC', None) or getattr(tgt, 'pmdec', None) or 0.0)
+                            for tgt in self.full_tgt_list])
+        self._mbody = calcpos.Body(names, arr[0], arr[1], arr[2],
+                                   pmra=pmra, pmdec=pmdec)
 
     def update_all(self, targets_changed=False):
         # Run target calculations and table building in a separate thread
@@ -993,13 +1009,19 @@ class Targets(GingaPlugin.LocalPlugin):
         self.w.colorselect.set_color(hex_color)
         self.w.color.set_color(bg=hex_color, fg='black')
 
-    def add_targets(self, category, tgt_df, merge=False):
-        """Add targets from a Pandas dataframe."""
+    def add_targets(self, category, tgt_tbl, merge=False):
+        """Add targets from an astropy Table (one target per row)."""
+        colnames = list(tgt_tbl.colnames)
         new_targets = []
-        for idx, row in tgt_df.iterrows():
-            name = row.get('Name', 'none')
+        for idx, row in enumerate(tgt_tbl):
+            # a plain dict of the row -> gives .get() and clean metadata
+            row_d = {c: row[c] for c in colnames}
+            # astropy reads True/False as strings; coerce to real booleans
+            if 'IsRef' in row_d:
+                row_d['IsRef'] = _to_bool(row_d['IsRef'])
+            name = row_d.get('Name', 'none')
             try:
-                ra, dec, eqx = row['RA'], row['DEC'], row['Equinox']
+                ra, dec, eqx = row_d['RA'], row_d['DEC'], row_d['Equinox']
                 ra_deg, dec_deg, eq = spot_target.normalize_ra_dec_equinox(ra, dec, eqx)
                 # these will check angles and force an exception if there is
                 # a bad angle
@@ -1011,9 +1033,9 @@ class Targets(GingaPlugin.LocalPlugin):
                 self.fv.show_error(errmsg)
                 continue
 
-            comment = row.get('Comment', '')
-            pmra = row.get('pmRA', None)
-            pmdec = row.get('pmDEC', None)
+            comment = row_d.get('Comment', '')
+            pmra = row_d.get('pmRA', None)
+            pmdec = row_d.get('pmDEC', None)
 
             tgt = spot_target.Target(name=name,
                                      ra=ra_deg,
@@ -1023,11 +1045,11 @@ class Targets(GingaPlugin.LocalPlugin):
                                      pmdec=pmdec,
                                      comment=comment,
                                      category=category)
-            tgt.set(is_ref=row.get('IsRef', True),
-                    index=row.get('Index', idx),
-                    priority=row.get('Priority', 1))
+            tgt.set(is_ref=row_d.get('IsRef', True),
+                    index=row_d.get('Index', idx),
+                    priority=row_d.get('Priority', 1))
             # get all column values as metadata
-            tgt.set(**row.to_dict())
+            tgt.set(**row_d)
             new_targets.append(tgt)
 
         self.add_target_list(category, new_targets, merge=merge)
@@ -1070,20 +1092,22 @@ class Targets(GingaPlugin.LocalPlugin):
         return self.process_csv_buffer_for_targets(csv_path, buf)
 
     def process_csv_buffer_for_targets(self, filename, buf):
-        # NOTE: to allow reading "SOSS-like" coordinates
-        type_dct = {'RA': str, 'DEC': str, 'Equinox': str}
-        csv_f = io.StringIO(buf)
-        tgt_df = pd.read_csv(csv_f, dtype=type_dct)
-        if 'Equinox' not in tgt_df:
-            tgt_df['Equinox'] = [2000.0] * len(tgt_df)
-        if 'IsRef' not in tgt_df:
-            tgt_df['IsRef'] = [True] * len(tgt_df)
-        if 'Comment' not in tgt_df:
-            tgt_df['Comment'] = [os.path.basename(filename)] * len(tgt_df)
+        # RA/DEC/Equinox forced to str to allow "SOSS-like" (sexagesimal)
+        # coordinates; other columns are type-inferred by astropy.
+        tgt_tbl = _ap_ascii.read(buf, format='csv',
+                                 converters={'RA': str, 'DEC': str,
+                                             'Equinox': str})
+        n = len(tgt_tbl)
+        if 'Equinox' not in tgt_tbl.colnames:
+            tgt_tbl['Equinox'] = ['2000.0'] * n
+        if 'IsRef' not in tgt_tbl.colnames:
+            tgt_tbl['IsRef'] = [True] * n
+        if 'Comment' not in tgt_tbl.colnames:
+            tgt_tbl['Comment'] = [os.path.basename(filename)] * n
 
         merge = self.settings.get('merge_targets', False)
         category = filename if not merge else "Targets"
-        self.add_targets(category, tgt_df, merge=merge)
+        self.add_targets(category, tgt_tbl, merge=merge)
         self.w.tgt_tbl.set_optimal_column_widths()
 
     def process_eph_file_for_target(self, eph_path):
@@ -1159,12 +1183,12 @@ class Targets(GingaPlugin.LocalPlugin):
             new_targets.append((idx, objname, ra_str, dec_str, eq_str,
                                 comment, is_ref))
 
-        tgt_df = pd.DataFrame(new_targets,
-                              columns=["Index", "Name", "RA", "DEC", "Equinox",
-                                       "Comment", "IsRef"])
+        tgt_tbl = Table(rows=new_targets,
+                        names=["Index", "Name", "RA", "DEC", "Equinox",
+                               "Comment", "IsRef"])
         merge = self.settings.get('merge_targets', False)
         category = filename if not merge else "Targets"
-        self.add_targets(category, tgt_df, merge=merge)
+        self.add_targets(category, tgt_tbl, merge=merge)
         self.w.tgt_tbl.set_optimal_column_widths()
 
     def targets_to_table(self):

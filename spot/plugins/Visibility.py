@@ -30,7 +30,7 @@ import threading
 
 # 3rd party
 import numpy as np
-import pandas as pd
+from astropy.table import Table
 from dateutil import tz
 
 # ginga
@@ -398,6 +398,16 @@ class Visibility(GingaPlugin.LocalPlugin):
             self._df_cache = {}
             self._df_cache_period = period
 
+        # Pre-populate the ephemeris cache for ALL targets in a single
+        # vectorized astropy grid call (EphemerisCache.populate_periods_grid),
+        # instead of one skyfield calc per target below.  The per-target
+        # workers then find the cache already filled and just assemble their
+        # DataFrames (keeping the browser responsive between targets).
+        # keep_old=False trims samples outside the current period.
+        grid_tgt_dct = {self._target_key(tgt): tgt for tgt in targets}
+        self.eph_cache.populate_periods_grid(grid_tgt_dct, site, [period],
+                                             keep_old=False)
+
         # The heavy lifting (one skyfield calc per target over the time
         # grid) is dispatched one target at a time through nongui_foreach,
         # so on the single-event-loop (browser) backend the UI stays
@@ -505,7 +515,9 @@ class Visibility(GingaPlugin.LocalPlugin):
         df = self._df_cache.get(key)
         if df is None:
             vis_dct = self.eph_cache.get_target_data(key)
-            df = pd.DataFrame.from_dict(vis_dct, orient='columns')
+            # astropy Table (numpy-backed) instead of a pandas DataFrame:
+            # much cheaper to build under Pyodide, same column-access API
+            df = Table(vis_dct)
             self._df_cache[key] = df
         color, alpha, zorder, textbg = self._get_target_color(tgt)
         color = colors.lookup_color(color, format='hash')
@@ -517,6 +529,12 @@ class Visibility(GingaPlugin.LocalPlugin):
             return []
         start_time_utc = start_time.astimezone(tz.UTC)
         stop_time_utc = stop_time.astimezone(tz.UTC)
+        # populate all targets in one vectorized grid call up front; the
+        # per-target calls below then hit the cache (see _calc_one_target)
+        grid_tgt_dct = {self._target_key(tgt): tgt for tgt in targets}
+        self.eph_cache.populate_periods_grid(grid_tgt_dct, self.site.observer,
+                                             [(start_time_utc, stop_time_utc)],
+                                             keep_old=False)
         return [self._calc_one_target(tgt, start_time_utc, stop_time_utc)
                 for tgt in targets]
 
