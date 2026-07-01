@@ -40,7 +40,7 @@ from ginga import GingaPlugin, colors
 from spot.plots.altitude import AltitudePlot
 from spot.util.config import get_workspace_settings
 from spot.util.eph_cache import (EphemerisCache, populate_periods_mp,
-                                 have_joblib)
+                                 have_mp)
 
 
 class Visibility(GingaPlugin.LocalPlugin):
@@ -491,13 +491,14 @@ class Visibility(GingaPlugin.LocalPlugin):
         key = self._target_key(tgt)
         tgt_dct = {key: tgt}
         periods = [(start_time_utc, stop_time_utc)]
-        if not have_joblib:
+        if not have_mp:
             self.eph_cache.populate_periods(tgt_dct, site, periods,
                                             keep_old=False)
         else:
-            # big parallel win using joblib
+            # big parallel win using multiprocessing; keep_old=False so
+            # samples outside the current period are trimmed (see docstring)
             populate_periods_mp(self.eph_cache, tgt_dct, site, periods,
-                                keep_old=True)
+                                keep_old=False)
 
         # reuse the assembled DataFrame across replots within the same time
         # period -- building it is the dominant per-target cost in pyodide

@@ -1,21 +1,34 @@
 #
 # eph_cache.py -- class for caching ephemeris data
 #
+import os
+import sys
+import logging
 from datetime import timedelta
 
 import numpy as np
 from dateutil import tz
 
-have_joblib = False
-try:
-    from joblib import Parallel, delayed, cpu_count
-    have_joblib = True
-except ImportError:
-    pass
-
 from ginga.misc.Bunch import Bunch
 
 from .calcpos import Observer
+
+# Whether process-based parallelism is usable.  It is NOT under
+# Pyodide/WASM: there, `import multiprocessing` may even succeed but process
+# spawning doesn't work -- so gate on the platform rather than on whether
+# the module imports.  The multiprocessing / concurrent.futures imports are
+# also deferred into populate_periods_mp() (not done at module load), so
+# merely importing this module stays safe in the browser, where importing
+# multiprocessing can itself raise.
+have_mp = sys.platform not in ('emscripten', 'wasi')
+
+# Below this many targets the process-pool startup cost isn't worth it, so
+# populate_periods_mp() runs serially instead.
+_MP_MIN_TARGETS = 16
+
+# Logger used inside worker processes: inherits the parent's configuration
+# under fork; a handler-less no-op under spawn.
+_mp_logger = logging.getLogger('spot.util.eph_cache.worker')
 
 
 class EphemerisCache:
@@ -356,65 +369,118 @@ def split_array(arr):
     return sub_arrays
 
 
-def _process_chunk(cache, tgt_tups, site_spec, dt_arr):
-    res_dct = dict()
-    if len(tgt_tups) == 0:
-        return res_dct
+def _num_workers():
+    """Number of usable CPUs (honors cgroup / CPU-affinity limits)."""
+    try:
+        return len(os.sched_getaffinity(0))
+    except (AttributeError, OSError):
+        return os.cpu_count() or 1
 
-    # recreate site from spec (see NOTE in populate_periods_mp)
+
+def _process_chunk(items, existing, site_spec, dt_arr, columns, keep_old):
+    """Worker process: populate ephemeris for one chunk of targets.
+
+    Parameters
+    ----------
+    items : list of (key, target)
+        The chunk of targets to compute.
+
+    existing : dict
+        Prior cached ``{key: vis_dct}`` for just these keys (possibly
+        empty).  Seeding the worker with it makes the same incremental
+        ``keep_old`` merge used in the serial path apply here too.
+
+    site_spec : dict
+        Observer spec; rebuilt with ``Observer.from_spec`` because skyfield
+        objects inside an Observer don't pickle.
+
+    dt_arr, columns, keep_old
+        As for :meth:`EphemerisCache._populate_target_data`.
+
+    Returns
+    -------
+    dict
+        ``{key: vis_dct}`` for this chunk's targets (merged old + new).
+    """
     site = Observer.from_spec(site_spec)
-
-    tgt_dct = dict(tgt_tups)
-    cache._populate_target_data(res_dct, tgt_dct, site, dt_arr,
-                                keep_old=True)
+    helper = EphemerisCache(_mp_logger, columns=columns)
+    res_dct = dict(existing)
+    helper._populate_target_data(res_dct, dict(items), site, dt_arr,
+                                 keep_old=keep_old)
     return res_dct
 
 
 def populate_periods_mp(eph_cache, tgt_dct, site, periods, keep_old=True):
-    """Efficient population of ephemeris through concurrency.
+    """Populate ephemeris for many targets, parallelized over processes.
 
-    This is similar to the method populate_periods() in EphemerisCache,
-    but employs the joblib library to parallelize the calculation of
-    ephemeris for multiple unique targets.
+    Like :meth:`EphemerisCache.populate_periods`, but splits the targets
+    across worker processes using the standard-library ``concurrent.futures``.
+    Each worker is seeded with the existing cached results for its own
+    targets, so ``keep_old`` incremental merging behaves exactly as in the
+    serial path.
+
+    Falls back to a serial populate for small target counts, a single usable
+    CPU, or where process spawning is unavailable (e.g. Pyodide).
     """
-    # create one large date array of all periods
+    if len(tgt_dct) == 0:
+        return
+
+    # one large date array over all periods (sorted, de-duplicated)
     start_time, stop_time = periods[0]
     dt_arr = eph_cache.get_date_array(start_time, stop_time)
     for start_time, stop_time in periods[1:]:
         dt_arr_n = eph_cache.get_date_array(start_time, stop_time)
         dt_arr = np.append(dt_arr, dt_arr_n, axis=0)
-    # sort and de-duplicate (see note in populate_periods)
     dt_arr = np.unique(dt_arr)
 
-    # get keys and targets separately
-    tgt_keys, targets = tuple(zip(*tgt_dct.items()))
+    n_workers = min(_num_workers(), len(tgt_dct))
+    if (not have_mp) or n_workers <= 1 or len(tgt_dct) < _MP_MIN_TARGETS:
+        # not worth (or not possible) to parallelize -- same result, serially
+        eph_cache._populate_target_data(eph_cache.vis_catalog, tgt_dct, site,
+                                        dt_arr, keep_old=keep_old)
+        return
 
-    # make a list of (index, target)
-    arg_list = list(zip(range(len(targets)), targets))
+    # round-robin split: every worker gets work even when len(tgt_dct) is
+    # only a little above n_workers, and the shared args are pickled once
+    # per worker rather than once per target
+    items = list(tgt_dct.items())
+    chunks = [items[i::n_workers] for i in range(n_workers)]
+    chunks = [chunk for chunk in chunks if len(chunk) > 0]
 
-    # break the target list into large chunks for parallel resolving
-    core_count = cpu_count()
-    chunks = []
-    for i in range(0, len(arg_list), core_count):
-        chunks.append(arg_list[i:i + core_count])
-
-    # filter out any empty chunks, just in case
-    chunks = list(filter(lambda chunk: len(chunk) > 0, chunks))
-    max_procs = min(core_count, len(chunks))
-
-    # NOTE: hack to get around unpickle-able objects inside Observer
-    # (skyfield objects?)
+    columns = eph_cache._columns
+    # NOTE: skyfield objects inside Observer don't pickle -- pass a spec and
+    # rebuild it in each worker (Observer.from_spec)
     site_spec = site.get_spec()
 
-    # here's where the magic happens!
-    parallel = Parallel(n_jobs=max_procs, return_as="list", backend='loky')
-    res_lst = parallel(delayed(_process_chunk)(eph_cache, chunk, site_spec,
-                                               dt_arr)
-                       for chunk in chunks)
+    # Imported here rather than at module load: importing multiprocessing
+    # (and ProcessPoolExecutor, which pulls it in) can fail under Pyodide,
+    # so keep it out of the module's import path.  We only reach this point
+    # when have_mp is True.
+    import multiprocessing as mp
+    from concurrent.futures import ProcessPoolExecutor
 
-    # upack the results
-    for i, res_dct in enumerate(res_lst):
-        # replace target indices with original keys
-        upd_dct = {tgt_keys[j]: vis_dct for j, vis_dct in res_dct.items()}
-        # update master catalog with each sub-result
-        eph_cache.vis_catalog.update(upd_dct)
+    # Choose a start method that is safe to use from SPOT's multi-threaded
+    # GUI: plain 'fork' can deadlock when forking a multi-threaded process
+    # (a thread may hold a lock at fork time), so prefer 'forkserver' (forks
+    # children from a clean single-threaded server -- this also sidesteps
+    # 'spawn's re-import of __main__), and fall back to 'spawn'.
+    ctx = None
+    for _method in ('forkserver', 'spawn'):
+        try:
+            ctx = mp.get_context(_method)
+            break
+        except ValueError:
+            continue
+    if ctx is None:
+        ctx = mp.get_context()
+
+    with ProcessPoolExecutor(max_workers=len(chunks), mp_context=ctx) as ex:
+        futures = []
+        for chunk in chunks:
+            existing = {key: eph_cache.vis_catalog[key]
+                        for key, _tgt in chunk
+                        if key in eph_cache.vis_catalog}
+            futures.append(ex.submit(_process_chunk, chunk, existing,
+                                     site_spec, dt_arr, columns, keep_old))
+        for future in futures:
+            eph_cache.vis_catalog.update(future.result())

@@ -19,7 +19,6 @@ python:
       path: .
       extra_requirements:
         - docs
-        - recommended
 
 # Build PDF
 formats:

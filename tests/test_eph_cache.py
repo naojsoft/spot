@@ -14,7 +14,8 @@ import numpy as np
 from dateutil import tz
 import pytest
 
-from spot.util.eph_cache import EphemerisCache, split_array
+from spot.util.eph_cache import (EphemerisCache, split_array,
+                                 populate_periods_mp, _process_chunk, have_mp)
 
 COLS = ['alt_deg', 'az_deg']
 BASE = np.datetime64('2020-01-01T00:00:00')
@@ -54,6 +55,22 @@ def make_cache():
     log = logging.getLogger('test_eph_cache')
     log.addHandler(logging.NullHandler())
     return EphemerisCache(log, precision_minutes=5, columns=COLS)
+
+
+def make_cache_default():
+    """Cache with the default columns (incl. moon_alt/moon_sep), for the
+    real-ephemeris parallel tests."""
+    log = logging.getLogger('test_eph_cache')
+    log.addHandler(logging.NullHandler())
+    return EphemerisCache(log, precision_minutes=5)
+
+
+# real observing windows (5-min aligned) for the parallel/skyfield tests
+_HST = tz.gettz('US/Hawaii')
+P_START = datetime(2024, 5, 16, 20, 0, tzinfo=_HST)
+P_MID = datetime(2024, 5, 16, 20, 30, tzinfo=_HST)
+P_STOP = datetime(2024, 5, 16, 21, 0, tzinfo=_HST)
+PERIOD = (P_START, P_STOP)
 
 
 def assert_consistent(vis_dct, expected_times):
@@ -149,6 +166,110 @@ class TestEphCacheMultiPeriod:
         cache.populate_periods({'t1': object()}, site, periods, keep_old=True)
         res = cache.get_closest('t1', datetime(2020, 1, 1, 0, 12, tzinfo=tz.UTC))
         assert np.datetime64(res['time_utc']) == np.datetime64('2020-01-01T00:10')
+
+
+class TestPopulatePeriodsMP:
+    # the stdlib (concurrent.futures) parallel populate, incl. keep_old.
+    # These use a real Observer, since the worker rebuilds one via
+    # Observer.from_spec (a fake site can't round-trip through get_spec).
+
+    FLOAT_COLS = ['alt_deg', 'az_deg', 'airmass', 'pang_deg',
+                  'moon_alt', 'moon_sep']
+
+    @staticmethod
+    def _setup(n):
+        from spot.util import sites
+        from spot.util.calcpos import Body
+        sites.configure_default_sites()
+        site = sites.get_site('subaru')
+        site.initialize()
+        rng = np.random.default_rng(3)
+        tgts = {f"s{i}": Body(f"s{i}", float(rng.uniform(0, 360)),
+                              float(rng.uniform(-40, 80)), 2000.0)
+                for i in range(n)}
+        return site.observer, tgts
+
+    def _assert_same(self, a, b):
+        assert np.array_equal(a['time_utc'], b['time_utc'])
+        for col in self.FLOAT_COLS:
+            assert np.allclose(a[col], b[col], equal_nan=True), col
+
+    def test_process_chunk_matches_serial(self):
+        # worker function, in-process (no pool): result == serial populate
+        obs, tgts = self._setup(5)
+        dt_arr = np.unique(make_cache_default().get_date_array(*PERIOD))
+        cache = make_cache_default()
+        cache._populate_target_data(cache.vis_catalog, tgts, obs, dt_arr,
+                                    keep_old=True)
+        res = _process_chunk(list(tgts.items()), {}, obs.get_spec(),
+                             dt_arr, cache._columns, True)
+        for k in tgts:
+            self._assert_same(cache.vis_catalog[k], res[k])
+
+    def test_process_chunk_keep_old_seed(self):
+        # seed the worker with first-half results, extend with keep_old=True;
+        # must match a single serial populate over the full window
+        obs, tgts = self._setup(5)
+        c = make_cache_default()
+        first = np.unique(c.get_date_array(P_START, P_MID))
+        full = np.unique(c.get_date_array(P_START, P_STOP))
+        c._populate_target_data(c.vis_catalog, tgts, obs, first, keep_old=True)
+        existing = {k: c.vis_catalog[k] for k in tgts}
+
+        res = _process_chunk(list(tgts.items()), existing, obs.get_spec(),
+                             full, c._columns, True)
+
+        ref = make_cache_default()
+        ref._populate_target_data(ref.vis_catalog, tgts, obs, full,
+                                  keep_old=True)
+        for k in tgts:
+            self._assert_same(ref.vis_catalog[k], res[k])
+        # the window really was extended past the seeded first half
+        assert len(res['s0']['time_utc']) > len(first)
+
+    @pytest.mark.skipif(not have_mp, reason="no process-based parallelism")
+    def test_populate_mp_matches_serial(self):
+        # end-to-end pool run (>= _MP_MIN_TARGETS targets triggers the pool)
+        obs, tgts = self._setup(20)
+        c_ser = make_cache_default()
+        c_ser.populate_periods(tgts, obs, [PERIOD], keep_old=True)
+        c_mp = make_cache_default()
+        populate_periods_mp(c_mp, tgts, obs, [PERIOD], keep_old=True)
+        for k in tgts:
+            self._assert_same(c_ser.get_target_data(k), c_mp.get_target_data(k))
+
+    @pytest.mark.skipif(not have_mp, reason="no process-based parallelism")
+    def test_populate_mp_keep_old_false_prunes(self):
+        # keep_old=False must trim samples outside the new period (the
+        # Visibility time-axis switch relies on this).  Populate an initial
+        # window, then a shifted/overlapping one with keep_old=False; the
+        # result must equal a fresh populate of only the second window.
+        obs, tgts = self._setup(20)
+        first = (P_START, P_MID)                 # 20:00 - 20:30
+        second = (P_MID, P_STOP)                 # 20:30 - 21:00
+        c_mp = make_cache_default()
+        populate_periods_mp(c_mp, tgts, obs, [first], keep_old=False)
+        populate_periods_mp(c_mp, tgts, obs, [second], keep_old=False)
+
+        ref = make_cache_default()
+        ref.populate_periods(tgts, obs, [second], keep_old=False)
+        for k in tgts:
+            self._assert_same(ref.get_target_data(k), c_mp.get_target_data(k))
+
+    @pytest.mark.skipif(not have_mp, reason="no process-based parallelism")
+    def test_populate_mp_keep_old_extends(self):
+        # two MP passes with keep_old=True == one full serial populate
+        obs, tgts = self._setup(20)
+        c_mp = make_cache_default()
+        populate_periods_mp(c_mp, tgts, obs, [(P_START, P_MID)], keep_old=True)
+        n_first = len(c_mp.get_target_data('s0')['time_utc'])
+        populate_periods_mp(c_mp, tgts, obs, [(P_MID, P_STOP)], keep_old=True)
+
+        ref = make_cache_default()
+        ref.populate_periods(tgts, obs, [PERIOD], keep_old=True)
+        for k in tgts:
+            self._assert_same(ref.get_target_data(k), c_mp.get_target_data(k))
+        assert len(c_mp.get_target_data('s0')['time_utc']) > n_first
 
 
 class TestSplitArray:
