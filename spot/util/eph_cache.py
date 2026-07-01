@@ -86,8 +86,8 @@ class EphemerisCache:
                     num_rem = mask.sum()
                     if num_rem > 0:
                         self.logger.debug(f"removing results for {num_rem} times")
-                        for key in self._columns + ['time_utc']:
-                            vis_dct[key] = vis_dct[key][~mask]
+                        for col in self._columns + ['time_utc']:
+                            vis_dct[col] = vis_dct[col][~mask]
 
                 # add any new calculations in this time period
                 add_arr = np.setdiff1d(dt_arr, t_arr)
@@ -107,8 +107,8 @@ class EphemerisCache:
                     else:
                         idxs = np.searchsorted(vis_dct['time_utc'], add_arr)
                         # insert new data
-                        for key in self._columns + ['time_utc']:
-                            vis_dct[key] = np.insert(vis_dct[key], idxs, dct[key])
+                        for col in self._columns + ['time_utc']:
+                            vis_dct[col] = np.insert(vis_dct[col], idxs, dct[col])
 
     def populate_periods(self, tgt_dct, site, periods, keep_old=True):
         """Populate ephemeris for many targets over many periods.
@@ -137,6 +137,10 @@ class EphemerisCache:
         for start_time, stop_time in periods[1:]:
             dt_arr_n = self.get_date_array(start_time, stop_time)
             dt_arr = np.append(dt_arr, dt_arr_n, axis=0)
+        # sort and de-duplicate: overlapping/unordered periods would
+        # otherwise leave time_utc unsorted (breaking the searchsorted
+        # assumptions in get_closest() and the incremental insert below)
+        dt_arr = np.unique(dt_arr)
 
         self._populate_target_data(self.vis_catalog, tgt_dct, site, dt_arr,
                                    keep_old=keep_old)
@@ -379,6 +383,8 @@ def populate_periods_mp(eph_cache, tgt_dct, site, periods, keep_old=True):
     for start_time, stop_time in periods[1:]:
         dt_arr_n = eph_cache.get_date_array(start_time, stop_time)
         dt_arr = np.append(dt_arr, dt_arr_n, axis=0)
+    # sort and de-duplicate (see note in populate_periods)
+    dt_arr = np.unique(dt_arr)
 
     # get keys and targets separately
     tgt_keys, targets = tuple(zip(*tgt_dct.items()))
