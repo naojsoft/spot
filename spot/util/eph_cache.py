@@ -6,7 +6,16 @@ from datetime import timedelta
 import numpy as np
 from dateutil import tz
 
+have_joblib = False
+try:
+    from joblib import Parallel, delayed, cpu_count
+    have_joblib = True
+except ImportError:
+    pass
+
 from ginga.misc.Bunch import Bunch
+
+from .calcpos import Observer
 
 
 class EphemerisCache:
@@ -341,3 +350,65 @@ def split_array(arr):
     # split the array into sub-arrays along these indices
     sub_arrays = np.split(arr, split_indices)
     return sub_arrays
+
+
+def _process_chunk(cache, tgt_tups, site_spec, dt_arr):
+    res_dct = dict()
+    if len(tgt_tups) == 0:
+        return res_dct
+
+    # recreate site from spec (see NOTE in populate_periods_mp)
+    site = Observer.from_spec(site_spec)
+
+    tgt_dct = dict(tgt_tups)
+    cache._populate_target_data(res_dct, tgt_dct, site, dt_arr,
+                                keep_old=True)
+    return res_dct
+
+
+def populate_periods_mp(eph_cache, tgt_dct, site, periods, keep_old=True):
+    """Efficient population of ephemeris through concurrency.
+
+    This is similar to the method populate_periods() in EphemerisCache,
+    but employs the joblib library to parallelize the calculation of
+    ephemeris for multiple unique targets.
+    """
+    # create one large date array of all periods
+    start_time, stop_time = periods[0]
+    dt_arr = eph_cache.get_date_array(start_time, stop_time)
+    for start_time, stop_time in periods[1:]:
+        dt_arr_n = eph_cache.get_date_array(start_time, stop_time)
+        dt_arr = np.append(dt_arr, dt_arr_n, axis=0)
+
+    # get keys and targets separately
+    tgt_keys, targets = tuple(zip(*tgt_dct.items()))
+
+    # make a list of (index, target)
+    arg_list = list(zip(range(len(targets)), targets))
+
+    # break the target list into large chunks for parallel resolving
+    core_count = cpu_count()
+    chunks = []
+    for i in range(0, len(arg_list), core_count):
+        chunks.append(arg_list[i:i + core_count])
+
+    # filter out any empty chunks, just in case
+    chunks = list(filter(lambda chunk: len(chunk) > 0, chunks))
+    max_procs = min(core_count, len(chunks))
+
+    # NOTE: hack to get around unpickle-able objects inside Observer
+    # (skyfield objects?)
+    site_spec = site.get_spec()
+
+    # here's where the magic happens!
+    parallel = Parallel(n_jobs=max_procs, return_as="list", backend='loky')
+    res_lst = parallel(delayed(_process_chunk)(eph_cache, chunk, site_spec,
+                                               dt_arr)
+                       for chunk in chunks)
+
+    # upack the results
+    for i, res_dct in enumerate(res_lst):
+        # replace target indices with original keys
+        upd_dct = {tgt_keys[j]: vis_dct for j, vis_dct in res_dct.items()}
+        # update master catalog with each sub-result
+        eph_cache.vis_catalog.update(upd_dct)

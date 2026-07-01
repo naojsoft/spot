@@ -4,7 +4,6 @@
 name: spot
 dependencies:
   - python=3.13
-  - pip
   - astropy>=7.2.0
   - scipy
   - matplotlib
@@ -14,6 +13,7 @@ dependencies:
   - qtpy
   - python-dateutil
   - pyyaml
-  - requests
-  - ply
+  - pycairo
+  - cairosvg
+  - pip
 
