@@ -158,6 +158,94 @@ class EphemerisCache:
         self._populate_target_data(self.vis_catalog, tgt_dct, site, dt_arr,
                                    keep_old=keep_old)
 
+    def populate_periods_grid(self, tgt_dct, site, periods, keep_old=True):
+        """Like populate_periods(), but computes all fixed-star targets in a
+        single vectorized astropy grid call (see calcpos_astropy.calc_targets)
+        instead of looping per target.
+
+        Incremental over time: only the time slots each target is missing are
+        gridded (their union), so a shifting time window recomputes just the
+        new slot(s) for all N targets in one (N, K) call -- not the whole
+        window.  Solar-system bodies can't be gridded and fall back to the
+        per-target path.  ``site`` must be an astropy-backend Observer.
+        """
+        start_time, stop_time = periods[0]
+        dt_arr = self.get_date_array(start_time, stop_time)
+        for start_time, stop_time in periods[1:]:
+            dt_arr_n = self.get_date_array(start_time, stop_time)
+            dt_arr = np.append(dt_arr, dt_arr_n, axis=0)
+        dt_arr = np.unique(dt_arr)
+
+        self._populate_via_grid(self.vis_catalog, tgt_dct, site, dt_arr,
+                                keep_old=keep_old)
+
+    def _populate_via_grid(self, res_dct, tgt_dct, site, dt_arr, keep_old=True):
+        # astropy backend: vectorized grid kernel + SSBody detection
+        from .calcpos_astropy import calc_targets, SSBody
+
+        # solar-system bodies can't be gridded across different bodies --
+        # route them through the per-target path
+        star_keys, star_bodies, ss_dct = [], [], {}
+        for key, tgt in tgt_dct.items():
+            if isinstance(tgt, SSBody):
+                ss_dct[key] = tgt
+            else:
+                star_keys.append(key)
+                star_bodies.append(tgt)
+        if ss_dct:
+            self._populate_target_data(res_dct, ss_dct, site, dt_arr,
+                                       keep_old=keep_old)
+        if len(star_keys) == 0:
+            return
+
+        # per-target missing times; grid only their union (one call)
+        need = []
+        for key in star_keys:
+            vis = res_dct.get(key, None)
+            need.append(dt_arr if vis is None
+                        else np.setdiff1d(dt_arr, vis['time_utc']))
+        nonempty = [n for n in need if len(n) > 0]
+        if len(nonempty) == 0:
+            union = None
+            grid = {}
+        else:
+            union = np.unique(np.concatenate(nonempty))
+            grid = calc_targets(site, star_keys, star_bodies, union,
+                                columns=self._columns)
+        cols = self._columns
+
+        def _select(key, times):
+            # pull `times` (a subset of union) out of the gridded columns
+            sel = np.searchsorted(union, times)
+            d = {col: np.asarray(grid[key][col])[sel] for col in cols}
+            d['time_utc'] = times
+            return d
+
+        for key, add_arr in zip(star_keys, need):
+            vis = res_dct.get(key, None)
+            if vis is None:
+                # fresh target: union covers all of dt_arr
+                res_dct[key] = _select(key, dt_arr)
+                continue
+
+            t_arr = vis['time_utc']
+            if not keep_old:
+                # drop cached times outside the current window
+                mask = np.isin(t_arr, dt_arr, invert=True)
+                if mask.sum() > 0:
+                    for col in cols + ['time_utc']:
+                        vis[col] = vis[col][~mask]
+
+            if len(add_arr) == 0:
+                continue
+            dct = _select(key, add_arr)
+            if len(vis['time_utc']) == 0:
+                vis.update(dct)
+            else:
+                idxs = np.searchsorted(vis['time_utc'], add_arr)
+                for col in cols + ['time_utc']:
+                    vis[col] = np.insert(vis[col], idxs, dct[col])
+
     def get_closest(self, key, time_dt, precision_minutes=None):
         """Return the closest set of results for target to time
 

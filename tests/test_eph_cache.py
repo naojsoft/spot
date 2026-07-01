@@ -272,6 +272,64 @@ class TestPopulatePeriodsMP:
         assert len(c_mp.get_target_data('s0')['time_utc']) > n_first
 
 
+class TestGridPopulate:
+    # astropy vectorized grid populate (populate_periods_grid): equals the
+    # serial populate, and a shifting window grids only the NEW slot(s)
+    FLOATS = ['alt_deg', 'az_deg', 'airmass', 'pang_deg', 'moon_alt', 'moon_sep']
+    H = tz.gettz('US/Hawaii')
+
+    @staticmethod
+    def _obs():
+        import spot.util.calcpos_astropy as ap
+        return ap.Observer('subaru', timezone=tz.gettz('US/Hawaii'),
+                           longitude=-155.4761, latitude=19.8256,
+                           elevation=4139, pressure=615, temperature=0)
+
+    @staticmethod
+    def _tgts(n):
+        import spot.util.calcpos_astropy as ap
+        rng = np.random.default_rng(5)
+        return {f"s{i}": ap.Body(f"s{i}", float(rng.uniform(0, 360)),
+                                 float(rng.uniform(-30, 85)), 2000.0)
+                for i in range(n)}
+
+    def _same(self, a, b):
+        assert np.array_equal(a['time_utc'], b['time_utc'])
+        for c in self.FLOATS:
+            assert np.allclose(a[c], b[c], atol=1e-6, equal_nan=True), c
+
+    def test_grid_matches_serial(self):
+        w = (datetime(2024, 5, 16, 20, 0, tzinfo=self.H),
+             datetime(2024, 5, 16, 20, 50, tzinfo=self.H))
+        t = self._tgts(25)
+        cg = make_cache_default(); cg.populate_periods_grid(t, self._obs(), [w], keep_old=False)
+        cs = make_cache_default(); cs.populate_periods(t, self._obs(), [w], keep_old=False)
+        for k in t:
+            self._same(cs.get_target_data(k), cg.get_target_data(k))
+
+    def test_shift_grids_only_new_slot(self):
+        import spot.util.calcpos_astropy as ap
+        w1 = (datetime(2024, 5, 16, 20, 0, tzinfo=self.H),
+              datetime(2024, 5, 16, 20, 50, tzinfo=self.H))
+        w2 = (datetime(2024, 5, 16, 20, 5, tzinfo=self.H),
+              datetime(2024, 5, 16, 20, 55, tzinfo=self.H))
+        t = self._tgts(25)
+        c = make_cache_default(); c.populate_periods_grid(t, self._obs(), [w1], keep_old=False)
+        sizes, orig = [], ap.calc_targets
+        def spy(site, keys, bodies, union, columns=None):
+            sizes.append(len(union))
+            return orig(site, keys, bodies, union, columns=columns)
+        ap.calc_targets = spy
+        try:
+            c.populate_periods_grid(t, self._obs(), [w2], keep_old=False)  # shift 1 slot
+        finally:
+            ap.calc_targets = orig
+        assert sizes and sizes[-1] == 1        # only the new slot gridded
+        ref = make_cache_default(); ref.populate_periods_grid(t, self._obs(), [w2], keep_old=False)
+        for k in t:
+            self._same(ref.get_target_data(k), c.get_target_data(k))
+
+
 class TestSplitArray:
 
     def test_contiguous(self):
