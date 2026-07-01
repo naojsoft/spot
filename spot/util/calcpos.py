@@ -108,6 +108,11 @@ class Observer:
         self._ssbodies = None
         self._location = None
         self._timescale = None
+        # cached per-time-array geometry shared across targets (see
+        # _obs_geometry): the observer position + Moon apparent position,
+        # which depend only on (observer, time), not on the target
+        self._geom = None
+        self._geom_key = None
 
     @property
     def location(self):
@@ -201,6 +206,29 @@ class Observer:
 
     def calc(self, body, time_start):
         return body.calc(self, time_start)
+
+    def _obs_geometry(self, obstime):
+        """Observer + Moon geometry for `obstime`, memoized by the time
+        array and shared across all targets in a pass.
+
+        The observer's position and the Moon's apparent position depend only
+        on (observer, time) -- not on the target -- so computing them once
+        and reusing them across every target avoids re-observing the Moon
+        (and recomputing the observer position) for each target, which is a
+        large cost when populating many targets over the same times.
+        """
+        tt = np.asarray(obstime.tt)
+        key = hash((tt.shape, tt.tobytes()))
+        if self._geom is not None and self._geom_key == key:
+            return self._geom
+        earth_at = self.location.at(obstime)
+        moon_app = earth_at.observe(self.ssbodies['moon']).apparent()
+        moon_alt, _az, _d = moon_app.altaz(temperature_C=self.temp_C,
+                                           pressure_mbar=self.pressure_mbar)
+        self._geom = Bunch(earth_at=earth_at, moon_app=moon_app,
+                           moon_alt_deg=moon_alt.degrees)
+        self._geom_key = key
+        return self._geom
 
     def get_date(self, date_str, timezone=None):
         """Get a datetime object, converted from a date string.
@@ -775,25 +803,17 @@ class CalculationResult(object):
     def moon_alt(self):
         """Return the moon's altitude at the time of observation (in degrees)."""
         if self._moon_alt is None:
-            # calculate moon altitude
-            ssbodies = get_ssbodies()
-            moon = ssbodies['moon']
-            astrometric = self.observer.location.at(self.obstime).observe(moon)
-            apparent = astrometric.apparent()
-            alt, az, distance = apparent.altaz(temperature_C=self.observer.temp_C,
-                                               pressure_mbar=self.observer.pressure_mbar)
-            self._moon_alt = alt.degrees
+            geom = self.observer._obs_geometry(self.obstime)
+            self._moon_alt = geom.moon_alt_deg
         return self._moon_alt
 
     @property
     def moon_pct(self):
         """Return the moon's percentage of illumination (range: 0-1)."""
         if self._moon_pct is None:
-            ssbodies = get_ssbodies()
-            e = self.observer.location.at(self.obstime)
-            s = e.observe(ssbodies['sun']).apparent()
-            m = e.observe(ssbodies['moon']).apparent()
-            self._moon_pct = m.fraction_illuminated(ssbodies['sun'])
+            geom = self.observer._obs_geometry(self.obstime)
+            sun = self.observer.ssbodies['sun']
+            self._moon_pct = geom.moon_app.fraction_illuminated(sun)
         return self._moon_pct
 
     @property
@@ -899,19 +919,18 @@ class CalculationResult(object):
             self._eq = 2000.0
 
     def _calc_altaz(self):
+        geom = self.observer._obs_geometry(self.obstime)
         coord = self.body._get_coord()
-        astrometric = self.observer.location.at(self.obstime).observe(coord)
+        astrometric = geom.earth_at.observe(coord)
         apparent = astrometric.apparent()
         alt, az, distance = apparent.altaz(temperature_C=self.observer.temp_C,
                                            pressure_mbar=self.observer.pressure_mbar)
         self._az, self._alt = az, alt
 
-        # calculate moon separation from target(s)
-        ssbodies = get_ssbodies()
-        moon = ssbodies['moon']
-        astrometric_m = self.observer.location.at(self.obstime).observe(moon)
-        apparent_m = astrometric_m.apparent()
-        sep = apparent.separation_from(apparent_m)
+        # moon separation from target(s): reuse the Moon's apparent position
+        # (identical for all targets at these times) instead of re-observing
+        # the Moon for every target
+        sep = apparent.separation_from(geom.moon_app)
         self._moon_sep = sep.degrees
 
     def get_dict(self, columns=None):
