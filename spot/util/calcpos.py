@@ -373,76 +373,28 @@ class Observer:
     def observable(self, target, time_start, time_stop,
                    el_min_deg, el_max_deg, time_needed,
                    airmass=None, moon_sep=None):
+        """Deprecated and non-functional.
+
+        .. deprecated::
+            This method was written for the previous skyfield backend and was
+            never ported to the current astropy-based ``Body``/``SSBody``
+            targets (it calls ``target._get_coord()`` without the required
+            ``obstime`` and treats the astropy ``EarthLocation`` as a skyfield
+            observer), so it no longer works.  It is also unused within SPOT
+            and qplan.  Use
+            :meth:`spot.util.eph_cache.EphemerisCache.observable` -- or build
+            visibility directly from :meth:`Observer.calc` -- instead.
         """
-        Return True if `target` is observable between `time_start` and
-        `time_stop`, defined by whether it is between elevation `el_min`
-        and `el_max` during that period, and whether it meets the minimum
-        airmass.
-        """
-        # set observer's horizon to elevation for el_min or to achieve
-        # desired airmass
-        if airmass is not None:
-            # compute desired altitude from airmass
-            alt_deg = airmass2alt(airmass)
-            min_alt_deg = max(alt_deg, el_min_deg)
-        else:
-            min_alt_deg = el_min_deg
-
-        # TODO: worry about el_max_deg
-
-        coord = target._get_coord()
-        obstime = get_timescale().from_datetime(time_start)
-        astrometric = self.location.at(obstime).observe(coord)
-        apparent = astrometric.apparent()
-        alt, az, distance = apparent.altaz(temperature_C=self.temp_C,
-                                           pressure_mbar=self.pressure_mbar)
-        alt_deg = alt.degrees
-
-        if alt_deg >= min_alt_deg:
-            # body is above desired altitude at start of period
-            # so calculate next setting
-            time_rise = time_start
-            _t_set, y = self._find_setting(coord, time_start, time_stop,
-                                           min_alt_deg)
-            if len(_t_set) > 0:
-                time_set = _t_set[0].astimezone(self.tz_local)
-            else:
-                time_set = time_stop
-            #print("body already up: set=%s" % (time_set))
-
-        else:
-            # body is below desired altitude at start of period
-            _t_rise, y = self._find_rising(coord, time_start,
-                                           time_stop, min_alt_deg)
-            if len(_t_rise) == 0:
-                time_rise = None
-                time_set = None
-            else:
-                time_rise = _t_rise[0].astimezone(self.tz_local)
-                _t_set, y = self._find_setting(coord, time_start,
-                                               time_stop, min_alt_deg)
-                if len(_t_set) > 0:
-                    time_set = _t_set[0].astimezone(self.tz_local)
-                else:
-                    time_set = time_stop
-
-        if None in (time_rise, time_set):
-            return (False, time_rise, time_set)
-
-        # last observable time is setting or end of period,
-        # whichever comes first
-        time_end = min(time_set, time_stop)
-        # calculate duration in seconds (subtracting two datetime objects)
-        duration = (time_end - time_rise).total_seconds()
-        # object is observable as long as the duration that it is
-        # up is as long or longer than the time needed
-        diff = duration - float(time_needed)
-        #can_obs = diff > -0.001
-        can_obs = duration > time_needed
-        #print("can_obs=%s duration=%f needed=%f diff=%f" % (
-        #    can_obs, duration, time_needed, diff))
-
-        return (can_obs, time_rise, time_end)
+        warnings.warn(
+            "Observer.observable() is deprecated and non-functional: it was "
+            "written for the old skyfield backend and was never ported to the "
+            "current astropy-based targets.  Use "
+            "spot.util.eph_cache.EphemerisCache.observable() (or build "
+            "visibility from Observer.calc()) instead.",
+            DeprecationWarning, stacklevel=2)
+        raise NotImplementedError(
+            "Observer.observable() is deprecated; use "
+            "spot.util.eph_cache.EphemerisCache.observable() instead.")
 
     def distance(self, tgt1, tgt2, time_start):
         c1 = self.calc(tgt1, time_start)
