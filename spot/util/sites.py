@@ -66,7 +66,7 @@ class Site:
             rot_cmd_deg=0.0,          # rotator commanded position in deg
             tel_status='Pointing',    # current telescope status string
             humidity=0.0,
-            wavelength={'': 0.0, '': 0.0}
+            wavelength={'observing': 0.0, 'guiding': 0.0}
         )
 
     def get_status(self):

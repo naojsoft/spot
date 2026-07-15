@@ -1,0 +1,36 @@
+name: Build
+
+on:
+  push:
+    branches:
+    - main
+    - 'v*'
+    tags:
+    - '*'
+  pull_request:
+
+# Cancel duplicate builds
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: PEP 517 build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        # setuptools_scm needs the full history/tags to compute the version
+        fetch-depth: 0
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+    - name: Install build tooling
+      run: python -m pip install --upgrade pip build twine
+    - name: Build sdist and wheel
+      run: python -m build
+    - name: Check distributions with twine
+      run: twine check dist/*
