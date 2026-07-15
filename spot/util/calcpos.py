@@ -168,6 +168,21 @@ def airmass2alt(am):
 #### Classes ####
 
 
+def _tzname_resolver(name, offset):
+    """Resolve tz abbreviations (e.g. ``HST``, ``UTC``) found in date strings.
+
+    Passed to ``dateutil.parser.parse`` as ``tzinfos`` so that a tzname
+    resolves the same way regardless of the local machine's timezone (dateutil
+    otherwise only recognizes the abbreviation the local box happens to use,
+    and emits an UnknownTimezoneWarning for the rest).  Returns None for an
+    empty or unrecognized name so the parsed datetime stays naive -- callers
+    (see get_date) then apply the observer's timezone.
+    """
+    if not name:
+        return None
+    return tz.gettz(name)
+
+
 class Observer:
     """
     Observer
@@ -362,7 +377,7 @@ class Observer:
             # user actually passed a datetime object
             dt = date_str
         else:
-            dt = dateutil.parser.parse(date_str)
+            dt = dateutil.parser.parse(date_str, tzinfos=_tzname_resolver)
 
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone)
