@@ -9,12 +9,6 @@ from datetime import datetime, time, timedelta
 from dateutil import tz
 import dateutil.parser
 
-# set up download directory for files
-from ginga.util.paths import ginga_home
-datadir = os.path.join(ginga_home, "downloads")
-if not os.path.isdir(datadir):
-    os.mkdir(datadir)
-
 import warnings
 
 import erfa
@@ -24,39 +18,117 @@ from astropy.time import Time
 from astropy.coordinates import (EarthLocation, Longitude, Latitude,
                                  Angle, SkyCoord, AltAz, ICRS, FK4, FK5,
                                  get_body, solar_system_ephemeris)
-from astropy.utils.iers import conf as ap_iers_conf
+from astropy.utils import iers as ap_iers
+ap_iers_conf = ap_iers.conf
 #ap_iers_conf.auto_download = False
 ap_iers_conf.remote_timeout = 5.0
 ap_iers_conf.iers_degraded_accuracy = 'ignore'
-# from astropy.config import set_temp_cache
-# set_temp_cache(path=datadir)
-# Solar-system ephemeris for get_body(): prefer the locally-staged de421.bsp
-# (the same kernel skyfield uses -- consistent, and already present) and fall
-# back to astropy's built-in analytic ephemeris.  Never use a name that would
-# trigger a download (e.g. "jpl"): that needs ssl/network, which fails under
-# Pyodide (the browser has no ssl module).
-_de421_path = os.path.join(datadir, 'de421.bsp')
-try:
-    solar_system_ephemeris.set(_de421_path if os.path.exists(_de421_path)
-                               else "builtin")
-except Exception:
-    solar_system_ephemeris.set("builtin")
 
 ASTROPY_LT_6_0_0 = not minversion("astropy", "6.0.0")
+
+from ginga.util import paths
 
 from skyfield import almanac
 from skyfield.api import Loader, wgs84
 from skyfield.earthlib import refraction
-# don't download ephemeris to the CWD
-load = Loader(os.path.join(datadir))
 
 # Constants
 earth_radius_m = 6378136.6
 solar_radius_deg = 0.25
 moon_radius_deg = 0.26
 
-ssbodies = load('de421.bsp')
-timescale = load.timescale()
+
+def _get_spot_home():
+    """Resolve SPOT's home directory.
+
+    Prefers an explicitly-configured location -- the ``GINGA_HOME`` env var,
+    or a home set by the SPOT launcher / pyscript server via
+    ``ginga.util.paths.set_home`` (which is how ``$CONFHOME`` is honored at
+    startup).  Falls back to ``$CONFHOME/spot`` or ``~/.spot`` when SPOT's
+    home has not been configured (e.g. calcpos imported by the test-suite or
+    by qplan without going through the launcher).
+    """
+    if 'GINGA_HOME' in os.environ:
+        return os.environ['GINGA_HOME']
+    if paths.ginga_home and paths.ginga_home != os.path.join(paths.home,
+                                                             '.ginga'):
+        return paths.ginga_home
+    confhome = os.environ.get('CONFHOME')
+    if confhome:
+        return os.path.join(confhome, 'spot')
+    return os.path.join(paths.home, '.spot')
+
+
+def get_datadir(create=False):
+    """Directory where astropy and skyfield stage/cache their data files
+    (the de421.bsp planetary ephemeris and the finals2000A.all IERS-A
+    table).  This is ``<spot-home>/downloads`` -- the same location the
+    pyscript server pre-stages files into.
+    """
+    datadir = os.path.join(_get_spot_home(), 'downloads')
+    if create:
+        os.makedirs(datadir, exist_ok=True)
+    return datadir
+
+
+def _configure_astropy_data():
+    """Point astropy at SPOT's data directory.
+
+    Cheap (no network, no directory creation), so it runs at import: the
+    global ephemeris / IERS state must be in place before any coordinate
+    transform.
+    """
+    datadir = get_datadir()
+
+    # Route astropy's download cache into datadir.  astropy >= 8.0 honors
+    # ASTROPY_CACHE_DIR (an absolute path that takes precedence over
+    # XDG_CACHE_HOME); set it before the cache is first used.  (Earlier
+    # astropy has no clean permanent setter, so its cache is left at the
+    # default there.)
+    if minversion("astropy", "8.0"):
+        os.environ.setdefault("ASTROPY_CACHE_DIR", datadir)
+
+    # Use a pre-staged IERS-A Earth-orientation table (finals2000A.all) if
+    # present, so Earth-orientation lookups need no network (e.g. under
+    # Pyodide, which has no ssl module).
+    iers_path = os.path.join(datadir, 'finals2000A.all')
+    if os.path.exists(iers_path):
+        try:
+            ap_iers.earth_orientation_table.set(
+                ap_iers.IERS_A.open(iers_path))
+        except Exception:
+            pass
+
+    # Solar-system ephemeris for get_body(): prefer the locally-staged
+    # de421.bsp (the same kernel skyfield uses -- consistent, and already
+    # present) and fall back to astropy's built-in analytic ephemeris.
+    # Never use a name that would trigger a download (e.g. "jpl"): that
+    # needs ssl/network, which fails under Pyodide.
+    de421_path = os.path.join(datadir, 'de421.bsp')
+    try:
+        solar_system_ephemeris.set(de421_path if os.path.exists(de421_path)
+                                   else "builtin")
+    except Exception:
+        solar_system_ephemeris.set("builtin")
+
+
+_configure_astropy_data()
+
+
+# Skyfield planetary ephemeris + timescale, loaded lazily so that merely
+# importing this module performs no network I/O or directory creation.  The
+# first access downloads/loads de421.bsp into get_datadir().
+_sf_loader = None
+_ssbodies = None
+_timescale = None
+
+
+def _get_loader():
+    global _sf_loader
+    if _sf_loader is None:
+        # create the directory now that we are about to write/download into it
+        _sf_loader = Loader(get_datadir(create=True))
+    return _sf_loader
 
 # used for twilight calculations
 horizon_6 = -6.0
@@ -135,7 +207,7 @@ class Observer:
                                       lon=Longitude(self.lon_deg * u.deg),
                                       height=self.elev_m * u.m)
         # for risings/settings
-        earth = ssbodies['earth']
+        earth = get_ssbodies()['earth']
         self.skyfield_location = earth + wgs84.latlon(latitude_degrees=self.lat_deg,
                                                       longitude_degrees=self.lon_deg,
                                                       elevation_m=self.elev_m)
@@ -319,7 +391,7 @@ class Observer:
         # TODO: worry about el_max_deg
 
         coord = target._get_coord()
-        obstime = timescale.from_datetime(time_start)
+        obstime = get_timescale().from_datetime(time_start)
         astrometric = self.location.at(obstime).observe(coord)
         apparent = astrometric.apparent()
         alt, az, distance = apparent.altaz(temperature_C=self.temp_C,
@@ -381,8 +453,8 @@ class Observer:
         return (d_alt, d_az)
 
     def _find_setting(self, coord, start_dt, stop_dt, horizon_deg):
-        t0 = timescale.from_datetime(start_dt)
-        t1 = timescale.from_datetime(stop_dt)
+        t0 = get_timescale().from_datetime(start_dt)
+        t1 = get_timescale().from_datetime(stop_dt)
         # TODO: refraction function does not appear to work as expected
         r = refraction(0.0, temperature_C=self.temp_C,
                        pressure_mbar=self.pressure_mbar)
@@ -392,8 +464,8 @@ class Observer:
         return t, y
 
     def _find_rising(self, coord, start_dt, stop_dt, horizon_deg):
-        t0 = timescale.from_datetime(start_dt)
-        t1 = timescale.from_datetime(stop_dt)
+        t0 = get_timescale().from_datetime(start_dt)
+        t1 = get_timescale().from_datetime(stop_dt)
         # TODO: refraction function does not appear to work as expected
         r = refraction(0.0, temperature_C=self.temp_C,
                        pressure_mbar=self.pressure_mbar)
@@ -423,7 +495,7 @@ class Observer:
             date = self.get_date(date)
 
         horizon_deg = self.horizon_deg
-        t, y = self._find_setting(ssbodies['sun'], date,
+        t, y = self._find_setting(get_ssbodies()['sun'], date,
                                   date + timedelta(days=1, hours=1),
                                   horizon_deg - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
@@ -436,7 +508,7 @@ class Observer:
             date = self.get_date(date)
 
         horizon_deg = self.horizon_deg
-        t, y = self._find_rising(ssbodies['sun'], date,
+        t, y = self._find_rising(get_ssbodies()['sun'], date,
                                  date + timedelta(days=1, hours=1),
                                  horizon_deg - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
@@ -449,7 +521,7 @@ class Observer:
         else:
             date = self.get_date(date)
 
-        t, y = self._find_setting(ssbodies['sun'], date,
+        t, y = self._find_setting(get_ssbodies()['sun'], date,
                                   date + timedelta(days=1, hours=0),
                                   horizon_6 - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
@@ -462,7 +534,7 @@ class Observer:
         else:
             date = self.get_date(date)
 
-        t, y = self._find_setting(ssbodies['sun'], date,
+        t, y = self._find_setting(get_ssbodies()['sun'], date,
                                   date + timedelta(days=1, hours=0),
                                   horizon_12 - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
@@ -475,7 +547,7 @@ class Observer:
         else:
             date = self.get_date(date)
 
-        t, y = self._find_setting(ssbodies['sun'], date,
+        t, y = self._find_setting(get_ssbodies()['sun'], date,
                                   date + timedelta(days=1, hours=0),
                                   horizon_18 - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
@@ -488,7 +560,7 @@ class Observer:
         else:
             date = self.get_date(date)
 
-        t, y = self._find_rising(ssbodies['sun'], date,
+        t, y = self._find_rising(get_ssbodies()['sun'], date,
                                  date + timedelta(days=1, hours=0),
                                  horizon_6 - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
@@ -501,7 +573,7 @@ class Observer:
         else:
             date = self.get_date(date)
 
-        t, y = self._find_rising(ssbodies['sun'], date,
+        t, y = self._find_rising(get_ssbodies()['sun'], date,
                                  date + timedelta(days=1, hours=0),
                                  horizon_12 - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
@@ -514,7 +586,7 @@ class Observer:
         else:
             date = self.get_date(date)
 
-        t, y = self._find_rising(ssbodies['sun'], date,
+        t, y = self._find_rising(get_ssbodies()['sun'], date,
                                  date + timedelta(days=1, hours=0),
                                  horizon_18 - solar_radius_deg)
         return t[0].astimezone(self.tz_local)
@@ -538,7 +610,7 @@ class Observer:
         else:
             date = self.get_date(date)
 
-        t, y = self._find_rising(ssbodies['moon'], date,
+        t, y = self._find_rising(get_ssbodies()['moon'], date,
                                  date + timedelta(days=2, hours=0),
                                  self.horizon_deg - moon_radius_deg)
         return t[0].astimezone(self.tz_local)
@@ -550,7 +622,7 @@ class Observer:
         else:
             date = self.get_date(date)
 
-        t, y = self._find_setting(ssbodies['moon'], date,
+        t, y = self._find_setting(get_ssbodies()['moon'], date,
                                   date + timedelta(days=2, hours=0),
                                   self.horizon_deg - moon_radius_deg)
         return t[0].astimezone(self.tz_local)
@@ -974,15 +1046,15 @@ class CalculationResult(object):
     def moon_pct(self):
         """Return the moon's percentage of illumination (range: 0-1)"""
         if self._moon_pct is None:
-            location = ssbodies['earth'] + \
+            location = get_ssbodies()['earth'] + \
                 wgs84.latlon(latitude_degrees=self.observer.lat_deg,
                              longitude_degrees=self.observer.lon_deg,
                              elevation_m=self.observer.elev_m)
-            obstime = timescale.from_astropy(self.obstime)
+            obstime = get_timescale().from_astropy(self.obstime)
             e = location.at(obstime)
-            s = e.observe(ssbodies['sun']).apparent()
-            m = e.observe(ssbodies['moon']).apparent()
-            self._moon_pct = m.fraction_illuminated(ssbodies['sun'])
+            s = e.observe(get_ssbodies()['sun']).apparent()
+            m = e.observe(get_ssbodies()['moon']).apparent()
+            self._moon_pct = m.fraction_illuminated(get_ssbodies()['sun'])
         return self._moon_pct
 
     @property
@@ -1162,13 +1234,13 @@ def calc_targets(observer, keys, bodies, dt_arr, columns=None):
     # matches CalculationResult.moon_pct exactly (per-target fallback parity).
     moon_pct = None
     if 'moon_pct' in columns:
-        sf_loc = ssbodies['earth'] + \
+        sf_loc = get_ssbodies()['earth'] + \
             wgs84.latlon(latitude_degrees=observer.lat_deg,
                          longitude_degrees=observer.lon_deg,
                          elevation_m=observer.elev_m)
-        sf_e = sf_loc.at(timescale.from_astropy(times))
-        sf_moon = sf_e.observe(ssbodies['moon']).apparent()
-        moon_pct = np.atleast_1d(sf_moon.fraction_illuminated(ssbodies['sun']))
+        sf_e = sf_loc.at(get_timescale().from_astropy(times))
+        sf_moon = sf_e.observe(get_ssbodies()['moon']).apparent()
+        moon_pct = np.atleast_1d(sf_moon.fraction_illuminated(get_ssbodies()['sun']))
 
     # --- the grid: all targets at all times in one transform ---
     coord = SkyCoord(ra_deg[:, None] * u.deg, dec_deg[:, None] * u.deg,
@@ -1273,17 +1345,23 @@ def get_ss(name):
 # skyfield body around, e.g. spot.util.target.get_nstarget)
 
 def get_ssbodies():
-    return ssbodies
+    global _ssbodies
+    if _ssbodies is None:
+        _ssbodies = _get_loader()('de421.bsp')
+    return _ssbodies
 
 
 def get_timescale():
-    return timescale
+    global _timescale
+    if _timescale is None:
+        _timescale = _get_loader().timescale()
+    return _timescale
 
 
 def get_ssbody(lookup_name, myname=None):
     if myname is None:
         myname = lookup_name
-    return SSBody(myname, ssbodies[lookup_name.lower()])
+    return SSBody(myname, get_ssbodies()[lookup_name.lower()])
 
 
 #END
