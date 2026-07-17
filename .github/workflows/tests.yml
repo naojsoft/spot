@@ -28,6 +28,8 @@ jobs:
             python: '3.12'
           - os: ubuntu-latest
             python: '3.13'
+          - os: ubuntu-latest
+            python: '3.14'
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
