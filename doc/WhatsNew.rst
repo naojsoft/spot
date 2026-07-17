@@ -2,6 +2,48 @@
 What's New
 ++++++++++
 
+Ver 1.2.0 (2026-07-16)
+======================
+- NOTE: requires Ginga v7.0.0
+- Consolidated position calculations onto astropy (skyfield is kept for the
+  rise/set/twilight almanac); dropped pandas as a dependency
+- Added proper motion support: targets with pmRA/pmDEC are propagated from
+  the catalog epoch to the observation time
+- Coordinates are now converted to ICRS honoring the equinox (J2000, B1950,
+  FK5); previously non-J2000 coordinates were treated as ICRS (a B1950
+  target could be ~0.7 deg off)
+- Much faster visibility and ephemeris computation: vectorized calculation
+  over all targets at once, Moon/observer geometry computed once per pass,
+  and optional multiprocessing acceleration
+- Ephemeris data downloads are now lazy, so plugins load without triggering
+  a download
+- Per-workspace configuration: each workspace stores its own plugin settings
+  under ~/.spot/workspaces/<name>
+- CPanel: the "Open Workspace" entry is now an editable combo box; the window
+  layout and the set of running plugins are saved and restored per workspace
+- Added "Save config" buttons to several plugins (FindImage, Targets, SkyCam,
+  SiteSelector, TelescopePosition) to persist their settings
+- Targets: .prm files can now be loaded (upload, drag-and-drop, or file
+  dialog) and are saved to ~/.spot/prm for resolving OPE-referenced targets
+- Targets: a PRM upload now shows a confirmation dialog and handles replacing
+  a same-named file
+- Fixed target color rotation after a file upload
+- Added a second azimuth direction option
+- SkyCam: added a monochrome toggle for color images; changed the Subaru
+  all-sky camera to the public URL
+- Improvements for the web (in-browser) version of SPOT: the Visibility plot
+  stays responsive and replots faster; name lookup (Sesame) and JPL Horizons
+  ephemerides now work in-browser; a download progress bar was added to
+  FindImage
+- Added a new SPOT logo, shown in the banner
+- Changed the color of the moon
+- Removed the Pan and Zoom plugins, as they are no longer needed
+- Moved packaging to pyproject.toml, switched from flake8 to ruff, and added
+  continuous integration; dropped unused dependencies (pandas, joblib,
+  astroquery, requests)
+- Fixed timezone abbreviations in date strings so they resolve consistently
+  regardless of the host machine
+
 Ver 1.1.0 (2026-02-25)
 ======================
 - Added a feature to InsFov where it rotates the image by the position

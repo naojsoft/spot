@@ -41,6 +41,17 @@ reload a file that you have edited).
 The targets should populate the table.
 
 =================
+Loading PRM files
+=================
+OPE files often reference targets defined in separate "PRM" files.  You can
+load a ``.prm`` file the same way you would a CSV or OPE file (press "File"
+and select it, or drag and drop it).  Instead of loading targets into the
+table, the file is saved into ``~/.spot/prm`` so that subsequently loaded
+OPE files can resolve the targets they reference.  A confirmation dialog
+notes whether the file was saved or replaced an existing one of the same
+name.
+
+=================
 Table information
 =================
 The target table summarizes information about targets. There are columns
@@ -110,6 +121,10 @@ settings.
   SiteSelector plugin to that date and time.  The format of this column
   should be: YYYY-MM-DD HH:MM:SS <TZ>
   If the timezone string is omitted, UTC is assumed.
+
+The "Save config" button records the current settings (including the plot
+selection and manually chosen target color) for the workspace, so that they
+are restored the next time the workspace is opened.
 
 .. _NED: https://ned.ipac.caltech.edu/
 

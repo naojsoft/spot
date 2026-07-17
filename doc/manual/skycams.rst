@@ -19,10 +19,20 @@ before the sky image appears in the channel. When the image updates,
 the time and date of the last image will be displayed at the bottom of the 
 window underneath "Image Download Info".
 
-The SkyCam plugin can also generate a differential image from the selected 
+Some all-sky cameras produce color images.  Checking the "Monochrome"
+checkbox converts these to a monochrome (grayscale) image; uncheck it to
+show the original colors.  Note that when switching between color and
+monochrome it may take an extra download cycle for a differential image to
+update.
+
+The SkyCam plugin can also generate a differential image from the selected
 channel server by selecting the checkbox next to "Show Differential Image".
 
 .. image:: figures/skydif.*
+
+The "Save config" button records your current selections (camera server,
+"Show Sky Image", "Show Differential Image" and "Monochrome") for the
+workspace, so they are restored the next time it is opened.
 
 ==================
 Adding new cameras

@@ -19,22 +19,19 @@ to compile anything, but as always, your mileage may vary.
 REQUIRED
 ========
 
-* python (v. 3.10 or higher)
+* python (v. 3.11 or higher)
 * setuptools-scm
 * numpy  (v. 1.14 or higher)
 * astropy
 * jplephem
 * skyfield
-* pandas
 * python-dateutil
 * pyyaml
-* requests
 * matplotlib
 * pillow
 * PyQt (v5 or v6)
 * QtPy
-* ginga
-* astroquery
+* ginga (v. 7.0.0 or higher)
 
 RECOMMENDED
 ===========
@@ -43,6 +40,7 @@ Certain plugins in SPOT (or features of those plugins) will not work
 without the following packages:
 
 * scipy
+* astroquery (an optional additional source for target name resolution)
 
 For use of "NAOJ features" you may need the following packages:
 

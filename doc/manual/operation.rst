@@ -45,11 +45,18 @@ following chapters.
 Image contains data from the WISE 3.4 :math:`\mu`\ m survey. 
 (`Wright et al (2010)`_, `Mainzer et al (2011)`_)
 
-Your layout can be saved using the ``Save "workspacename" layout`` 
-button, which will save the position and size of the channel and 
-plugin windows. 
-Whenever you make a new workspace with the same name as 
-a saved workspace, the saved layout will be loaded.
+Your layout can be saved using the ``Save "workspacename" layout``
+button, which will save the position and size of the channel and
+plugin windows, as well as which plugins are running.
+Whenever you make a new workspace with the same name as
+a saved workspace, the saved layout will be loaded and those
+plugins restarted.
+
+Configuration is now stored per workspace, under
+``$HOME/.spot/workspaces/<workspacename>``.  Several plugins (for example
+SiteSelector, SkyCam, FindImage, Targets and TelescopePosition) provide a
+``Save config`` button that records that plugin's current settings for the
+workspace, so they are restored the next time it is opened.
 
 You can delete a workspace by clicking the ``Close "workspacename"``
 button.
@@ -396,20 +403,6 @@ Side Panel Functions
     of SPOT.
 
 .. |tag| image:: figures/tags.png
-    :scale: 16%
- 
-|microscope| Magnify detail (Zoom plugin):
-    Selecting this button creates a ``Zoom`` channel below the control panel. 
-    In the window it shows a zoomed in view of where the cursor is on the 
-    TGTS or FIND channels. The zoom amount 
-    and refresh rate can be adjusted just below the zoom window. Pressing 
-    the ``Relative Zoom`` button will adjust the zoom relative to the 
-    zoom level in either the TGTS or FIND window depending on which one 
-    you are moving the cursor over. 
-
-    .. image:: figures/Magnify.*
-
-.. |microscope| image:: figures/microscope.png
     :scale: 16%
 
 .. _Ginga Manual: https://ginga.readthedocs.io/en/stable/manual/operation.html

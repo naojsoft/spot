@@ -23,13 +23,16 @@
 import datetime
 import os
 import sys
-from pkg_resources import get_distribution
+from importlib.metadata import version as _get_version, PackageNotFoundError
 
-# Get configuration information from setup.cfg
-from configparser import ConfigParser
-conf = ConfigParser()
-conf.read([os.path.join(os.path.dirname(__file__), '..', 'setup.cfg')])
-setup_cfg = dict(conf.items('metadata'))
+# Get configuration information from pyproject.toml
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib
+with open(os.path.join(os.path.dirname(__file__), '..', 'pyproject.toml'),
+          'rb') as _f:
+    project_meta = tomllib.load(_f)['project']
 
 # -- General configuration ----------------------------------------------------
 
@@ -55,8 +58,8 @@ modindex_common_prefix = ['spot.']
 # -- Project information ------------------------------------------------------
 
 # This does not *have* to match the package name, but typically does
-project = setup_cfg['name']
-author = setup_cfg['author']
+project = project_meta['name']
+author = project_meta['authors'][0]['name']
 copyright = '{0}, {1}'.format(datetime.datetime.now().year, author)
 
 # The version info for the project you're documenting, acts as replacement for
@@ -64,7 +67,10 @@ copyright = '{0}, {1}'.format(datetime.datetime.now().year, author)
 # built documents.
 
 # The full version, including alpha/beta/rc tags.
-release = get_distribution(project).version
+try:
+    release = _get_version(project)
+except PackageNotFoundError:
+    release = 'unknown'
 # The short X.Y version.
 version = '.'.join(release.split('.')[:2])
 
