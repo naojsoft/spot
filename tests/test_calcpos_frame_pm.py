@@ -145,3 +145,63 @@ class TestProperMotion:
         # the no-pm target keeps its catalog dec; the pm target does not
         assert np.isclose(float(g['no']['dec_deg'][0]), self.DEC, atol=1e-6)
         assert not np.isclose(float(g['pm']['dec_deg'][0]), self.DEC, atol=1e-3)
+
+
+def _az_diff(a, b):
+    """Smallest absolute azimuth difference in degrees (wrap-aware)."""
+    return abs((a - b + 180.0) % 360.0 - 180.0)
+
+
+class TestAzElRoundTrip:
+    """radec_of() and the forward az/el calc are exact inverses at a fixed
+    time.
+
+    This is the property the TargetGenerator relies on: converting an
+    (az, el) to RA/DEC *at the site's set time* and then computing the
+    target's az/el back at that same time must return the original (az, el).
+    (A discrepancy at the telescope for a generated target comes from
+    observing at a different time than the one used to generate it -- az/el
+    is time-dependent -- not from this conversion.)
+    """
+
+    AZ_EL = [(120.0, 60.0), (270.0, 30.0), (45.0, 15.0),
+             (0.0, 80.0), (359.0, 5.0), (180.0, 45.0)]
+
+    @pytest.mark.parametrize("az_deg,el_deg", AZ_EL)
+    def test_radec_of_calc_roundtrip(self, az_deg, el_deg):
+        # az/el -> RA/DEC (radec_of), stored as a J2000 target (as the
+        # TargetGenerator does), then RA/DEC -> az/el via the forward calc
+        obs = _obs()
+        ra_deg, dec_deg = obs.radec_of(az_deg, el_deg, date=T0)
+        cres = calcpos.Body('rt', ra_deg, dec_deg, 2000.0).calc(obs, T0)
+        assert _az_diff(cres.az_deg, az_deg) < 1e-4
+        assert np.isclose(cres.alt_deg, el_deg, atol=1e-4)
+
+    @pytest.mark.parametrize("az_deg,el_deg", AZ_EL)
+    def test_radec_of_azalt_of_inverse(self, az_deg, el_deg):
+        # radec_of and azalt_of are direct inverses at the same time
+        obs = _obs()
+        ra_deg, dec_deg = obs.radec_of(az_deg, el_deg, date=T0)
+        az2, el2 = obs.azalt_of(ra_deg, dec_deg, date=T0)
+        assert _az_diff(az2, az_deg) < 1e-4
+        assert np.isclose(el2, el_deg, atol=1e-4)
+
+    def test_time_is_honored(self):
+        # the conversion actually uses the supplied time: the same (az, el)
+        # maps to different RA/DEC at times ~an hour apart, and each still
+        # round-trips exactly at its own time
+        obs = _obs()
+        az_deg, el_deg = 100.0, 40.0
+        t1 = datetime(2024, 5, 16, 8, 0, tzinfo=UTC)
+        t2 = datetime(2024, 5, 16, 9, 0, tzinfo=UTC)
+
+        ra1, dec1 = obs.radec_of(az_deg, el_deg, date=t1)
+        ra2, dec2 = obs.radec_of(az_deg, el_deg, date=t2)
+        # an hour of sidereal rotation moves the RA/DEC well clear
+        assert SkyCoord(ra1 * u.deg, dec1 * u.deg).separation(
+            SkyCoord(ra2 * u.deg, dec2 * u.deg)).deg > 1.0
+
+        for ra, dec, t in [(ra1, dec1, t1), (ra2, dec2, t2)]:
+            c = calcpos.Body('t', ra, dec, 2000.0).calc(obs, t)
+            assert _az_diff(c.az_deg, az_deg) < 1e-4
+            assert np.isclose(c.alt_deg, el_deg, atol=1e-4)
