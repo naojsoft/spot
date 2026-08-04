@@ -235,3 +235,34 @@ class SPOT(g_main.ReferenceViewer):
 
         # run the app event loop
         self.run()
+
+
+def _main():
+    """Command-line entry point for SPOT (the ``spot`` console script).
+
+    Mirrors the historical ``scripts/spot`` launcher: builds the SPOT viewer,
+    parses the command line, and runs the app event loop.  ``spot_home`` and
+    ``paths.set_home()`` are established at module import (above).
+    """
+    from argparse import ArgumentParser
+    import spot.version as version
+
+    viewer = SPOT(layout=default_layout, appname='spot', channels=[],
+                  basedir=spot_home)
+    viewer.add_separately_distributed_plugins()
+
+    argprs = ArgumentParser(description="Site Planning and Observation Tool")
+    viewer.add_default_options(argprs)
+    argprs.add_argument('-V', '--version', action='version',
+                        version='%(prog)s {}'.format(version.version))
+
+    (options, args) = argprs.parse_known_args(sys.argv[1:])
+
+    if options.display:
+        os.environ['DISPLAY'] = options.display
+
+    viewer.main(options, args)
+
+
+if __name__ == "__main__":
+    _main()

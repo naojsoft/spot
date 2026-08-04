@@ -2,6 +2,18 @@
 What's New
 ++++++++++
 
+Ver 1.3.0 (unreleased)
+======================
+- The ``spot`` launcher is now a ``console_scripts`` entry point
+  (``spot.main:_main``) instead of a shipped ``scripts/spot`` file, so pip
+  generates the platform launcher (including ``spot.exe`` on Windows).
+- Added an ``mkapp`` folder for building a standalone desktop application (a
+  macOS ``.app`` or Windows ``.exe``) with **PyInstaller**: a single
+  ``spot.spec`` builds either platform, driven by a cross-platform
+  ``build.py``.  Optional non-PyPI packages (e.g. ``oscript``) are bundled
+  automatically when installed in the build environment.  See
+  ``mkapp/README.rst``.
+
 Ver 1.2.0 (2026-07-16)
 ======================
 - NOTE: requires Ginga v7.0.0

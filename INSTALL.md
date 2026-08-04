@@ -37,3 +37,9 @@ spot:
     $ spot --loglevel=20 --stderr
 ```
 
+## Building a standalone application
+
+To package SPOT as a self-contained desktop application (a macOS `.app` or a
+Windows `.exe`) that end users can run without installing Python, see the
+instructions in [`mkapp/README.rst`](mkapp/README.rst).
+

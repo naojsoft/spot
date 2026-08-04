@@ -34,6 +34,10 @@ things it can do:
 
 See the [quick installation instructions](INSTALL.md).
 
+To build a standalone desktop application (a macOS `.app` or a Windows
+`.exe`) that end users can run without installing Python, see the
+instructions in [`mkapp/README.rst`](mkapp/README.rst).
+
 ## Documentation
 
 See the [SPOT documentation at RTD](https://spot-nik.readthedocs.io/en/latest/).
