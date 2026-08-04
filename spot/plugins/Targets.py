@@ -1010,7 +1010,15 @@ class Targets(GingaPlugin.LocalPlugin):
         self.w.color.set_color(bg=hex_color, fg='black')
 
     def add_targets(self, category, tgt_tbl, merge=False):
-        """Add targets from an astropy Table (one target per row)."""
+        """Add targets from an astropy Table (one target per row).
+
+        For convenience a pandas ``DataFrame`` is also accepted; it is
+        converted to a Table via ``Table.from_pandas`` (pandas itself is not
+        imported here -- astropy handles the conversion).
+        """
+        if not isinstance(tgt_tbl, Table):
+            # e.g. a pandas DataFrame -- convert without importing pandas
+            tgt_tbl = Table.from_pandas(tgt_tbl)
         colnames = list(tgt_tbl.colnames)
         new_targets = []
         for idx, row in enumerate(tgt_tbl):

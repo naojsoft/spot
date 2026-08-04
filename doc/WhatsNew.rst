@@ -13,6 +13,9 @@ Ver 1.3.0 (unreleased)
   ``build.py``.  Optional non-PyPI packages (e.g. ``oscript``) are bundled
   automatically when installed in the build environment.  See
   ``mkapp/README.rst``.
+- Targets: ``add_targets()`` now also accepts a pandas ``DataFrame`` (in
+  addition to an astropy ``Table``); it is converted via
+  ``Table.from_pandas`` without SPOT importing pandas.
 
 Ver 1.2.0 (2026-07-16)
 ======================
