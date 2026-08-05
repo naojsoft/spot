@@ -2,6 +2,11 @@
 What's New
 ++++++++++
 
+Ver 1.4.0 (unreleased)
+======================
+- mkapp: the standalone app icons (``SPOT.ico`` / ``SPOT.icns``) are now
+  rasterized from ``spot/icons/spot.svg`` instead of ``spot_logo.png``.
+
 Ver 1.3.0 (2026-08-04)
 ======================
 - The ``spot`` launcher is now a ``console_scripts`` entry point

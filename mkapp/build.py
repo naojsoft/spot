@@ -39,8 +39,8 @@ OPTIONAL_PACKAGES = ["oscript"]
 
 HERE = Path(__file__).resolve().parent
 SPEC = HERE / "spot.spec"
-# square source logo shipped in the package
-ICON_SRC = HERE.parent / "spot" / "icons" / "spot_logo.png"
+# square source icon shipped in the package (rasterized from SVG)
+ICON_SRC = HERE.parent / "spot" / "icons" / "spot.svg"
 ICO_OUT = HERE / "SPOT.ico"
 ICNS_OUT = HERE / "SPOT.icns"
 ICO_SIZES = [(16, 16), (24, 24), (32, 32), (48, 48),
@@ -56,14 +56,23 @@ def clean():
 
 
 def make_icons():
+    import io
+    try:
+        import cairosvg
+    except ImportError:
+        raise SystemExit("build.py --icon needs cairosvg to rasterize the "
+                         "SVG: pip install cairosvg")
     from PIL import Image
-    img = Image.open(ICON_SRC).convert("RGBA")
+    # rasterize the (square) SVG to a large PNG, then derive the icon files
+    png = cairosvg.svg2png(url=str(ICON_SRC),
+                           output_width=1024, output_height=1024)
+    img = Image.open(io.BytesIO(png)).convert("RGBA")
     # Windows .ico (multi-resolution)
     print("generating %s from %s" % (ICO_OUT.name, ICON_SRC))
     img.save(ICO_OUT, sizes=ICO_SIZES)
     # macOS .icns (Pillow derives the standard sizes from a large square)
     print("generating %s from %s" % (ICNS_OUT.name, ICON_SRC))
-    img.resize((1024, 1024)).save(ICNS_OUT)
+    img.save(ICNS_OUT)
 
 
 def _report_optional():

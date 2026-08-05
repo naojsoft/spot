@@ -24,8 +24,8 @@ Files
     binding; sets the app icon, version, and -- on macOS -- the ``Info.plist``).
 
 ``SPOT.icns`` / ``SPOT.ico``
-    Application icons for macOS and Windows, generated from
-    ``spot/icons/spot_logo.png`` (see "Regenerating the icons").
+    Application icons for macOS and Windows, rasterized from
+    ``spot/icons/spot.svg`` (see "Regenerating the icons").
 
 ``build.py``
     Cross-platform build driver (``python build.py``).  No ``make`` required,
@@ -146,7 +146,8 @@ conflicting Qt libraries.
 Regenerating the icons
 ======================
 
-``SPOT.ico`` (Windows) and ``SPOT.icns`` (macOS) are generated from
-``spot/icons/spot_logo.png`` in the source tree.  Regenerate them with::
+``SPOT.ico`` (Windows) and ``SPOT.icns`` (macOS) are rasterized from
+``spot/icons/spot.svg`` in the source tree (via cairosvg).  Regenerate them
+with::
 
     python build.py --icon
