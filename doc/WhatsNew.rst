@@ -2,7 +2,7 @@
 What's New
 ++++++++++
 
-Ver 1.3.0 (unreleased)
+Ver 1.3.0 (2026-08-04)
 ======================
 - The ``spot`` launcher is now a ``console_scripts`` entry point
   (``spot.main:_main``) instead of a shipped ``scripts/spot`` file, so pip
