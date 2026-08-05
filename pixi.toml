@@ -1,0 +1,67 @@
+# pixi manifest for SPOT (Site Planning and Observation Tool) -- https://pixi.sh
+#
+# Quick start:
+#   pixi install              # resolve + create the default environment
+#   pixi run spot             # launch SPOT
+#   pixi run -e dev test      # run the test suite
+#
+# Ginga is pulled from conda-forge by default.  To develop against a local
+# Ginga checkout instead, remove the conda `ginga` dependency below and add
+# it as an editable path under [pypi-dependencies], e.g.:
+#   ginga = { path = "../Ginga-pure", editable = true }
+#
+# The default environment bundles PyQt6 (conda-forge `pyqt`) as the Qt
+# binding; swap it for `pyside6` to run under a different binding.
+
+[workspace]
+name = "spot"
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-64", "osx-arm64", "win-64"]
+
+# --- runtime dependencies (mirror pyproject.toml dependencies) ------------
+[dependencies]
+python = ">=3.11"
+astropy = ">=7.2.0"
+jplephem = ">=2.21"
+skyfield = ">=1.53"
+python-dateutil = ">=2.8.2"
+matplotlib-base = ">=3.8"
+ginga = ">=7.1.0"
+# default GUI toolkit binding (conda-forge `pyqt` is PyQt6)
+pyqt = ">=6"
+
+# install SPOT itself (this checkout) in editable mode, so `pixi run spot`
+# uses the working tree.  The distribution name is `spot-nik`.
+[pypi-dependencies]
+spot-nik = { path = ".", editable = true }
+
+[tasks]
+spot = "spot"
+test = "pytest"
+
+# --- optional dependency groups (mirror pyproject optional-dependencies) --
+
+[feature.test.dependencies]
+pytest = "*"
+
+[feature.docs.dependencies]
+sphinx = "*"
+sphinx_rtd_theme = "*"
+
+# in-browser (PyScript) / websocket backend support.  pgwidgets-js and
+# pgwidgets-python are not on conda-forge, so they come from PyPI.
+[feature.web.dependencies]
+websockets = "*"
+pycairo = ">=1.28.0"
+cairosvg = ">=2.9.0"
+
+[feature.web.pypi-dependencies]
+pgwidgets-js = ">=0.3.5"
+pgwidgets-python = ">=0.3.5"
+
+# Named environments combine the feature groups with the default feature
+# (which is always included).  e.g. `pixi run -e dev test`.
+[environments]
+dev = ["test"]
+docs = ["docs"]
+web = ["web"]

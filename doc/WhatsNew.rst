@@ -4,6 +4,9 @@ What's New
 
 Ver 1.4.0 (unreleased)
 ======================
+- Added a ``pixi.toml`` manifest (https://pixi.sh) for a reproducible
+  conda-forge based development environment: ``pixi run spot`` launches SPOT
+  and ``pixi run -e dev test`` runs the test suite.
 - mkapp: the standalone app icons (``SPOT.ico`` / ``SPOT.icns``) are now
   rasterized from ``spot/icons/spot.svg`` instead of ``spot_logo.png``.
 
