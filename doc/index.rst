@@ -61,6 +61,7 @@ Documentation
 
    WhatsNew
    install
+   language
    FAQ
    manual/index
 

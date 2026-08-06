@@ -24,6 +24,7 @@ from ginga.util.syncops import Shelf
 from spot.util.target import Target
 from spot.util.config import get_workspace_settings
 from spot.util.rot import normalize_angle
+from spot.locale import _tr, get_plugin_doc
 
 
 class TelescopePosition(GingaPlugin.LocalPlugin):
@@ -172,7 +173,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         top = Widgets.VBox()
         top.set_border_width(4)
 
-        fr = Widgets.Frame("Telescope")
+        fr = Widgets.Frame(_tr("Telescope"))
         captions = (("RA:", 'label', 'ra', 'label',
                      "DEC:", 'label', 'dec', 'label'),
                     ("Az:", 'label', 'az', 'label',
@@ -185,7 +186,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         fr.set_widget(w)
         top.add_widget(fr, stretch=0)
 
-        fr = Widgets.Frame("Target")
+        fr = Widgets.Frame(_tr("Target"))
         captions = (("RA Cmd:", 'label', 'ra_cmd', 'label',
                      "DEC Cmd:", 'label', 'dec_cmd', 'label'),
                     ("Az Cmd:", 'label', 'az_cmd', 'label',
@@ -212,15 +213,15 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
                                                self.tel_posn_toggle_cb)
         b.plot_telescope_position.set_state(
             self.settings.get('plot_telescope_position', False))
-        b.plot_telescope_position.set_tooltip("Plot the telescope position")
+        b.plot_telescope_position.set_tooltip(_tr("Plot the telescope position"))
 
         b.target_follows_telescope.set_state(self._follow_target)
         b.target_follows_telescope.add_callback('activated',
                                                 self.follow_target_cb)
-        b.target_follows_telescope.set_tooltip("Track target by telescope position")
+        b.target_follows_telescope.set_tooltip(_tr("Track target by telescope position"))
         b.pan_to_telescope_position.set_state(self.settings.get('pan_to_telescope_position',
                                                                 False))
-        b.pan_to_telescope_position.set_tooltip("Pan to the position of the target")
+        b.pan_to_telescope_position.set_tooltip(_tr("Pan to the position of the target"))
         b.pan_to_telescope_position.add_callback('activated',
                                                  self.pan_to_tel_pos_cb)
 
@@ -228,10 +229,10 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         btns.set_border_width(4)
         btns.set_spacing(3)
 
-        btn = Widgets.Button("Close")
+        btn = Widgets.Button(_tr("Close"))
         btn.add_callback('activated', lambda w: self.close())
         btns.add_widget(btn, stretch=0)
-        btn = Widgets.Button("Help")
+        btn = Widgets.Button(_tr("Help"))
         btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
@@ -246,8 +247,8 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
         return True
 
     def help(self):
-        name = str(self).capitalize()
-        self.fv.help_text(name, self.__doc__, trim_pfx=4)
+        name, doc = get_plugin_doc(self)
+        self.fv.help_text(name, doc, text_kind='rst', trim_pfx=4)
 
     def start(self):
         # insert canvas, if not already

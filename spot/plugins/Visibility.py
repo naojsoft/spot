@@ -40,6 +40,7 @@ from ginga import GingaPlugin, colors
 from spot.plots.altitude import AltitudePlot
 from spot.util.config import get_workspace_settings
 from spot.util.eph_cache import EphemerisCache
+from spot.locale import _tr, get_plugin_doc
 
 
 class Visibility(GingaPlugin.LocalPlugin):
@@ -151,9 +152,11 @@ class Visibility(GingaPlugin.LocalPlugin):
         self._df_cache_period = None
         self.gui_up = False
 
-        self.time_axis_options = ('Night Center', 'Day Center', 'Current')
-        self.time_axis_default_mode = 'Night Center'
-        self.time_axis_default_index = self.time_axis_options.index(self.time_axis_default_mode)
+        # internal (stable) time-axis mode values (lowercase, matching the
+        # comparisons in _get_datetimes); display labels are built and
+        # translated in build_gui.  Logic keys on the combobox index.
+        self.time_axis_modes = ['night center', 'day center', 'current']
+        self.time_axis_default_index = 0    # 'night center'
 
         # When time_axis_mode is "Current", x-axis range will be
         # time_range_current_mode hours.
@@ -218,25 +221,27 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.w.toolbar2.add_spacer()
 
         self.w.mode = Widgets.ComboBox()
-        for name in self.time_axis_options:
-            self.w.mode.append_text(name)
+        for label in (_tr('Night Center'), _tr('Day Center'), _tr('Current')):
+            self.w.mode.append_text(label)
         self.w.mode.set_index(self.time_axis_default_index)
-        self.time_axis_mode = self.time_axis_default_mode.lower()
-        self.w.mode.set_tooltip("Set time axis for visibility plot")
+        self.time_axis_mode = self.time_axis_modes[self.time_axis_default_index]
+        self.w.mode.set_tooltip(_tr("Set time axis for visibility plot"))
         self.w.mode.add_callback('activated', self.set_time_axis_mode_cb)
-        self.w.toolbar2.add_widget(Widgets.Label("Time axis:"))
+        self.w.toolbar2.add_widget(Widgets.Label(_tr("Time axis:")))
         self.w.toolbar2.add_widget(self.w.mode)
 
         self.w.toolbar2.add_spacer()
         #self.w.toolbar2.add_separator()
 
         self.w.plot = Widgets.ComboBox()
-        for option in ['Selected', 'Tagged+selected', 'Uncollapsed', 'All']:
-            self.w.plot.append_text(option)
-        self.w.plot.set_text(self.plot_which.capitalize())
+        self._plot_values = ['selected', 'tagged+selected', 'uncollapsed', 'all']
+        for label in (_tr('Selected'), _tr('Tagged+selected'),
+                      _tr('Uncollapsed'), _tr('All')):
+            self.w.plot.append_text(label)
+        self.w.plot.set_index(self._plot_values.index(self.plot_which))
         self.w.plot.add_callback('activated', self.configure_plot_cb)
-        self.w.plot.set_tooltip("Choose what is plotted")
-        self.w.toolbar2.add_widget(Widgets.Label("Plot:"))
+        self.w.plot.set_tooltip(_tr("Choose what is plotted"))
+        self.w.toolbar2.add_widget(Widgets.Label(_tr("Plot:")))
         self.w.toolbar2.add_widget(self.w.plot)
 
         # progress bar, just after the Plot selector; updated while target
@@ -246,7 +251,7 @@ class Visibility(GingaPlugin.LocalPlugin):
         # toolbar forces a Fixed size policy, so min==max gives it a
         # concrete (non-collapsing) size.
         self.w.progress = Widgets.ProgressBar()
-        self.w.progress.set_tooltip("Target visibility calculation progress")
+        self.w.progress.set_tooltip(_tr("Target visibility calculation progress"))
         self.w.progress.set_min_size(120, 22)
         self.w.progress.set_max_size(120, 22)
         self.w.progress.set_value(0.0)
@@ -254,19 +259,19 @@ class Visibility(GingaPlugin.LocalPlugin):
 
         self.w.toolbar2.add_spacer()
 
-        menu = self.w.toolbar2.add_menu("Settings", mtype='menu')
-        menu.set_tooltip("Configure some settings for this plugin")
+        menu = self.w.toolbar2.add_menu(_tr("Settings"), mtype='menu')
+        menu.set_tooltip(_tr("Configure some settings for this plugin"))
         self.w.settings = menu
 
-        plot_moon_sep = menu.add_name("Plot moon separation", checkable=True)
+        plot_moon_sep = menu.add_name(_tr("Plot moon separation"), checkable=True)
         plot_moon_sep.set_state(self.plot_moon_sep)
         plot_moon_sep.add_callback('activated', self.toggle_moon_sep_cb)
-        plot_moon_sep.set_tooltip("Show moon separation on plot lines")
+        plot_moon_sep.set_tooltip(_tr("Show moon separation on plot lines"))
 
-        plot_polar_azel = menu.add_name("Plot polar AzEl", checkable=True)
+        plot_polar_azel = menu.add_name(_tr("Plot polar AzEl"), checkable=True)
         plot_polar_azel.set_state(self.plot_polar_azel)
         plot_polar_azel.add_callback('activated', self.plot_polar_azel_cb)
-        plot_polar_azel.set_tooltip("Plot Az/El paths on polar plot")
+        plot_polar_azel.set_tooltip(_tr("Plot Az/El paths on polar plot"))
 
         top.add_widget(self.w.toolbar2, stretch=0)
 
@@ -274,10 +279,10 @@ class Visibility(GingaPlugin.LocalPlugin):
         btns.set_border_width(4)
         btns.set_spacing(3)
 
-        btn = Widgets.Button("Close")
+        btn = Widgets.Button(_tr("Close"))
         btn.add_callback('activated', lambda w: self.close())
         btns.add_widget(btn, stretch=0)
-        btn = Widgets.Button("Help")
+        btn = Widgets.Button(_tr("Help"))
         btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
@@ -292,8 +297,8 @@ class Visibility(GingaPlugin.LocalPlugin):
         return True
 
     def help(self):
-        name = str(self).capitalize()
-        self.fv.help_text(name, self.__doc__, trim_pfx=4)
+        name, doc = get_plugin_doc(self)
+        self.fv.help_text(name, doc, text_kind='rst', trim_pfx=4)
 
     def start(self):
         self.initialize_plot()
@@ -610,7 +615,7 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.replot()
 
     def set_time_axis_mode_cb(self, w, index):
-        self.time_axis_mode = w.get_text().lower()
+        self.time_axis_mode = self.time_axis_modes[w.get_index()]
         #self.eph_cache.clear_all()
         self.logger.info(f'self.time_axis_mode set to {self.time_axis_mode}')
         self.replot()
@@ -630,8 +635,7 @@ class Visibility(GingaPlugin.LocalPlugin):
         self.tmr_replot.set(self.replot_after_sec)
 
     def configure_plot_cb(self, w, idx):
-        option = w.get_text()
-        self.plot_which = option.lower()
+        self.plot_which = self._plot_values[w.get_index()]
         self._set_target_subset()
 
     def targets_changed_cb(self, cb, targets):

@@ -18,6 +18,7 @@ from ginga.misc import Bunch
 from spot.util import target as spot_target
 from spot.util.config import get_workspace_settings
 from spot.util.rot import normalize_angle
+from spot.locale import _tr, get_plugin_doc
 # get all overlays
 from spot.instruments import inst_dict
 
@@ -120,7 +121,7 @@ class InsFov(GingaPlugin.LocalPlugin):
         top = Widgets.VBox()
         top.set_border_width(4)
 
-        fr = Widgets.Frame("Instrument")
+        fr = Widgets.Frame(_tr("Instrument"))
 
         captions = (('Instrument:', 'label', 'instrument', 'llabel',
                      'spacer_1', 'spacer', 'Choose', 'button'),
@@ -147,22 +148,22 @@ class InsFov(GingaPlugin.LocalPlugin):
         b.instrument.set_text('None')
         b.choose.add_callback('activated',
                               lambda w: self.w.insmenu.popup(w))
-        b.choose.set_tooltip("Choose instrument overlay")
+        b.choose.set_tooltip(_tr("Choose instrument overlay"))
 
         b.pa.set_text(f"{self.pa_deg:.2f}")
         b.pa.add_callback('activated', self.set_pa_cb)
-        b.pa.set_tooltip("Set desired position angle")
+        b.pa.set_tooltip(_tr("Set desired position angle"))
         b.flip.set_state(self.flip)
         # TEMP
         b.flip.set_enabled(False)
-        b.flip.set_tooltip("Flip orientation")
+        b.flip.set_tooltip(_tr("Flip orientation"))
         b.flip.add_callback("activated", self.toggle_flip_cb)
 
-        b.rotate_w_pa.set_tooltip("Rotate image with PA to keep position of overlay")
+        b.rotate_w_pa.set_tooltip(_tr("Rotate image with PA to keep position of overlay"))
         b.rotate_w_pa.set_state(self.settings.get('rotate_with_pa', True))
         b.rotate_w_pa.add_callback("activated", self.rotate_with_pa_cb)
 
-        fr = Widgets.Frame("Pointing")
+        fr = Widgets.Frame(_tr("Pointing"))
 
         captions = (('RA:', 'label', 'ra', 'entry', 'DEC:', 'label',
                      'dec', 'entry'),
@@ -174,9 +175,9 @@ class InsFov(GingaPlugin.LocalPlugin):
         top.add_widget(fr, stretch=0)
 
         b.ra.add_callback('activated', self.set_coord_cb)
-        b.ra.set_tooltip("The Right Ascension at the target")
+        b.ra.set_tooltip(_tr("The Right Ascension at the target"))
         b.dec.add_callback('activated', self.set_coord_cb)
-        b.dec.set_tooltip("The Declination at the target")
+        b.dec.set_tooltip(_tr("The Declination at the target"))
 
         sw = Widgets.ScrollArea()
         vbox = Widgets.VBox()
@@ -190,10 +191,10 @@ class InsFov(GingaPlugin.LocalPlugin):
         btns.set_border_width(4)
         btns.set_spacing(3)
 
-        btn = Widgets.Button("Close")
+        btn = Widgets.Button(_tr("Close"))
         btn.add_callback('activated', lambda w: self.close())
         btns.add_widget(btn, stretch=0)
-        btn = Widgets.Button("Help")
+        btn = Widgets.Button(_tr("Help"))
         btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
@@ -208,8 +209,8 @@ class InsFov(GingaPlugin.LocalPlugin):
         return True
 
     def help(self):
-        name = str(self).capitalize()
-        self.fv.help_text(name, self.__doc__, trim_pfx=4)
+        name, doc = get_plugin_doc(self)
+        self.fv.help_text(name, doc, text_kind='rst', trim_pfx=4)
 
     def start(self):
         # insert canvas, if not already

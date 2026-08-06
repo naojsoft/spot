@@ -36,6 +36,7 @@ from ginga.util.paths import home
 from spot.util import pamsat, calcpos
 from spot.util.config import get_workspace_settings
 from spot.util.target import Target
+from spot.locale import _tr, get_plugin_doc
 
 
 # default folder for loading satellite window/closure files
@@ -103,7 +104,7 @@ class LGS(GingaPlugin.LocalPlugin):
         top = Widgets.VBox()
         top.set_border_width(4)
 
-        fr = Widgets.Frame("Satellites / PAM")
+        fr = Widgets.Frame(_tr("Satellites / PAM"))
 
         captions = (("PAM Dir:", 'label', 'pam_dir', 'entryset'),
                     ("PAM Files:", 'label', "tgt_load_label", 'llabel'),
@@ -116,9 +117,9 @@ class LGS(GingaPlugin.LocalPlugin):
         self.w = b
         b.pam_dir.set_text(self.pam_dir)
         b.pam_dir.add_callback('activated', self.set_pamdir_cb)
-        b.pam_dir.set_tooltip("Folder where PAM files are stored")
+        b.pam_dir.set_tooltip(_tr("Folder where PAM files are stored"))
         b.sat_window_status.set_text("")
-        b.sat_time_label.set_text("Time left:")
+        b.sat_time_label.set_text(_tr("Time left:"))
         b.sat_time_countdown.set_text("")
         b.tgt_load_label.set_text("")
 
@@ -129,10 +130,10 @@ class LGS(GingaPlugin.LocalPlugin):
         btns.set_border_width(4)
         btns.set_spacing(3)
 
-        btn = Widgets.Button("Close")
+        btn = Widgets.Button(_tr("Close"))
         btn.add_callback('activated', lambda w: self.close())
         btns.add_widget(btn, stretch=0)
-        btn = Widgets.Button("Help")
+        btn = Widgets.Button(_tr("Help"))
         btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
@@ -147,8 +148,8 @@ class LGS(GingaPlugin.LocalPlugin):
         return True
 
     def help(self):
-        name = str(self).capitalize()
-        self.fv.help_text(name, self.__doc__, trim_pfx=4)
+        name, doc = get_plugin_doc(self)
+        self.fv.help_text(name, doc, text_kind='rst', trim_pfx=4)
 
     def start(self):
         pass
@@ -218,7 +219,7 @@ class LGS(GingaPlugin.LocalPlugin):
 
         pam_dir = w.get_text().strip()
         if not os.path.isdir(pam_dir):
-            self.fv.show_error(f"'{pam_dir}' does not seem to be a directory")
+            self.fv.show_error(_tr("'{}' does not seem to be a directory").format(pam_dir))
             return
         self.pam_dir = pam_dir
 

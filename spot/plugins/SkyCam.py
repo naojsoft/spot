@@ -99,6 +99,7 @@ from ginga.util.paths import ginga_home
 # where our config files are stored
 from spot import __file__
 from spot.util.config import get_workspace_settings, save_settings
+from spot.locale import _tr, get_plugin_doc
 cfgdir = os.path.join(os.path.dirname(__file__), 'config')
 
 
@@ -228,7 +229,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
 
         top = Widgets.VBox()
         top.set_border_width(4)
-        fr = Widgets.Frame("All Sky Camera")
+        fr = Widgets.Frame(_tr("All Sky Camera"))
 
         captions = (('Show Sky Image', 'checkbox',
                      'Monochrome', 'checkbox'),
@@ -257,7 +258,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
         b.image_source.add_callback('activated',
                                     self.image_source_cb)
 
-        fr = Widgets.Frame("Differential Image")
+        fr = Widgets.Frame(_tr("Differential Image"))
         captions = (('Show Differential Image', 'checkbutton'),
                     )
 
@@ -269,9 +270,9 @@ class SkyCam(GingaPlugin.LocalPlugin):
         b.show_differential_image.set_state(self.flag_use_diff_image)
         b.show_differential_image.add_callback('activated',
                                                self.diff_image_toggle_cb)
-        b.show_differential_image.set_tooltip("Use a differential image")
+        b.show_differential_image.set_tooltip(_tr("Use a differential image"))
 
-        fr = Widgets.Frame("Image Download Info")
+        fr = Widgets.Frame(_tr("Image Download Info"))
         image_info_text = "Please select 'Show Sky Image' to display an image"
         self.w.select_image_info = Widgets.Label(image_info_text)
 
@@ -284,15 +285,15 @@ class SkyCam(GingaPlugin.LocalPlugin):
         btns.set_border_width(4)
         btns.set_spacing(3)
 
-        btn = Widgets.Button("Close")
+        btn = Widgets.Button(_tr("Close"))
         btn.add_callback('activated', lambda w: self.close())
         btns.add_widget(btn, stretch=0)
-        btn = Widgets.Button("Help")
+        btn = Widgets.Button(_tr("Help"))
         btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
-        btn = Widgets.Button("Save config")
+        btn = Widgets.Button(_tr("Save config"))
         btn.add_callback('activated', lambda w: self.save_config())
-        btn.set_tooltip("Save this plugin's configuration for the workspace")
+        btn.set_tooltip(_tr("Save this plugin's configuration for the workspace"))
         btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
@@ -306,17 +307,17 @@ class SkyCam(GingaPlugin.LocalPlugin):
         return True
 
     def help(self):
-        name = str(self).capitalize()
-        self.fv.help_text(name, self.__doc__, trim_pfx=4)
+        name, doc = get_plugin_doc(self)
+        self.fv.help_text(name, doc, text_kind='rst', trim_pfx=4)
 
     def save_config(self):
         try:
             # record the current selection (more settings may be added later)
             self.settings.set(default_camera=self.img_src_name)
             save_settings(self.settings, self.fv)
-            self.fv.show_status(f"Saved configuration for {str(self)}")
+            self.fv.show_status(_tr("Saved configuration for {}").format(str(self)))
         except Exception as e:
-            self.fv.show_error(f"Error saving {str(self)} config: {e}")
+            self.fv.show_error(_tr("Error saving {} config: {}").format(str(self), e))
 
     def start(self):
         # set up some settings in our channel
@@ -586,7 +587,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
             self.download_sky_image()
 
         except Exception as e:
-            self.w.select_image_info.set_text("Error downloading, check log")
+            self.w.select_image_info.set_text(_tr("Error downloading, check log"))
             self.logger.error(f"Error loading image: {e}", exc_info=True)
 
     def time_changed_cb(self, cb, time_utc, cur_tz):

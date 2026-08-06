@@ -1,6 +1,9 @@
 [build-system]
 requires = ["setuptools>=64",
             "setuptools_scm[toml]>=7",
+            # needed to compile the gettext (.po -> .mo) translation catalogs
+            # at build time (see setup.py / setup.cfg [compile_catalog])
+            "Babel>=2.18.0",
             "wheel"]
 build-backend = "setuptools.build_meta"
 
@@ -69,6 +72,10 @@ namespaces = false
 "spot.icons" = ["*.svg", "*.png"]
 "spot.config" = ["*.yml", "*.fits", "*.json"]
 "spot.doc" = ["*.md", "*.rst", "*.yml", "*.txt"]
+# gettext catalogs: the .po sources are tracked, the .mo files are compiled
+# at build time (see setup.py); whole-document help translations live under
+# <lang>/docs/
+"spot.locale" = ["*/LC_MESSAGES/*.po", "*/LC_MESSAGES/*.mo", "*/docs/*/*.rst"]
 
 [tool.setuptools_scm]
 write_to = "spot/version.py"

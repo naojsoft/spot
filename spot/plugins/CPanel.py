@@ -30,6 +30,7 @@ from ginga import GingaPlugin
 from ginga.misc import Bunch
 
 from spot.util.config import list_workspaces, get_workspace_layout_path
+from spot.locale import _tr, get_plugin_doc
 
 
 class CPanel(GingaPlugin.GlobalPlugin):
@@ -125,12 +126,12 @@ class CPanel(GingaPlugin.GlobalPlugin):
         for name in ws_names:
             b.wsname.append_text(name)
         self._ws_choices = set(ws_names)
-        b.wsname.set_tooltip("Select an existing workspace, or type a new name")
+        b.wsname.set_tooltip(_tr("Select an existing workspace, or type a new name"))
         b.open_workspace.add_callback('activated', self.open_workspace_cb)
-        b.open_workspace.set_tooltip("Open the selected or named workspace")
+        b.open_workspace.set_tooltip(_tr("Open the selected or named workspace"))
         top.add_widget(w, stretch=0)
 
-        b.sel_ws.set_tooltip("Select an opened workspace")
+        b.sel_ws.set_tooltip(_tr("Select an opened workspace"))
         b.sel_ws.add_callback('activated', self.select_workspace_cb)
 
         scr = Widgets.ScrollArea()
@@ -147,7 +148,7 @@ class CPanel(GingaPlugin.GlobalPlugin):
         #btn = Widgets.Button("Close")
         #btn.add_callback('activated', lambda w: self.close())
         #btns.add_widget(btn, stretch=0)
-        btn = Widgets.Button("Help")
+        btn = Widgets.Button(_tr("Help"))
         btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
@@ -162,8 +163,8 @@ class CPanel(GingaPlugin.GlobalPlugin):
         return True
 
     def help(self):
-        name = str(self).capitalize()
-        self.fv.help_text(name, self.__doc__, trim_pfx=4)
+        name, doc = get_plugin_doc(self)
+        self.fv.help_text(name, doc, text_kind='rst', trim_pfx=4)
 
     def _plugin_sort_method(self, spec):
         index = spec.get('index', 9999)
@@ -193,7 +194,7 @@ class CPanel(GingaPlugin.GlobalPlugin):
             wsname = "WS{}".format(self.count)
             self.count += 1
         if self.fv.ds.has_ws(wsname):
-            self.fv.show_error(f"'{wsname}' already exists; pick a new name")
+            self.fv.show_error(_tr("'{}' already exists; pick a new name").format(wsname))
             return
         ws = self.fv.add_workspace(wsname, 'mdi', inSpace='channels',
                                    use_toolbar=False)
@@ -265,13 +266,13 @@ class CPanel(GingaPlugin.GlobalPlugin):
         hbox = Widgets.HBox()
         hbox.set_border_width(4)
         hbox.set_spacing(4)
-        btn = Widgets.Button(f"Save {wsname} layout")
+        btn = Widgets.Button(_tr("Save {} layout").format(wsname))
         btn.add_callback('activated', self.save_ws_layout_cb, wsname)
-        btn.set_tooltip("Save the size and position of workspace windows")
+        btn.set_tooltip(_tr("Save the size and position of workspace windows"))
         hbox.add_widget(btn, stretch=1)
-        btn = Widgets.Button(f"Close workspace {wsname}")
+        btn = Widgets.Button(_tr("Close workspace {}").format(wsname))
         btn.add_callback('activated', self.close_ws_cb, wsname)
-        btn.set_tooltip("Close this workspace")
+        btn.set_tooltip(_tr("Close this workspace"))
         hbox.add_widget(btn, stretch=1)
         vbox.add_widget(hbox, stretch=0)
 
@@ -357,7 +358,7 @@ class CPanel(GingaPlugin.GlobalPlugin):
             os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, 'w') as out_f:
                 out_f.write(json.dumps(cfg_d, indent=4))
-            self.fv.show_status(f"Workspace positions saved for {wsname}")
+            self.fv.show_status(_tr("Workspace positions saved for {}").format(wsname))
             # in-situ (browser) the home dir is backed by IndexedDB; ask the
             # shell to flush it so the layout survives a reload.  No-op on
             # backends that don't provide the hook.
@@ -366,7 +367,7 @@ class CPanel(GingaPlugin.GlobalPlugin):
                 persist()
 
         except Exception as e:
-            errmsg = f"Error saving workspace {wsname}: {e}"
+            errmsg = _tr("Error saving workspace {}: {}").format(wsname, e)
             self.logger.error(errmsg, exc_info=True)
             self.fv.show_error(errmsg)
 

@@ -25,6 +25,7 @@ import yaml
 # local
 from spot.util import sites
 from spot.util.config import get_workspace_settings, save_settings
+from spot.locale import _tr, get_plugin_doc
 
 # where our config files are stored
 from spot import __file__
@@ -156,7 +157,7 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         top = Widgets.VBox()
         top.set_border_width(4)
 
-        fr = Widgets.Frame("Observing Location")
+        fr = Widgets.Frame(_tr("Observing Location"))
         captions = (("Site:", 'label', 'site', 'combobox'),
                     )
         w, b = Widgets.build_info(captions)
@@ -169,7 +170,7 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         b.site.set_text(str(self.site_obj))
         b.site.add_callback('activated', self.site_changed_cb)
 
-        fr = Widgets.Frame("Time")
+        fr = Widgets.Frame(_tr("Time"))
 
         vbox = Widgets.VBox()
         captions = (("Time mode:", 'llabel', "mode", 'combobox'),
@@ -178,10 +179,13 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         w, b = Widgets.build_info(captions)
         self.w.update(b)
 
-        for name in 'Now', 'Fixed':
-            b.mode.append_text(name)
+        # internal (stable) values parallel to the display labels below;
+        # selection logic keys on the index so the labels can be translated
+        self._time_modes = ['now', 'fixed']
+        for label in (_tr('Now'), _tr('Fixed')):
+            b.mode.append_text(label)
         b.mode.set_index(0)
-        b.mode.set_tooltip("Now or fixed time for visibility calculations")
+        b.mode.set_tooltip(_tr("Now or fixed time for visibility calculations"))
         b.mode.add_callback('activated', self.set_datetime_cb)
         vbox.add_widget(w, stretch=0)
 
@@ -191,12 +195,12 @@ class SiteSelector(GingaPlugin.LocalPlugin):
 
         w, b = Widgets.build_info(captions)
         self.w.update(b)
-        b.datetime.set_tooltip("Set date time for visibility calculations")
+        b.datetime.set_tooltip(_tr("Set date time for visibility calculations"))
         b.datetime.set_text(self.dt_utc.strftime("%Y-%m-%d %H:%M:%S"))
         b.datetime.add_callback('activated', self.set_datetime_cb)
         b.datetime.set_enabled(False)
         b.timeoff.set_text(str(status.timezone_offset_min))
-        b.timeoff.set_tooltip("UTC offset for setting fixed time")
+        b.timeoff.set_tooltip(_tr("UTC offset for setting fixed time"))
         b.timeoff.set_enabled(False)
         b.timeoff.add_callback('activated', self.set_timeoff_cb)
         self.set_datetime_cb()
@@ -211,15 +215,15 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         btns.set_border_width(4)
         btns.set_spacing(3)
 
-        btn = Widgets.Button("Close")
+        btn = Widgets.Button(_tr("Close"))
         btn.add_callback('activated', lambda w: self.close())
         btns.add_widget(btn, stretch=0)
-        btn = Widgets.Button("Help")
+        btn = Widgets.Button(_tr("Help"))
         btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
-        btn = Widgets.Button("Save config")
+        btn = Widgets.Button(_tr("Save config"))
         btn.add_callback('activated', lambda w: self.save_config())
-        btn.set_tooltip("Save this plugin's configuration for the workspace")
+        btn.set_tooltip(_tr("Save this plugin's configuration for the workspace"))
         btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
@@ -233,17 +237,17 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         return True
 
     def help(self):
-        name = str(self).capitalize()
-        self.fv.help_text(name, self.__doc__, trim_pfx=4)
+        name, doc = get_plugin_doc(self)
+        self.fv.help_text(name, doc, text_kind='rst', trim_pfx=4)
 
     def save_config(self):
         try:
             # record the current selection (more settings may be added later)
             self.settings.set(default_site=self.site_dict.get(str(self.site_obj)))
             save_settings(self.settings, self.fv)
-            self.fv.show_status(f"Saved configuration for {str(self)}")
+            self.fv.show_status(_tr("Saved configuration for {}").format(str(self)))
         except Exception as e:
-            self.fv.show_error(f"Error saving {str(self)} config: {e}")
+            self.fv.show_error(_tr("Error saving {} config: {}").format(str(self), e))
 
     def start(self):
         self.update_timer_cb(self.tmr)
@@ -298,7 +302,9 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         self._set_datetime()
 
     def set_datetime_cb(self, *args):
-        self.time_mode = self.w.mode.get_text().lower()
+        # read the current index (this callback is also invoked directly and
+        # from the datetime entry, so don't rely on an index argument)
+        self.time_mode = self._time_modes[self.w.mode.get_index()]
         self._set_datetime()
 
     def _set_datetime(self):
@@ -326,7 +332,7 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         if not self.gui_up:
             return
         self.time_mode = 'fixed'
-        self.w.mode.set_text('Fixed')
+        self.w.mode.set_index(self._time_modes.index('fixed'))
         self.w.datetime.set_text(dt.strftime("%Y-%m-%d %H:%M:%S"))
         self._set_datetime()
 

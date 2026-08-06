@@ -52,6 +52,7 @@ except ImportError:
 from spot.util import calcpos, rot
 from spot.util.config import get_workspace_settings, save_settings
 from spot.util import target as spot_target
+from spot.locale import _tr, get_plugin_doc
 
 # where our icons are stored
 from spot import __file__
@@ -358,15 +359,15 @@ class Targets(GingaPlugin.LocalPlugin):
 
         hbox = Widgets.HBox()
         hbox.set_spacing(4)
-        btn = Widgets.Button("File")
+        btn = Widgets.Button(_tr("File"))
         btn.add_callback('activated', lambda w: self.w.fileselect.popup())
-        btn.set_tooltip("Select target file")
+        btn.set_tooltip(_tr("Select target file"))
         hbox.add_widget(btn, stretch=0)
 
         if self.is_web:
             self.w.fileselect = Widgets.BrowserFileDialog(mode="file",
                                                           accept=".ope,.csv,.prm")
-            drop_lbl = Widgets.Label("[Drop file here]", interactive=True)
+            drop_lbl = Widgets.Label(_tr("[Drop file here]"), interactive=True)
             drop_lbl.set_halign("center")
             drop_lbl.set_color("#e8f0fe", "#4a86c8")
             #drop_lbl.set_font(None, 14)
@@ -374,7 +375,7 @@ class Targets(GingaPlugin.LocalPlugin):
             hbox.add_widget(drop_lbl, stretch=0)
         else:
             self.w.fileselect = Widgets.FileDialog(parent=btn,
-                                                   title="Select target files")
+                                                   title=_tr("Select target files"))
             self.w.fileselect.set_mode('files')
             self.w.fileselect.set_directory(self.home)
             add_order = [("CSV", ".csv"), ("OPE", ".ope"), ("EPH", ".eph"),
@@ -392,12 +393,12 @@ class Targets(GingaPlugin.LocalPlugin):
 
         # b.file_path.add_callback('activated', self.file_setpath_cb)
 
-        btn = Widgets.Button("Color")
+        btn = Widgets.Button(_tr("Color"))
         self.w.color = btn
         hbox.add_widget(btn, stretch=0)
 
         self.w.colorselect = Widgets.ColorDialog(parent=btn,
-                                                 title="Choose target color")
+                                                 title=_tr("Choose target color"))
         self.w.colorselect.add_callback('activated', self.color_select_cb)
         hex_color = colors.lookup_color(self._tgt_color, format='hex')
         self.w.colorselect.set_color(hex_color)
@@ -413,16 +414,16 @@ class Targets(GingaPlugin.LocalPlugin):
 
         # btn.add_callback('activated', lambda w: self.w.colorselect.popup())
         btn.add_callback('activated', _colorpop)
-        btn.set_tooltip("Set the color of the loaded targets")
+        btn.set_tooltip(_tr("Set the color of the loaded targets"))
         btn.set_color(bg=hex_color, fg='black')
         top.add_widget(hbox, stretch=0)
-        plot_update_text = "Please select file for list display"
+        plot_update_text = _tr("Please select file for list display")
 
         self.w.toolbar1 = Widgets.Toolbar(orientation='horizontal')
         # TODO: figure out a better way to handle this!!!
         if self.fv.gpmon.has_plugin('Gen2Int'):
-            menu = self.w.toolbar1.add_menu("Gen2", mtype='menu')
-            btn = menu.add_name("Sync integgui2")
+            menu = self.w.toolbar1.add_menu(_tr("Gen2"), mtype='menu')
+            btn = menu.add_name(_tr("Sync integgui2"))
             obj = self.fv.gpmon.get_plugin('Gen2Int')
             btn.add_callback('activated', obj.sync_targets, self.channel)
             self.w.toolbar1.add_separator()
@@ -448,48 +449,50 @@ class Targets(GingaPlugin.LocalPlugin):
         self.w.tgt_tbl.add_callback('expanded', self.targets_collapse_cb)
 
         self.w.toolbar2 = Widgets.Toolbar(orientation='horizontal')
-        btn = self.w.toolbar2.add_action("Tag")
-        btn.set_tooltip("Add highlighted items to tagged targets")
+        btn = self.w.toolbar2.add_action(_tr("Tag"))
+        btn.set_tooltip(_tr("Add highlighted items to tagged targets"))
         btn.add_callback('activated', self.tag_cb)
         self.w.btn_tag = btn
-        btn = self.w.toolbar2.add_action("Untag")
-        btn.set_tooltip("Remove highlighted items from tagged targets")
+        btn = self.w.toolbar2.add_action(_tr("Untag"))
+        btn.set_tooltip(_tr("Remove highlighted items from tagged targets"))
         btn.add_callback('activated', self.untag_cb)
         self.w.btn_untag = btn
-        btn = self.w.toolbar2.add_action("Select All")
-        btn.set_tooltip("Select all targets")
+        btn = self.w.toolbar2.add_action(_tr("Select All"))
+        btn.set_tooltip(_tr("Select all targets"))
         btn.add_callback('activated', self.select_all_cb)
         self.w.btn_select_all = btn
-        btn = self.w.toolbar2.add_action("Delete")
-        btn.set_tooltip("Delete selected target from targets")
+        btn = self.w.toolbar2.add_action(_tr("Delete"))
+        btn.set_tooltip(_tr("Delete selected target from targets"))
         btn.add_callback('activated', self.delete_cb)
         self.w.btn_delete = btn
-        btn = self.w.toolbar2.add_action("Collapse All")
-        btn.set_tooltip("Collapse all loaded files")
+        btn = self.w.toolbar2.add_action(_tr("Collapse All"))
+        btn.set_tooltip(_tr("Collapse all loaded files"))
         btn.add_callback('activated', self.collapse_all_cb)
         self.w.btn_collapse_all = btn
 
         m = Widgets.Menu()
         for name in spot_target.get_browse_service_names():
             action = m.add_name(name)
-            action.set_tooltip(f"Search {name} for information about the target")
+            action.set_tooltip(_tr("Search {} for information about the target").format(name))
             action.add_callback('activated', self.browse_cb, name)
 
-        self.w.browse = self.w.toolbar2.add_menu("Browse", menu=m,
+        self.w.browse = self.w.toolbar2.add_menu(_tr("Browse"), menu=m,
                                                  mtype='menu')
-        self.w.browse.set_tooltip("Browse for information about a target")
+        self.w.browse.set_tooltip(_tr("Browse for information about a target"))
         self.w.browse.set_enabled(False)
 
         self.w.toolbar2.add_spacer()
         #self.w.toolbar2.add_separator()
 
-        self.w.toolbar2.add_widget(Widgets.Label('Plot:'))
+        self.w.toolbar2.add_widget(Widgets.Label(_tr('Plot:')))
         plot = Widgets.ComboBox()
-        for option in ['Selected', 'Tagged+selected', 'Uncollapsed', 'All']:
-            plot.append_text(option)
-        plot.set_text(self.plot_which.capitalize())
+        self._plot_values = ['selected', 'tagged+selected', 'uncollapsed', 'all']
+        for label in (_tr('Selected'), _tr('Tagged+selected'),
+                      _tr('Uncollapsed'), _tr('All')):
+            plot.append_text(label)
+        plot.set_index(self._plot_values.index(self.plot_which))
         plot.add_callback('activated', self.configure_plot_cb)
-        plot.set_tooltip("Choose what is plotted")
+        plot.set_tooltip(_tr("Choose what is plotted"))
         self.w.toolbar2.add_widget(plot)
 
         self._update_selection_buttons()
@@ -498,39 +501,39 @@ class Targets(GingaPlugin.LocalPlugin):
 
         m = Widgets.Menu()
         self.w.menu_config = m
-        action = m.add_name("Merge Targets", checkable=True)
-        action.set_tooltip("Put all targets under one category called 'Targets'")
+        action = m.add_name(_tr("Merge Targets"), checkable=True)
+        action.set_tooltip(_tr("Put all targets under one category called 'Targets'"))
         action.set_state(self.settings.get('merge_targets', False))
         action.add_callback('activated', self.merge_targets_cb)
         self.w.merge_targets = action
 
-        action = m.add_name("List unreferenced targets", checkable=True)
-        action.set_tooltip("Show unreferenced targets (e.g. from .prm files")
+        action = m.add_name(_tr("List unreferenced targets"), checkable=True)
+        action.set_tooltip(_tr("Show unreferenced targets (e.g. from .prm files"))
         action.set_state(self.show_unref_tgts)
         action.add_callback('activated', self.list_prm_cb)
         self.w.list_prm_targets = action
 
-        action = m.add_name("Plot solar system objects", checkable=True)
-        action.set_tooltip("Plot sun, moon and planets")
+        action = m.add_name(_tr("Plot solar system objects"), checkable=True)
+        action.set_tooltip(_tr("Plot sun, moon and planets"))
         action.set_state(self.plot_ss_objects)
         action.add_callback('activated', self.plot_ss_cb)
         self.w.plot_ss_setting = action
 
-        action = m.add_name("Rotate target colors", checkable=True)
-        action.set_tooltip("Rotate target colors for each file loaded")
+        action = m.add_name(_tr("Rotate target colors"), checkable=True)
+        action.set_tooltip(_tr("Rotate target colors for each file loaded"))
         action.set_state(self.settings.get('rotate_target_colors', True))
         action.add_callback('activated', self.rotate_target_colors_cb)
         self.w.rotate_target_colors = action
 
-        action = m.add_name("Enable DateTime setting", checkable=True)
-        action.set_tooltip("Allow DateTime column in target CSV to set fixed time")
+        action = m.add_name(_tr("Enable DateTime setting"), checkable=True)
+        action.set_tooltip(_tr("Allow DateTime column in target CSV to set fixed time"))
         action.set_state(self.settings.get('enable_datetime_setting', False))
         action.add_callback('activated', self.enable_datetime_cb)
         self.w.enable_datetime_setting = action
 
-        self.w.settings = self.w.toolbar2.add_menu("Settings", menu=m,
+        self.w.settings = self.w.toolbar2.add_menu(_tr("Settings"), menu=m,
                                                    mtype='menu')
-        self.w.settings.set_tooltip("Configure some settings for this plugin")
+        self.w.settings.set_tooltip(_tr("Configure some settings for this plugin"))
 
         top.add_widget(self.w.toolbar2, stretch=0)
 
@@ -538,15 +541,15 @@ class Targets(GingaPlugin.LocalPlugin):
         btns.set_border_width(4)
         btns.set_spacing(3)
 
-        btn = Widgets.Button("Close")
+        btn = Widgets.Button(_tr("Close"))
         btn.add_callback('activated', lambda w: self.close())
         btns.add_widget(btn, stretch=0)
-        btn = Widgets.Button("Help")
+        btn = Widgets.Button(_tr("Help"))
         btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
-        btn = Widgets.Button("Save config")
+        btn = Widgets.Button(_tr("Save config"))
         btn.add_callback('activated', lambda w: self.save_config())
-        btn.set_tooltip("Save this plugin's settings for this workspace")
+        btn.set_tooltip(_tr("Save this plugin's settings for this workspace"))
         btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
@@ -560,17 +563,17 @@ class Targets(GingaPlugin.LocalPlugin):
         return True
 
     def help(self):
-        name = str(self).capitalize()
-        self.fv.help_text(name, self.__doc__, trim_pfx=4)
+        name, doc = get_plugin_doc(self)
+        self.fv.help_text(name, doc, text_kind='rst', trim_pfx=4)
 
     def save_config(self):
         # persist this plugin's settings to ~/.spot/<wsname>/Targets.cfg
         # (in-situ this also flushes to IndexedDB via persist_config)
         try:
             save_settings(self.settings, self.fv)
-            self.fv.show_status(f"Saved configuration for {str(self)}")
+            self.fv.show_status(_tr("Saved configuration for {}").format(str(self)))
         except Exception as e:
-            self.fv.show_error(f"Error saving {str(self)} config: {e}")
+            self.fv.show_error(_tr("Error saving {} config: {}").format(str(self), e))
 
     def start(self):
         skycam = self.channel.opmon.get_plugin('SkyCam')
@@ -819,9 +822,9 @@ class Targets(GingaPlugin.LocalPlugin):
 
             local_time = (self._last_tgt_update_dt.astimezone(self.cur_tz))
             tzname = self.cur_tz.tzname(local_time)
-            self.w.update_time.set_text("Last updated at: " +
-                                        local_time.strftime("%H:%M:%S") +
-                                        f" [{tzname}]")
+            self.w.update_time.set_text(
+                _tr("Last updated at: {} [{}]").format(
+                    local_time.strftime("%H:%M:%S"), tzname))
 
             self.update_targets(self.full_tgt_list, 'targets')
 
@@ -916,7 +919,7 @@ class Targets(GingaPlugin.LocalPlugin):
             # not a target list: stash it for OPE files to reference
             self.save_prm_buffer(filename, buf)
         else:
-            self.fv.show_error(f"I don't know how to load files of type '{ext}'")
+            self.fv.show_error(_tr("I don't know how to load files of type '{}'").format(ext))
 
         self._rotate_colors()
 
@@ -947,20 +950,25 @@ class Targets(GingaPlugin.LocalPlugin):
             if persist is not None:
                 persist()
         except Exception as e:
-            errmsg = f"Error saving PRM file '{prm_name}':\n{e}"
+            errmsg = _tr("Error saving PRM file '{}':\n{}").format(prm_name, e)
             self.logger.error(errmsg, exc_info=True)
             self.fv.show_error(errmsg)
-            self._popup_prm_result('error', "PRM file not saved", errmsg)
+            self._popup_prm_result('error', _tr("PRM file not saved"), errmsg)
             return
 
-        # success -- keep the status-bar note in addition to the pop-up
-        verb = "Replaced" if replaced else "Saved"
-        self.fv.show_status(f"{verb} PRM file '{prm_name}'")
+        # success -- keep the status-bar note in addition to the pop-up.
+        # Use full sentences per branch rather than interpolating a
+        # translated verb, so each string is cleanly translatable.
         if replaced:
-            text = (f"Replaced existing PRM file '{prm_name}' in\n{prm_dir}")
+            self.fv.show_status(_tr("Replaced PRM file '{}'").format(prm_name))
+            text = _tr("Replaced existing PRM file '{}' in\n{}").format(prm_name,
+                                                                        prm_dir)
+            popup_title = _tr("PRM file replaced")
         else:
-            text = (f"Saved PRM file '{prm_name}' into\n{prm_dir}")
-        self._popup_prm_result('info', f"PRM file {verb.lower()}", text)
+            self.fv.show_status(_tr("Saved PRM file '{}'").format(prm_name))
+            text = _tr("Saved PRM file '{}' into\n{}").format(prm_name, prm_dir)
+            popup_title = _tr("PRM file saved")
+        self._popup_prm_result('info', popup_title, text)
 
     def _popup_prm_result(self, category, title, text):
         """Pop up a MessageDialog confirming the result of saving a PRM
@@ -969,7 +977,7 @@ class Targets(GingaPlugin.LocalPlugin):
         all backends (Qt/Gtk/pg, in-situ or web socket)."""
         Widgets = self.fv.get_widget_classes()
         dialog = Widgets.MessageDialog(title=title, parent=self.fv.w.root,
-                                       buttons=[["OK", 0]], autoclose=True,
+                                       buttons=[[_tr("OK"), 0]], autoclose=True,
                                        modal=True)
         dialog.set_message(category, text)
         dialog.add_callback('activated',
@@ -997,7 +1005,7 @@ class Targets(GingaPlugin.LocalPlugin):
                 with open(file_path, 'r') as in_f:
                     self.save_prm_buffer(file_path, in_f.read())
             else:
-                self.fv.show_error(f"I don't know how to load files of type '{ext}'")
+                self.fv.show_error(_tr("I don't know how to load files of type '{}'").format(ext))
                 return
 
         # self.w.file_path.set_text(file_path)
@@ -1036,7 +1044,7 @@ class Targets(GingaPlugin.LocalPlugin):
                 ra_str = wcs.ra_deg_to_str(ra_deg)
                 dec_str = wcs.dec_deg_to_str(dec_deg)
             except Exception as e:
-                errmsg = f"Bad coordinate for '{name}': RA={ra} DEC={dec} EQ={eqx}: {e}"
+                errmsg = _tr("Bad coordinate for '{}': RA={} DEC={} EQ={}: {}").format(name, ra, dec, eqx, e)
                 self.logger.error(errmsg, exc_info=True)
                 self.fv.show_error(errmsg)
                 continue
@@ -1141,7 +1149,7 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def process_ope_file_for_targets(self, ope_file):
         if not have_oscript:
-            self.fv.show_error("Please install the 'oscript' module to use this feature")
+            self.fv.show_error(_tr("Please install the 'oscript' module to use this feature"))
 
         # read OPE file
         with open(ope_file, 'r') as in_f:
@@ -1151,7 +1159,7 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def process_ope_buffer_for_targets(self, filename, ope_buf):
         if not have_oscript:
-            self.fv.show_error("Please install the 'oscript' module to use this feature")
+            self.fv.show_error(_tr("Please install the 'oscript' module to use this feature"))
 
         proc_home = os.path.join(self.home, 'Procedure')
         if not os.path.isdir(proc_home):
@@ -1479,8 +1487,7 @@ class Targets(GingaPlugin.LocalPlugin):
         self.update_plots()
 
     def configure_plot_cb(self, w, idx):
-        option = w.get_text()
-        self.plot_which = option.lower()
+        self.plot_which = self._plot_values[w.get_index()]
         self.settings.set(plot_which=self.plot_which)
         self.clear_plot()
         self.update_plots()
@@ -1503,7 +1510,7 @@ class Targets(GingaPlugin.LocalPlugin):
 
     def browse_cb(self, w, service_name):
         if len(self.selected) != 1:
-            self.fv.show_error("Please select just one target")
+            self.fv.show_error(_tr("Please select just one target"))
             return
 
         self.logger.info(f"browsing {service_name} for target")

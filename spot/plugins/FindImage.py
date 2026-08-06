@@ -28,6 +28,7 @@ from ginga.AstroImage import AstroImage
 
 from spot.util import target as spot_target
 from spot.util.config import get_workspace_settings, save_settings
+from spot.locale import _tr, get_plugin_doc
 
 image_sources = {
     'SkyView: DSS1+Blue': dict(),
@@ -229,7 +230,7 @@ class FindImage(GingaPlugin.LocalPlugin):
         top = Widgets.VBox()
         top.set_border_width(4)
 
-        fr = Widgets.Frame("Pointing")
+        fr = Widgets.Frame(_tr("Pointing"))
 
         captions = (('RA:', 'label', 'ra', 'llabel', 'DEC:', 'label',
                      'dec', 'llabel'),
@@ -252,14 +253,14 @@ class FindImage(GingaPlugin.LocalPlugin):
             b.follow_telescope.set_enabled(False)
         else:
             b.follow_telescope.set_state(follow_telescope)
-        b.follow_telescope.set_tooltip("Set pan position to telescope position")
+        b.follow_telescope.set_tooltip(_tr("Set pan position to telescope position"))
         b.follow_telescope.add_callback('activated', self.follow_telescope_cb)
-        b.get_selected.set_tooltip("Get the coordinates from the selected target in Targets table")
+        b.get_selected.set_tooltip(_tr("Get the coordinates from the selected target in Targets table"))
         b.get_selected.add_callback('activated', self.get_selected_target_cb)
         b.get_selected.set_enabled(not follow_telescope)
         b.reset_pan.add_callback('activated', self.reset_pan_cb)
-        b.reset_pan.set_tooltip("Center on target position")
-        b.mark_target.set_tooltip("Mark the target position")
+        b.reset_pan.set_tooltip(_tr("Center on target position"))
+        b.mark_target.set_tooltip(_tr("Mark the target position"))
         b.mark_target.set_state(self.settings['mark_target'])
         b.mark_target.add_callback('activated', self.mark_target_cb)
 
@@ -267,7 +268,7 @@ class FindImage(GingaPlugin.LocalPlugin):
         fr.set_widget(w)
         top.add_widget(fr, stretch=0)
 
-        fr = Widgets.Frame("Image Source")
+        fr = Widgets.Frame(_tr("Image Source"))
 
         captions = (("Source:", 'label', 'image_source', 'combobox',
                      "Size (arcmin):", 'label', 'size', 'entryset'),
@@ -293,19 +294,19 @@ class FindImage(GingaPlugin.LocalPlugin):
         b.size.set_text(f"{self.size[0]:.2f}")
         b.size.add_callback('activated', self.set_size_cb)
 
-        b.create_blank.set_tooltip("Create a blank image")
+        b.create_blank.set_tooltip(_tr("Create a blank image"))
         b.create_blank.add_callback('activated',
                                     lambda w: self.create_blank_image())
-        b.load_fits.set_tooltip("Load a FITS image with WCS")
+        b.load_fits.set_tooltip(_tr("Load a FITS image with WCS"))
         b.load_fits.add_callback('activated',
                                  lambda w: self.load_fits_image())
 
-        fr = Widgets.Frame("Image Download Info")
+        fr = Widgets.Frame(_tr("Image Download Info"))
         di_vbox = Widgets.VBox()
         di_vbox.set_spacing(2)
         self.w.download_prog = Widgets.ProgressBar()
         di_vbox.add_widget(self.w.download_prog, stretch=0)
-        image_info_text = "Please select 'Find image' to find your selected image"
+        image_info_text = _tr("Please select 'Find image' to find your selected image")
         self.w.select_image_info = Widgets.Label(image_info_text)
         # TODO - Need to find place for 'image download failed' message as
         # error messages aren't thrown from FindImage file
@@ -318,15 +319,15 @@ class FindImage(GingaPlugin.LocalPlugin):
         btns.set_border_width(4)
         btns.set_spacing(3)
 
-        btn = Widgets.Button("Close")
+        btn = Widgets.Button(_tr("Close"))
         btn.add_callback('activated', lambda w: self.close())
         btns.add_widget(btn, stretch=0)
-        btn = Widgets.Button("Help")
+        btn = Widgets.Button(_tr("Help"))
         btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
-        btn = Widgets.Button("Save config")
+        btn = Widgets.Button(_tr("Save config"))
         btn.add_callback('activated', lambda w: self.save_config())
-        btn.set_tooltip("Save this plugin's settings for this workspace")
+        btn.set_tooltip(_tr("Save this plugin's settings for this workspace"))
         btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
 
@@ -340,8 +341,8 @@ class FindImage(GingaPlugin.LocalPlugin):
         return True
 
     def help(self):
-        name = str(self).capitalize()
-        self.fv.help_text(name, self.__doc__, trim_pfx=4)
+        name, doc = get_plugin_doc(self)
+        self.fv.help_text(name, doc, text_kind='rst', trim_pfx=4)
 
     def image_source_cb(self, w, idx):
         # record the chosen image source as the default to restore next time
@@ -352,9 +353,9 @@ class FindImage(GingaPlugin.LocalPlugin):
         # (in-situ this also flushes to IndexedDB via persist_config)
         try:
             save_settings(self.settings, self.fv)
-            self.fv.show_status(f"Saved configuration for {str(self)}")
+            self.fv.show_status(_tr("Saved configuration for {}").format(str(self)))
         except Exception as e:
-            self.fv.show_error(f"Error saving {str(self)} config: {e}")
+            self.fv.show_error(_tr("Error saving {} config: {}").format(str(self), e))
 
     def start(self):
         # surreptitiously share setting of sky_radius with InsFov plugin
@@ -461,10 +462,10 @@ class FindImage(GingaPlugin.LocalPlugin):
 
         except Exception as e:
             image_timestamp = datetime.datetime.now()
-            image_info_text = "Image download failed at: " + \
-                image_timestamp.strftime("%D %H:%M:%S")
+            image_info_text = _tr("Image download failed at: {}").format(
+                image_timestamp.strftime("%D %H:%M:%S"))
             self.w.select_image_info.set_text(image_info_text)
-            errmsg = f"failed to find image: {e}"
+            errmsg = _tr("failed to find image: {}").format(e)
             self.logger.error(errmsg, exc_info=True)
             self.fv.show_error(errmsg)
 
@@ -679,14 +680,14 @@ class FindImage(GingaPlugin.LocalPlugin):
             ra_str = self.w.ra.get_text().strip()
             dec_str = self.w.dec.get_text().strip()
             if len(ra_str) == 0 or len(dec_str) == 0:
-                self.fv.show_error("Please select a target and click 'Get Selected'")
+                self.fv.show_error(_tr("Please select a target and click 'Get Selected'"))
 
             ra_deg, dec_deg, eq = spot_target.normalize_ra_dec_equinox(ra_str,
                                                                        dec_str,
                                                                        2000.0)
         except Exception as e:
             self.logger.error(f"error getting coordinate: {e}", exc_info=True)
-            self.fv.show_error("Error getting coordinate: please check selected target")
+            self.fv.show_error(_tr("Error getting coordinate: please check selected target"))
 
         return (ra_deg, dec_deg)
 
@@ -740,12 +741,12 @@ class FindImage(GingaPlugin.LocalPlugin):
     def get_selected_target_cb(self, w):
         if self.settings.get('follow_telescope', False):
             # target is following telescope
-            self.fv.show_error("uncheck 'Follow telescope' to get selection")
+            self.fv.show_error(_tr("uncheck 'Follow telescope' to get selection"))
             return
 
         selected = self.targets.get_selected_targets()
         if len(selected) != 1:
-            self.fv.show_error("Please select exactly one target in the Targets table!")
+            self.fv.show_error(_tr("Please select exactly one target in the Targets table!"))
             return
         tgt = list(selected)[0]
         self._cur_target = tgt

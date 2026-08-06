@@ -13,12 +13,14 @@ else:
 from ginga.util import paths
 paths.set_home(spot_home)
 import ginga.rv.main as g_main
+from ginga.locale import localize
 from ginga.misc.Bunch import Bunch
 from ginga.misc import Settings
 from ginga.misc import log
 
 import spot.plugins
 import spot.icons
+import spot.locale   # noqa: F401  registers SPOT's gettext message domain
 
 icondir = os.path.split(spot.icons.__file__)[0]
 paths.set_icon(os.path.join(icondir, "spot.svg"))
@@ -201,6 +203,14 @@ class SPOT(g_main.ReferenceViewer):
                               font_scaling_factor=None,
                               use_opengl=False,
                               plugin_file='plugins.yml',
+                              # UI language; None honors the environment
+                              # (LANGUAGE/LC_ALL/LC_MESSAGES/LANG), a code
+                              # such as 'ja' forces that language
+                              language=None,
+                              # whether to offer a Language menu (not yet
+                              # wired into SPOT's menubar; the 'language'
+                              # setting is honored regardless)
+                              show_languages=True,
                               channel_prefix="Image")
         settings.load(onError='silent')
         self.settings = settings
@@ -228,6 +238,12 @@ class SPOT(g_main.ReferenceViewer):
             settings.set(disable_plugins=options.disable_plugins)
 
         # --------------------------------------------------------
+        # Apply the UI language before any UI is built, so widget captions
+        # and plugin strings render in the chosen language.  None honors the
+        # environment; a code like 'ja' forces that language.  Applies to
+        # every registered catalog (Ginga's and SPOT's).
+        localize.set_language(settings.get('language', None))
+
         self.setup()
 
         # process non-option command line args

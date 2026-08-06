@@ -16,6 +16,8 @@ from ginga import GingaPlugin
 from ginga.misc import Bunch
 from ginga.util.wcs import ra_deg_to_str, dec_deg_to_str
 
+from spot.locale import _tr, get_plugin_doc
+
 # local
 from spot.util import calcpos
 from spot.util.config import get_workspace_settings
@@ -139,12 +141,12 @@ class PolarSky(GingaPlugin.LocalPlugin):
 
         # Date info
         info = self.get_time_info()
-        fr = Widgets.Frame('Site Date/Time')
+        fr = Widgets.Frame(_tr('Site Date/Time'))
         self.w.dt_table = Widgets.GridBox(rows=4, columns=2)
-        self.w.dt_table.add_widget(Widgets.Label('Date:', halign='left'), 0, 0)
-        self.w.dt_table.add_widget(Widgets.Label('Time:', halign='left'), 1, 0)
-        self.w.dt_table.add_widget(Widgets.Label('UTC:', halign='left'), 2, 0)
-        self.w.dt_table.add_widget(Widgets.Label('LST:', halign='left'), 3, 0)
+        self.w.dt_table.add_widget(Widgets.Label(_tr('Date:'), halign='left'), 0, 0)
+        self.w.dt_table.add_widget(Widgets.Label(_tr('Time:'), halign='left'), 1, 0)
+        self.w.dt_table.add_widget(Widgets.Label(_tr('UTC:'), halign='left'), 2, 0)
+        self.w.dt_table.add_widget(Widgets.Label(_tr('LST:'), halign='left'), 3, 0)
         self.w.date_current = Widgets.Label(info.date_current, halign='left')
         self.w.dt_table.add_widget(self.w.date_current, 0, 1)
         self.w.local_current = Widgets.Label(info.local_current, halign='left')
@@ -163,16 +165,16 @@ class PolarSky(GingaPlugin.LocalPlugin):
         info = self.get_sunmoon_info()
 
         # Sun info
-        fr = Widgets.Frame('Sun')
+        fr = Widgets.Frame(_tr('Sun'))
         sun_table = Widgets.GridBox(rows=6, columns=3)
         self.w.sun_table = sun_table
         sun_table.add_widget(Widgets.Label(''), 0, 0)
-        sun_table.add_widget(Widgets.Label('Site:', halign='left'), 1, 0)
-        sun_table.add_widget(Widgets.Label('Civil:', halign='left'), 2, 0)
-        sun_table.add_widget(Widgets.Label('Nautical:', halign='left'), 3, 0)
-        sun_table.add_widget(Widgets.Label('Astronomical:', halign='left'), 4, 0)
-        sun_table.add_widget(Widgets.Label('Night center:', halign='left'), 5, 0)
-        sun_table.add_widget(Widgets.Label('Sunset', halign='center'), 0, 1)
+        sun_table.add_widget(Widgets.Label(_tr('Site:'), halign='left'), 1, 0)
+        sun_table.add_widget(Widgets.Label(_tr('Civil:'), halign='left'), 2, 0)
+        sun_table.add_widget(Widgets.Label(_tr('Nautical:'), halign='left'), 3, 0)
+        sun_table.add_widget(Widgets.Label(_tr('Astronomical:'), halign='left'), 4, 0)
+        sun_table.add_widget(Widgets.Label(_tr('Night center:'), halign='left'), 5, 0)
+        sun_table.add_widget(Widgets.Label(_tr('Sunset'), halign='center'), 0, 1)
         self.w.sun_set = Widgets.Label(info.sun_set, halign='left')
         sun_table.add_widget(self.w.sun_set, 1, 1)
         self.w.civil_set = Widgets.Label(info.civil_set, halign='left')
@@ -183,7 +185,7 @@ class PolarSky(GingaPlugin.LocalPlugin):
         sun_table.add_widget(self.w.astronomical_set, 4, 1)
         self.w.night_center = Widgets.Label(info.night_center, halign='left')
         sun_table.add_widget(self.w.night_center, 5, 1)
-        sun_table.add_widget(Widgets.Label('Sunrise', halign='center'), 0, 2)
+        sun_table.add_widget(Widgets.Label(_tr('Sunrise'), halign='center'), 0, 2)
         self.w.sun_rise = Widgets.Label(info.sun_rise, halign='left')
         sun_table.add_widget(self.w.sun_rise, 1, 2)
         self.w.civil_rise = Widgets.Label(info.civil_rise, halign='left')
@@ -200,15 +202,15 @@ class PolarSky(GingaPlugin.LocalPlugin):
         top.add_widget(fr, stretch=0)
 
         # Moon Info
-        fr = Widgets.Frame('Moon')
+        fr = Widgets.Frame(_tr('Moon'))
         moon_table = Widgets.GridBox(rows=2, columns=6)
         self.w.moon_table = moon_table
-        moon_table.add_widget(Widgets.Label('Altitude:', halign='left'), 0, 0)
-        moon_table.add_widget(Widgets.Label('Next Rise:', halign='left'), 1, 0)
-        moon_table.add_widget(Widgets.Label('Next Set:', halign='left'), 2, 0)
-        moon_table.add_widget(Widgets.Label('Illum:', halign='left'), 3, 0)
-        moon_table.add_widget(Widgets.Label('RA:', halign='left'), 4, 0)
-        moon_table.add_widget(Widgets.Label('DEC:', halign='left'), 5, 0)
+        moon_table.add_widget(Widgets.Label(_tr('Altitude:'), halign='left'), 0, 0)
+        moon_table.add_widget(Widgets.Label(_tr('Next Rise:'), halign='left'), 1, 0)
+        moon_table.add_widget(Widgets.Label(_tr('Next Set:'), halign='left'), 2, 0)
+        moon_table.add_widget(Widgets.Label(_tr('Illum:'), halign='left'), 3, 0)
+        moon_table.add_widget(Widgets.Label(_tr('RA:'), halign='left'), 4, 0)
+        moon_table.add_widget(Widgets.Label(_tr('DEC:'), halign='left'), 5, 0)
         self.w.moon_alt = Widgets.Label(info.moon_alt, halign='left')
         moon_table.add_widget(self.w.moon_alt, 0, 1)
         self.w.moon_rise = Widgets.Label(info.moon_rise, halign='left')
@@ -232,10 +234,10 @@ class PolarSky(GingaPlugin.LocalPlugin):
         btns.set_border_width(4)
         btns.set_spacing(3)
 
-        btn = Widgets.Button("Close")
+        btn = Widgets.Button(_tr("Close"))
         btn.add_callback('activated', lambda w: self.close())
         btns.add_widget(btn, stretch=0)
-        btn = Widgets.Button("Help")
+        btn = Widgets.Button(_tr("Help"))
         btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
@@ -250,8 +252,8 @@ class PolarSky(GingaPlugin.LocalPlugin):
         return True
 
     def help(self):
-        name = str(self).capitalize()
-        self.fv.help_text(name, self.__doc__, trim_pfx=4)
+        name, doc = get_plugin_doc(self)
+        self.fv.help_text(name, doc, text_kind='rst', trim_pfx=4)
 
     def start(self):
         # self.viewer.set_bg(0.95, 0.95, 0.95)

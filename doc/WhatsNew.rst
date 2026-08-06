@@ -4,6 +4,15 @@ What's New
 
 Ver 1.4.0 (unreleased)
 ======================
+- Internationalization: SPOT's user interface can now be translated.  SPOT
+  registers its own gettext message domain with Ginga's shared localization
+  machinery; its user-facing strings (and, per plugin, its help documents)
+  can be translated, and a **Language** menu plus a ``language`` general
+  setting select the UI language (``None`` honors the environment locale, a
+  code such as ``'ja'`` forces that language).  A full Japanese translation
+  (interface strings and per-plugin help documents) is included.  See the
+  "Language / Localization" section of the documentation for how to add a
+  language.
 - Added a ``pixi.toml`` manifest (https://pixi.sh) for a reproducible
   conda-forge based development environment: ``pixi run spot`` launches SPOT
   and ``pixi run -e dev test`` runs the test suite.

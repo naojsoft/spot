@@ -21,6 +21,7 @@ from ginga.util import wcs
 from ginga.misc import Future
 
 from spot.util import target as spot_target
+from spot.locale import _tr, get_plugin_doc
 
 
 class TargetGenerator(GingaPlugin.LocalPlugin):
@@ -112,7 +113,7 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
         top = Widgets.VBox()
         top.set_border_width(4)
 
-        fr = Widgets.Frame("From Azimuth/Elevation")
+        fr = Widgets.Frame(_tr("From Azimuth/Elevation"))
 
         captions = (('Az:', 'label', 'az', 'entry', 'El:', 'label',
                      'el', 'entry', "Gen Target", 'button'),
@@ -123,10 +124,10 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
         fr.set_widget(w)
         top.add_widget(fr, stretch=0)
 
-        b.gen_target.set_tooltip("Generate a target from AZ/EL at given time")
+        b.gen_target.set_tooltip(_tr("Generate a target from AZ/EL at given time"))
         b.gen_target.add_callback('activated', self.azel_to_radec_cb)
 
-        fr = Widgets.Frame("From RA/DEC Coordinate")
+        fr = Widgets.Frame(_tr("From RA/DEC Coordinate"))
 
         captions = (('RA:', 'label', 'ra', 'entry', 'DEC:', 'label',
                      'dec', 'entry'),
@@ -139,13 +140,13 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
         w, b = Widgets.build_info(captions)
         self.w.update(b)
         b.add_target.add_callback('activated', self.add_target_cb)
-        b.add_target.set_tooltip("Add target to the target list")
+        b.add_target.set_tooltip(_tr("Add target to the target list"))
         fr.set_widget(w)
         top.add_widget(fr, stretch=0)
 
         # name resolver
         vbox = Widgets.VBox()
-        fr = Widgets.Frame("From Name Server")
+        fr = Widgets.Frame(_tr("From Name Server"))
         fr.set_widget(vbox)
 
         captions = (('Server:', 'llabel', 'server', 'combobox',
@@ -156,7 +157,7 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
         w, b = Widgets.build_info(captions)
         self.w.update(b)
         b.search_name.add_callback('activated', lambda w: self.getname_cb())
-        b.search_name.set_tooltip("Lookup name and populate ra/dec coordinates")
+        b.search_name.set_tooltip(_tr("Lookup name and populate ra/dec coordinates"))
         vbox.add_widget(w, stretch=0)
 
         combobox = b.server
@@ -169,11 +170,11 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
         index = 0
         if len(self.name_server_options) > 0:
             combobox.set_index(index)
-        combobox.set_tooltip("Choose the object name resolver")
+        combobox.set_tooltip(_tr("Choose the object name resolver"))
 
         top.add_widget(fr, stretch=0)
 
-        fr = Widgets.Frame("JPL Horizons (Non-sidereal)")
+        fr = Widgets.Frame(_tr("JPL Horizons (Non-sidereal)"))
 
         captions = (('Name:', 'label', 'ns_name', 'entry'),
                     ('Start time:', 'label', 'ns_start', 'entry',
@@ -184,13 +185,13 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
 
         w, b = Widgets.build_info(captions)
         self.w.update(b)
-        b.ns_name.set_tooltip("Name or code as known to JPL Horizons")
-        b.ns_start.set_tooltip("Start time of observation (YYYY-MM-DD HH:MM:SS) in OBSERVER's time")
-        b.ns_stop.set_tooltip("Stop time of observation (YYYY-MM-DD HH:MM:SS) in OBSERVER's time")
-        b.ns_step.set_text("Step time of observation")
+        b.ns_name.set_tooltip(_tr("Name or code as known to JPL Horizons"))
+        b.ns_start.set_tooltip(_tr("Start time of observation (YYYY-MM-DD HH:MM:SS) in OBSERVER's time"))
+        b.ns_stop.set_tooltip(_tr("Stop time of observation (YYYY-MM-DD HH:MM:SS) in OBSERVER's time"))
+        b.ns_step.set_tooltip(_tr("Step time of observation"))
         b.ns_step.set_text('1m')
         b.lookup_name.add_callback('activated', self.get_nonsidereal_cb)
-        b.lookup_name.set_tooltip("Lookup non-sidereal target at JPL Horizons")
+        b.lookup_name.set_tooltip(_tr("Lookup non-sidereal target at JPL Horizons"))
         fr.set_widget(w)
         top.add_widget(fr, stretch=0)
 
@@ -198,10 +199,10 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
         btns.set_border_width(4)
         btns.set_spacing(3)
 
-        btn = Widgets.Button("Close")
+        btn = Widgets.Button(_tr("Close"))
         btn.add_callback('activated', lambda w: self.close())
         btns.add_widget(btn, stretch=0)
-        btn = Widgets.Button("Help")
+        btn = Widgets.Button(_tr("Help"))
         btn.add_callback('activated', lambda w: self.help())
         btns.add_widget(btn, stretch=0)
         btns.add_widget(Widgets.Label(''), stretch=1)
@@ -216,8 +217,8 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
         return True
 
     def help(self):
-        name = str(self).capitalize()
-        self.fv.help_text(name, self.__doc__, trim_pfx=4)
+        name, doc = get_plugin_doc(self)
+        self.fv.help_text(name, doc, text_kind='rst', trim_pfx=4)
 
     def start(self):
         pass
@@ -242,7 +243,7 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
         name = self.w.obj_name.get_text().strip()
         server = self.w.server.get_text()
         if len(name) == 0:
-            self.fv.show_error("Please enter a name to look up")
+            self.fv.show_error(_tr("Please enter a name to look up"))
             return
 
         srvbank = self.fv.get_server_bank()
@@ -340,7 +341,7 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
             self.fv.nongui_do(self.fv.fetch_url, url, future)
 
         except Exception as e:
-            errmsg = f"Exception looking up name '{name}': {e}"
+            errmsg = _tr("Exception looking up name '{}': {}").format(name, e)
             self.logger.error(errmsg, exc_info=True)
             self.fv.show_error(errmsg)
 
@@ -350,7 +351,7 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
             eph_tbl = query.parse(data)
 
         except Exception as e:
-            errmsg = f"Exception looking up name '{name}': {e}"
+            errmsg = _tr("Exception looking up name '{}': {}").format(name, e)
             self.logger.error(errmsg, exc_info=True)
             self.fv.gui_do(self.fv.show_error, errmsg)
             return
