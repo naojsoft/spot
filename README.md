@@ -3,7 +3,9 @@
 
 Site Planning and Observation Tool (SPOT) 
 
-[![Powered by Astropy Badge](http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat)](http://www.astropy.org)
+[![Powered by Astropy Badge](http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat)](http://www.astropy.org) [![PyPI Version](https://img.shields.io/pypi/v/spot-nik)](https://pypi.org/project/spot-nik/) [![Conda Version](https://img.shields.io/conda/vn/conda-forge/spot-nik.svg)](https://anaconda.org/conda-forge/spot-nik) [![Conda Downloads](https://img.shields.io/conda/d/conda-forge/spot-nik?label=conda-forge%20downloads)](https://anaconda.org/conda-forge/spot-nik) ![Python Version from PEP 621 TOML](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2Fnaojsoft%2Fspot%2Frefs%2Fheads%2Fmain%2Fpyproject.toml)
+ [![Documentation Status](https://readthedocs.org/projects/spot-nik/badge/?version=latest)](https://spot-nik.readthedocs.io/en/latest/?badge=latest)
+
 
 ## About
 
