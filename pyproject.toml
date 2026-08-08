@@ -27,6 +27,10 @@ dynamic = ["version"]
 dependencies = [
     "astropy>=7.2.0",
     "jplephem>=2.21",
+    # numpy 2.5.0 triggers a NaN in skyfield's almanac.find_settings/find_risings
+    # refinement loop (0/0 -> NaN timebump -> bogus EphemerisRangeError for an
+    # in-range date); still present in skyfield 1.55.  Cap until skyfield is fixed.
+    "numpy<2.5",
     "skyfield>=1.53",
     "python-dateutil>=2.8.2",
     "matplotlib>=3.8",
