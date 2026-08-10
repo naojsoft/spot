@@ -25,13 +25,13 @@ classifiers = [
 ]
 dynamic = ["version"]
 dependencies = [
-    "astropy>=7.2.0",
+    "astropy>=7.2.1",
     "jplephem>=2.21",
     "numpy>=2.0",
     "skyfield>=1.53",
     "python-dateutil>=2.8.2",
     "matplotlib>=3.8",
-    "ginga>=7.1.0",
+    "ginga>=7.2.0",
 ]
 
 [project.scripts]
@@ -50,7 +50,7 @@ docs = [
 ]
 pg = [
     "websockets",
-    "pgwidgets-js>=0.3.5",
+    "pgwidgets-js>=0.3.6",
     "pgwidgets-python>=0.3.5",
     "pycairo>=1.28.0",
     "cairosvg>=2.9.0",

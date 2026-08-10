@@ -2,7 +2,7 @@
 What's New
 ++++++++++
 
-Ver 1.4.0 (unreleased)
+Ver 1.4.0 (2026-08-10)
 ======================
 - Internationalization: SPOT's user interface can now be translated.  SPOT
   registers its own gettext message domain with Ginga's shared localization
