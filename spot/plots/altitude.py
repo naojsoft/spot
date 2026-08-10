@@ -127,10 +127,17 @@ class AltitudePlot(plots.Plot):
             # plot object label
             targname = info.target.name
             i_max = alt_data.argmax()
+            # Only set a text background when one was explicitly requested:
+            # matplotlib treats backgroundcolor=None as "use the default
+            # patch.facecolor" (a blue box), so passing it unconditionally
+            # would give every label a blue background.  Leaving it unset keeps
+            # the label background transparent.
+            txt_kwargs = dict(color=color, alpha=alpha, zorder=zorder,
+                              ha='center', va='center', clip_on=True)
+            if textbg is not None:
+                txt_kwargs['backgroundcolor'] = textbg
             ax1.text(mpl_dt.date2num(lt_data[i_max]),
-                     alt_data[i_max] + 4.0, targname, color=color,
-                     alpha=alpha, zorder=zorder, backgroundcolor=textbg,
-                     ha='center', va='center', clip_on=True)
+                     alt_data[i_max] + 4.0, targname, **txt_kwargs)
 
         # legend target list
         if show_target_legend:
@@ -190,11 +197,20 @@ class AltitudePlot(plots.Plot):
         min_alt, max_alt = 30.0, 75.0
         self._plot_limits(ax1, min_alt, max_alt)
 
-        # Add yesterday's and today's twilight to the plot.
-        self._plot_twilight(ax1, site, localdate_start - timedelta(1), tz,
-                            show_legend=show_target_legend)
-        self._plot_twilight(ax1, site, localdate_start, tz,
-                            show_legend=show_target_legend)
+        # The twilight shading relies on sun rise/set times computed via
+        # skyfield's almanac.find_settings, which can fail (e.g. a NaN in its
+        # refinement loop with some numpy versions, surfacing as
+        # EphemerisRangeError).  If it does, log the traceback and carry on so
+        # the target altitude curves still render without the twilight shading.
+        try:
+            # Add yesterday's and today's twilight to the plot.
+            self._plot_twilight(ax1, site, localdate_start - timedelta(1), tz,
+                                show_legend=show_target_legend)
+            self._plot_twilight(ax1, site, localdate_start, tz,
+                                show_legend=show_target_legend)
+        except Exception as e:
+            self.logger.error("failed to plot twilight annotations: "
+                              "%s" % (e), exc_info=True)
 
         # plot current hour. If current_time wasn't supplied, use
         # computer time and specified time zone. Otherwise use
@@ -225,7 +241,8 @@ class AltitudePlot(plots.Plot):
             self._plot_collision_windows(ax1, collision_barh_data, lt_data_first[-1])
 
     def _plot_twilight(self, ax, site, localdate, tz, show_legend=False):
-        # plot sunset
+        # plot sunset (the Observer almanac methods truncate their search
+        # window to whole seconds, so sub-second localdates are handled there)
         t = site.sunset(date=localdate).astimezone(tz)
 
         # plot evening twilight 6/12/18 degrees

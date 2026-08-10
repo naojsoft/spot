@@ -420,6 +420,19 @@ class Observer:
         return (d_alt, d_az)
 
     def _find_setting(self, coord, start_dt, stop_dt, horizon_deg):
+        # Truncate the search-window bounds to whole seconds.  These only seed
+        # skyfield's find_settings scan; the event it returns is still computed
+        # to full sub-second precision.  Dropping the sub-second part (a <1s
+        # shift) buys two things:
+        #  * it dodges a floating-point-sensitive failure in find_settings (a
+        #    0/0 -> NaN in its refinement loop with some numpy versions) that
+        #    sub-second bounds are far more likely to trip; and
+        #  * when start_dt lands exactly on the event (as when it comes
+        #    straight off a target's time grid), the exact bound is excluded at
+        #    the window edge and the scan skips to the *next day's* event;
+        #    nudging it <1s earlier keeps the intended event inside the window.
+        start_dt = start_dt.replace(microsecond=0)
+        stop_dt = stop_dt.replace(microsecond=0)
         t0 = get_timescale().from_datetime(start_dt)
         t1 = get_timescale().from_datetime(stop_dt)
         # TODO: refraction function does not appear to work as expected
@@ -431,6 +444,11 @@ class Observer:
         return t, y
 
     def _find_rising(self, coord, start_dt, stop_dt, horizon_deg):
+        # Truncate the search-window bounds to whole seconds (see _find_setting
+        # for why: avoids a sub-second-sensitive find_risings failure and the
+        # exact-bound-excluded skip to the next day's event).
+        start_dt = start_dt.replace(microsecond=0)
+        stop_dt = stop_dt.replace(microsecond=0)
         t0 = get_timescale().from_datetime(start_dt)
         t1 = get_timescale().from_datetime(stop_dt)
         # TODO: refraction function does not appear to work as expected
