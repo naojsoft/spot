@@ -1,18 +1,22 @@
 #
-# conda env create -f spot_conda_environment.yml
+# $ conda env create -f spot_conda_environment.yml
+# then,
+# $ conda activate spot
+# $ pip install .
 #
 name: spot
 dependencies:
   - python=3.13
-  - astropy>=7.2.0
+  - astropy>=7.2.1
   - scipy
-  - matplotlib
-  - pillow
+  - matplotlib>=3.8
+  - pillow>=12.3.0
   - pyqt
   - qtpy
   - python-dateutil
   - pyyaml
-  - pycairo
-  - cairosvg
   - pip
+  - pip:
+    - ginga>=7.2.0
+
 
