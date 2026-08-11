@@ -2,6 +2,25 @@
 What's New
 ++++++++++
 
+
+Ver 1.5.0 (unreleased)
+======================
+- The altitude / visibility plot is more robust.  The sun almanac methods
+  (``sunset``/``sunrise``/the twilights/``night_center``) now truncate
+  their search window to the whole second before handing it to skyfield.
+  This avoids an intermittent, input-dependent failure in skyfield's
+  ``find_settings`` (a NaN in its refinement loop under recent numpy) and a
+  boundary case where a sub-second time landing exactly on an event made
+  the scan skip to the *next day's* event; the returned time keeps full
+  sub-second precision.  The altitude plot also wraps its twilight drawing
+  so a failed sun calculation no longer blanks the whole plot, and target
+  labels no longer render on a stray blue background box (the label
+  background is transparent unless a ``textbg`` is explicitly requested).
+- Require ``astropy>=7.2.1`` and ``jplephem>=2.24``: both dropped an
+  in-place ``ndarray.shape`` assignment that numpy 2.5 deprecates (which
+  otherwise showed up as warnings, or errors under warning-as-error test
+  configs).
+
 Ver 1.4.0 (2026-08-10)
 ======================
 - Internationalization: SPOT's user interface can now be translated.  SPOT
