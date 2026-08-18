@@ -3,6 +3,18 @@ What's New
 ++++++++++
 
 
+Ver 1.5.1 (2026-08-17)
+======================
+- Packaging fix: the ``spot/config``, ``spot/examples`` and per-language
+  ``spot/locale/*/{LC_MESSAGES,docs}`` data directories are now included in
+  the built distribution.  They carry no ``__init__.py``, so the previous
+  package-discovery configuration silently dropped them (setuptools warned
+  "Package would be ignored"); discovery is now namespace-aware and scoped
+  to ``spot*``.  The project metadata also moved to the SPDX license form
+  (``license = "BSD-3-Clause"`` with ``project.license-files``, dropping the
+  deprecated license classifier), clearing the setuptools>=77 build
+  warnings.
+
 Ver 1.5.0 (2026-08-17)
 ======================
 - The altitude / visibility plot is more robust.  The sun almanac methods
