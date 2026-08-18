@@ -3,7 +3,7 @@ What's New
 ++++++++++
 
 
-Ver 1.5.0 (unreleased)
+Ver 1.5.0 (2026-08-17)
 ======================
 - The altitude / visibility plot is more robust.  The sun almanac methods
   (``sunset``/``sunrise``/the twilights/``night_center``) now truncate
@@ -20,6 +20,11 @@ Ver 1.5.0 (unreleased)
   in-place ``ndarray.shape`` assignment that numpy 2.5 deprecates (which
   otherwise showed up as warnings, or errors under warning-as-error test
   configs).
+- Require ``ginga>=7.3.0``, and -- for the web (``pg``) backend -- bump
+  the ``pg`` extra to ``pgwidgets-js>=0.4.0`` and
+  ``pgwidgets-python>=0.4.0``, picking up the consistent cross-backend
+  ``TreeView``/``TableView`` behaviour and the batched table-update
+  protocol.
 
 Ver 1.4.0 (2026-08-10)
 ======================

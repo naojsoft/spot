@@ -31,7 +31,7 @@ dependencies = [
     "skyfield>=1.53",
     "python-dateutil>=2.8.2",
     "matplotlib>=3.8",
-    "ginga>=7.2.0",
+    "ginga>=7.3.0",
 ]
 
 [project.scripts]
@@ -50,8 +50,8 @@ docs = [
 ]
 pg = [
     "websockets",
-    "pgwidgets-js>=0.3.6",
-    "pgwidgets-python>=0.3.5",
+    "pgwidgets-js>=0.4.0",
+    "pgwidgets-python>=0.4.0",
     "pycairo>=1.28.0",
     "cairosvg>=2.9.0",
 ]
