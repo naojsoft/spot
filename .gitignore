@@ -36,6 +36,7 @@ doc/_build
 # pip "in-place" build files and version.py file
 build
 sdist
+dist
 *.egg-info
 version.py
 
