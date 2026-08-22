@@ -1,0 +1,1100 @@
+# Italian translations for spot.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the spot project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: spot VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-08-22 10:57-1000\n"
+"PO-Revision-Date: 2026-08-22 10:58-1000\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+#: spot/plugins/CPanel.py:197
+#, python-brace-format
+msgid "'{}' already exists; pick a new name"
+msgstr "'{}' esiste già; scegliere un nuovo nome"
+
+#: spot/plugins/LGS.py:222
+#, python-brace-format
+msgid "'{}' does not seem to be a directory"
+msgstr "'{}' non sembra essere una directory"
+
+#: spot/plugins/SPOTMenubar.py:75
+msgid "About"
+msgstr "Informazioni"
+
+#: spot/plugins/TargetGenerator.py:137
+msgid "Add Target"
+msgstr "Aggiungi target"
+
+#: spot/plugins/Targets.py:453
+msgid "Add highlighted items to tagged targets"
+msgstr "Aggiungi gli elementi evidenziati ai target contrassegnati"
+
+#: spot/plugins/TargetGenerator.py:143
+msgid "Add target to the target list"
+msgstr "Aggiungi il target all'elenco dei target"
+
+#: spot/plugins/Targets.py:491 spot/plugins/Visibility.py:239
+msgid "All"
+msgstr "Tutti"
+
+#: spot/plugins/SkyCam.py:232
+msgid "All Sky Camera"
+msgstr "Fotocamera all-sky"
+
+#: spot/plugins/Targets.py:529
+msgid "Allow DateTime column in target CSV to set fixed time"
+msgstr "Consenti alla colonna DateTime del CSV dei target di impostare l'ora fissa"
+
+#: spot/plugins/PolarSky.py:208
+msgid "Altitude:"
+msgstr "Altitudine:"
+
+#: spot/plugins/PolarSky.py:175
+msgid "Astronomical:"
+msgstr "Astronomico:"
+
+#: spot/plugins/SPOTToolbar.py:96
+msgid "Auto cut levels"
+msgstr "Livelli di taglio automatici"
+
+#: spot/plugins/TelescopePosition.py:192
+msgid "Az Cmd:"
+msgstr "Cmd Az:"
+
+#: spot/plugins/TargetGenerator.py:118 spot/plugins/TelescopePosition.py:179
+msgid "Az:"
+msgstr "Az:"
+
+#: spot/plugins/Targets.py:1047
+#, python-brace-format
+msgid "Bad coordinate for '{}': RA={} DEC={} EQ={}: {}"
+msgstr "Coordinata errata per '{}': AR={} DEC={} EQ={}: {}"
+
+#: spot/plugins/Targets.py:479
+msgid "Browse"
+msgstr "Sfoglia"
+
+#: spot/plugins/Targets.py:481
+msgid "Browse for information about a target"
+msgstr "Cerca informazioni su un target"
+
+#: spot/plugins/SkyCam.py:236
+msgid "Camera Server:"
+msgstr "Server della fotocamera:"
+
+#: spot/plugins/SPOTToolbar.py:91
+msgid "Center image"
+msgstr "Centra immagine"
+
+#: spot/plugins/FindImage.py:262
+msgid "Center on target position"
+msgstr "Centra sulla posizione del target"
+
+#: spot/plugins/InsFov.py:127
+msgid "Choose"
+msgstr "Scegli"
+
+#: spot/plugins/InsFov.py:151
+msgid "Choose instrument overlay"
+msgstr "Scegli la sovrapposizione dello strumento"
+
+#: spot/plugins/Targets.py:401
+msgid "Choose target color"
+msgstr "Scegli il colore del target"
+
+#: spot/plugins/TargetGenerator.py:173
+msgid "Choose the object name resolver"
+msgstr "Scegli il risolutore dei nomi degli oggetti"
+
+#: spot/plugins/Targets.py:495 spot/plugins/Visibility.py:243
+msgid "Choose what is plotted"
+msgstr "Scegli cosa tracciare"
+
+#: spot/plugins/PolarSky.py:173
+msgid "Civil:"
+msgstr "Civile:"
+
+#: spot/plugins/FindImage.py:322 spot/plugins/InsFov.py:194
+#: spot/plugins/LGS.py:133 spot/plugins/PolarSky.py:237
+#: spot/plugins/SPOTMenubar.py:99 spot/plugins/SiteSelector.py:218
+#: spot/plugins/SkyCam.py:288 spot/plugins/TargetGenerator.py:202
+#: spot/plugins/Targets.py:544 spot/plugins/TelescopePosition.py:232
+#: spot/plugins/Visibility.py:282
+msgid "Close"
+msgstr "Chiudi"
+
+#: spot/plugins/SPOTMenubar.py:42
+msgid "Close Workspace"
+msgstr "Chiudi area di lavoro"
+
+#: spot/plugins/CPanel.py:275
+msgid "Close this workspace"
+msgstr "Chiudi quest'area di lavoro"
+
+#: spot/plugins/CPanel.py:273
+#, python-brace-format
+msgid "Close workspace {}"
+msgstr "Chiudi l'area di lavoro {}"
+
+#: spot/plugins/Targets.py:468
+msgid "Collapse All"
+msgstr "Comprimi tutto"
+
+#: spot/plugins/Targets.py:469
+msgid "Collapse all loaded files"
+msgstr "Comprimi tutti i file caricati"
+
+#: spot/plugins/Targets.py:396
+msgid "Color"
+msgstr "Colore"
+
+#: spot/plugins/Targets.py:536 spot/plugins/Visibility.py:263
+msgid "Configure some settings for this plugin"
+msgstr "Configura alcune impostazioni di questo plugin"
+
+#: spot/plugins/SPOTToolbar.py:86
+msgid "Contrast/bias with left/right/up/down"
+msgstr "Contrasto/bias con sinistra/destra/su/giù"
+
+#: spot/plugins/FindImage.py:276
+msgid "Create Blank"
+msgstr "Crea vuota"
+
+#: spot/plugins/FindImage.py:297
+msgid "Create a blank image"
+msgstr "Crea un'immagine vuota"
+
+#: spot/plugins/Visibility.py:224
+msgid "Current"
+msgstr "Attuale"
+
+#: spot/plugins/TelescopePosition.py:191
+msgid "DEC Cmd:"
+msgstr "Cmd DEC:"
+
+#: spot/instruments/subaru.py:887
+msgid "DEC Offset:"
+msgstr "Offset DEC:"
+
+#: spot/plugins/FindImage.py:235 spot/plugins/InsFov.py:168
+#: spot/plugins/PolarSky.py:213 spot/plugins/TargetGenerator.py:132
+#: spot/plugins/TelescopePosition.py:178
+msgid "DEC:"
+msgstr "DEC:"
+
+#: spot/plugins/PolarSky.py:146
+msgid "Date:"
+msgstr "Data:"
+
+#: spot/plugins/Visibility.py:224
+msgid "Day Center"
+msgstr "Centro del giorno"
+
+#: spot/plugins/Targets.py:464
+msgid "Delete"
+msgstr "Elimina"
+
+#: spot/plugins/Targets.py:465
+msgid "Delete selected target from targets"
+msgstr "Elimina il target selezionato dai target"
+
+#: spot/plugins/SkyCam.py:261
+msgid "Differential Image"
+msgstr "Immagine differenziale"
+
+#: spot/instruments/subaru.py:888
+msgid "Dith1:"
+msgstr "Dith1:"
+
+#: spot/instruments/subaru.py:889
+msgid "Dith2:"
+msgstr "Dith2:"
+
+#: spot/instruments/subaru.py:926
+msgid "Dither Pos:"
+msgstr "Pos. dither:"
+
+#: spot/instruments/subaru.py:885
+msgid "Dither Steps:"
+msgstr "Passi di dither:"
+
+#: spot/instruments/subaru.py:884
+msgid "Dither Type:"
+msgstr "Tipo di dither:"
+
+#: spot/plugins/SPOTToolbar.py:74
+msgid "Drag left to rotate; click right to reset to 0 deg"
+msgstr "Trascina con il sinistro per ruotare; clic destro per azzerare a 0°"
+
+#: spot/plugins/TelescopePosition.py:193
+msgid "El Cmd:"
+msgstr "Cmd El:"
+
+#: spot/plugins/TargetGenerator.py:118 spot/plugins/TelescopePosition.py:180
+msgid "El:"
+msgstr "El:"
+
+#: spot/plugins/Targets.py:528
+msgid "Enable DateTime setting"
+msgstr "Abilita l'impostazione DateTime"
+
+#: spot/plugins/FindImage.py:237 spot/plugins/TargetGenerator.py:134
+msgid "Equinox:"
+msgstr "Equinozio:"
+
+#: spot/plugins/SkyCam.py:590
+msgid "Error downloading, check log"
+msgstr "Errore di download, controllare il log"
+
+#: spot/plugins/FindImage.py:690
+msgid "Error getting coordinate: please check selected target"
+msgstr "Errore nel recupero della coordinata: controllare il target selezionato"
+
+#: spot/plugins/Targets.py:953
+#, python-brace-format
+msgid ""
+"Error saving PRM file '{}':\n"
+"{}"
+msgstr ""
+"Errore nel salvataggio del file PRM '{}':\n"
+"{}"
+
+#: spot/plugins/CPanel.py:370
+#, python-brace-format
+msgid "Error saving workspace {}: {}"
+msgstr "Errore nel salvataggio dell'area di lavoro {}: {}"
+
+#: spot/plugins/FindImage.py:358 spot/plugins/SiteSelector.py:250
+#: spot/plugins/SkyCam.py:320 spot/plugins/Targets.py:576
+#, python-brace-format
+msgid "Error saving {} config: {}"
+msgstr "Errore nel salvataggio della configurazione di {}: {}"
+
+#: spot/plugins/TargetGenerator.py:344 spot/plugins/TargetGenerator.py:354
+#, python-brace-format
+msgid "Exception looking up name '{}': {}"
+msgstr "Eccezione durante la ricerca del nome '{}': {}"
+
+#: spot/plugins/SPOTMenubar.py:30 spot/plugins/Targets.py:362
+msgid "File"
+msgstr "File"
+
+#: spot/plugins/FindImage.py:275
+msgid "Find image"
+msgstr "Trova immagine"
+
+#: spot/plugins/SiteSelector.py:185
+msgid "Fixed"
+msgstr "Fisso"
+
+#: spot/plugins/InsFov.py:129
+msgid "Flip"
+msgstr "Ribalta"
+
+#: spot/plugins/SPOTToolbar.py:42
+msgid "Flip image in X axis"
+msgstr "Ribalta l'immagine sull'asse X"
+
+#: spot/plugins/SPOTToolbar.py:44
+msgid "Flip image in Y axis"
+msgstr "Ribalta l'immagine sull'asse Y"
+
+#: spot/plugins/InsFov.py:159
+msgid "Flip orientation"
+msgstr "Ribalta l'orientamento"
+
+#: spot/plugins/LGS.py:120
+msgid "Folder where PAM files are stored"
+msgstr "Cartella in cui sono archiviati i file PAM"
+
+#: spot/plugins/FindImage.py:239
+msgid "Follow telescope"
+msgstr "Segui il telescopio"
+
+#: spot/plugins/TargetGenerator.py:116
+msgid "From Azimuth/Elevation"
+msgstr "Da azimut/elevazione"
+
+#: spot/plugins/TargetGenerator.py:149
+msgid "From Name Server"
+msgstr "Dal name server"
+
+#: spot/plugins/TargetGenerator.py:130
+msgid "From RA/DEC Coordinate"
+msgstr "Dalla coordinata AR/DEC"
+
+#: spot/plugins/TargetGenerator.py:119
+msgid "Gen Target"
+msgstr "Genera target"
+
+#: spot/plugins/Targets.py:425
+msgid "Gen2"
+msgstr "Gen2"
+
+#: spot/plugins/TargetGenerator.py:127
+msgid "Generate a target from AZ/EL at given time"
+msgstr "Genera un target da AZ/EL a un dato istante"
+
+#: spot/plugins/FindImage.py:239
+msgid "Get Selected"
+msgstr "Ottieni selezionato"
+
+#: spot/plugins/FindImage.py:258
+msgid "Get the coordinates from the selected target in Targets table"
+msgstr "Ottieni le coordinate del target selezionato nella tabella dei target"
+
+#: spot/plugins/CPanel.py:151 spot/plugins/FindImage.py:325
+#: spot/plugins/InsFov.py:197 spot/plugins/LGS.py:136
+#: spot/plugins/PolarSky.py:240 spot/plugins/SPOTMenubar.py:73
+#: spot/plugins/SiteSelector.py:221 spot/plugins/SkyCam.py:291
+#: spot/plugins/TargetGenerator.py:205 spot/plugins/Targets.py:547
+#: spot/plugins/TelescopePosition.py:235 spot/plugins/Visibility.py:285
+msgid "Help"
+msgstr "Aiuto"
+
+#: spot/plugins/Targets.py:922 spot/plugins/Targets.py:1008
+#, python-brace-format
+msgid "I don't know how to load files of type '{}'"
+msgstr "Non so come caricare i file di tipo '{}'"
+
+#: spot/plugins/PolarSky.py:211
+msgid "Illum:"
+msgstr "Illum.:"
+
+#: spot/plugins/FindImage.py:304 spot/plugins/SkyCam.py:275
+msgid "Image Download Info"
+msgstr "Info sul download dell'immagine"
+
+#: spot/plugins/FindImage.py:271
+msgid "Image Source"
+msgstr "Sorgente immagine"
+
+#: spot/plugins/FindImage.py:465
+#, python-brace-format
+msgid "Image download failed at: {}"
+msgstr "Download dell'immagine non riuscito a: {}"
+
+#: spot/plugins/InsFov.py:124
+msgid "Instrument"
+msgstr "Strumento"
+
+#: spot/plugins/InsFov.py:126
+msgid "Instrument:"
+msgstr "Strumento:"
+
+#: spot/plugins/TargetGenerator.py:177
+msgid "JPL Horizons (Non-sidereal)"
+msgstr "JPL Horizons (non siderale)"
+
+#: spot/plugins/PolarSky.py:149
+msgid "LST:"
+msgstr "LST:"
+
+#: spot/plugins/Targets.py:826
+#, python-brace-format
+msgid "Last updated at: {} [{}]"
+msgstr "Ultimo aggiornamento: {} [{}]"
+
+#: spot/plugins/SPOTToolbar.py:70
+msgid ""
+"Left/right click zooms in/out;\n"
+"hold middle to pan freely over image"
+msgstr ""
+"Clic sinistro/destro per ingrandire/ridurre;\n"
+"tieni premuto il centrale per spostarti liberamente sull'immagine"
+
+#: spot/plugins/SPOTToolbar.py:83
+msgid "Left/right sets hi cut, up/down sets lo cut"
+msgstr "Sinistra/destra imposta il taglio alto, su/giù il taglio basso"
+
+#: spot/plugins/Targets.py:510
+msgid "List unreferenced targets"
+msgstr "Elenca i target non referenziati"
+
+#: spot/plugins/FindImage.py:276
+msgid "Load FITS"
+msgstr "Carica FITS"
+
+#: spot/plugins/FindImage.py:300
+msgid "Load a FITS image with WCS"
+msgstr "Carica un'immagine FITS con WCS"
+
+#: spot/plugins/TargetGenerator.py:183
+msgid "Lookup name"
+msgstr "Cerca nome"
+
+#: spot/plugins/TargetGenerator.py:160
+msgid "Lookup name and populate ra/dec coordinates"
+msgstr "Cerca il nome e compila le coordinate ar/dec"
+
+#: spot/plugins/TargetGenerator.py:194
+msgid "Lookup non-sidereal target at JPL Horizons"
+msgstr "Cerca un target non siderale su JPL Horizons"
+
+#: spot/plugins/SPOTToolbar.py:109
+msgid "Magnify detail (Zoom plugin)"
+msgstr "Ingrandisci il dettaglio (plugin Zoom)"
+
+#: spot/plugins/FindImage.py:240
+msgid "Mark target"
+msgstr "Contrassegna target"
+
+#: spot/plugins/FindImage.py:263
+msgid "Mark the target position"
+msgstr "Contrassegna la posizione del target"
+
+#: spot/plugins/Targets.py:504
+msgid "Merge Targets"
+msgstr "Unisci target"
+
+#: spot/plugins/SPOTToolbar.py:89
+msgid "Modes are oneshot or locked"
+msgstr "Le modalità sono singola o bloccata"
+
+#: spot/plugins/SkyCam.py:235
+msgid "Monochrome"
+msgstr "Monocromatico"
+
+#: spot/plugins/PolarSky.py:205
+msgid "Moon"
+msgstr "Luna"
+
+#: spot/plugins/TargetGenerator.py:188
+msgid "Name or code as known to JPL Horizons"
+msgstr "Nome o codice noto a JPL Horizons"
+
+#: spot/plugins/FindImage.py:238 spot/plugins/TargetGenerator.py:135
+#: spot/plugins/TargetGenerator.py:179
+msgid "Name:"
+msgstr "Nome:"
+
+#: spot/plugins/PolarSky.py:174
+msgid "Nautical:"
+msgstr "Nautico:"
+
+#: spot/plugins/PolarSky.py:209
+msgid "Next Rise:"
+msgstr "Prossimo sorgere:"
+
+#: spot/plugins/PolarSky.py:210
+msgid "Next Set:"
+msgstr "Prossimo tramonto:"
+
+#: spot/plugins/Visibility.py:224
+msgid "Night Center"
+msgstr "Centro della notte"
+
+#: spot/plugins/PolarSky.py:176
+msgid "Night center:"
+msgstr "Centro della notte:"
+
+#: spot/plugins/SiteSelector.py:185
+msgid "Now"
+msgstr "Adesso"
+
+#: spot/plugins/SiteSelector.py:188
+msgid "Now or fixed time for visibility calculations"
+msgstr "Ora attuale o fissa per i calcoli di visibilità"
+
+#: spot/plugins/Targets.py:980
+msgid "OK"
+msgstr "OK"
+
+#: spot/plugins/SiteSelector.py:160
+msgid "Observing Location"
+msgstr "Luogo di osservazione"
+
+#: spot/plugins/CPanel.py:117 spot/plugins/SPOTMenubar.py:40
+msgid "Open Workspace"
+msgstr "Apri area di lavoro"
+
+#: spot/plugins/CPanel.py:131
+msgid "Open the selected or named workspace"
+msgstr "Apri l'area di lavoro selezionata o indicata"
+
+#: spot/plugins/SPOTToolbar.py:55
+msgid "Orient image N=Up E=Left"
+msgstr "Orienta l'immagine N=su E=sinistra"
+
+#: spot/plugins/SPOTToolbar.py:53
+msgid "Orient image N=Up E=Right"
+msgstr "Orienta l'immagine N=su E=destra"
+
+#: spot/plugins/InsFov.py:128
+msgid "PA (deg):"
+msgstr "PA (°):"
+
+#: spot/plugins/LGS.py:109
+msgid "PAM Dir:"
+msgstr "Dir. PAM:"
+
+#: spot/plugins/LGS.py:110
+msgid "PAM Files:"
+msgstr "File PAM:"
+
+#: spot/plugins/Targets.py:956
+msgid "PRM file not saved"
+msgstr "File PRM non salvato"
+
+#: spot/plugins/Targets.py:966
+msgid "PRM file replaced"
+msgstr "File PRM sostituito"
+
+#: spot/plugins/Targets.py:970
+msgid "PRM file saved"
+msgstr "File PRM salvato"
+
+#: spot/plugins/TelescopePosition.py:205
+msgid "Pan to telescope position"
+msgstr "Sposta alla posizione del telescopio"
+
+#: spot/plugins/TelescopePosition.py:224
+msgid "Pan to the position of the target"
+msgstr "Sposta alla posizione del target"
+
+#: spot/plugins/SPOTToolbar.py:67
+msgid "Pan with left, zoom with right"
+msgstr "Sposta con il sinistro, zoom con il destro"
+
+#: spot/plugins/TargetGenerator.py:246
+msgid "Please enter a name to look up"
+msgstr "Inserire un nome da cercare"
+
+#: spot/plugins/Targets.py:1152 spot/plugins/Targets.py:1162
+msgid "Please install the 'oscript' module to use this feature"
+msgstr "Installare il modulo 'oscript' per usare questa funzione"
+
+#: spot/plugins/FindImage.py:309
+msgid "Please select 'Find image' to find your selected image"
+msgstr "Selezionare 'Find image' per trovare l'immagine scelta"
+
+#: spot/plugins/FindImage.py:683
+msgid "Please select a target and click 'Get Selected'"
+msgstr "Selezionare un target e fare clic su 'Get Selected'"
+
+#: spot/plugins/FindImage.py:749
+msgid "Please select exactly one target in the Targets table!"
+msgstr "Selezionare esattamente un target nella tabella dei target!"
+
+#: spot/plugins/Targets.py:420
+msgid "Please select file for list display"
+msgstr "Selezionare un file da mostrare nell'elenco"
+
+#: spot/plugins/Targets.py:1513
+msgid "Please select just one target"
+msgstr "Selezionare un solo target"
+
+#: spot/plugins/Visibility.py:274
+msgid "Plot Az/El paths on polar plot"
+msgstr "Traccia i percorsi Az/El sul grafico polare"
+
+#: spot/plugins/Visibility.py:266
+msgid "Plot moon separation"
+msgstr "Traccia la separazione dalla Luna"
+
+#: spot/plugins/Visibility.py:271
+msgid "Plot polar AzEl"
+msgstr "Traccia AzEl polare"
+
+#: spot/plugins/Targets.py:516
+msgid "Plot solar system objects"
+msgstr "Traccia gli oggetti del sistema solare"
+
+#: spot/plugins/Targets.py:517
+msgid "Plot sun, moon and planets"
+msgstr "Traccia Sole, Luna e pianeti"
+
+#: spot/plugins/TelescopePosition.py:202
+msgid "Plot telescope position"
+msgstr "Traccia la posizione del telescopio"
+
+#: spot/plugins/TelescopePosition.py:216
+msgid "Plot the telescope position"
+msgstr "Traccia la posizione del telescopio"
+
+#: spot/plugins/Targets.py:487 spot/plugins/Visibility.py:244
+msgid "Plot:"
+msgstr "Grafico:"
+
+#: spot/plugins/FindImage.py:233 spot/plugins/InsFov.py:166
+msgid "Pointing"
+msgstr "Puntamento"
+
+#: spot/plugins/Targets.py:505
+msgid "Put all targets under one category called 'Targets'"
+msgstr "Metti tutti i target in un'unica categoria chiamata 'Targets'"
+
+#: spot/plugins/SPOTMenubar.py:34
+msgid "Quit"
+msgstr "Esci"
+
+#: spot/plugins/TelescopePosition.py:190
+msgid "RA Cmd:"
+msgstr "Cmd AR:"
+
+#: spot/instruments/subaru.py:886
+msgid "RA Offset:"
+msgstr "Offset AR:"
+
+#: spot/plugins/FindImage.py:235 spot/plugins/InsFov.py:168
+#: spot/plugins/PolarSky.py:212 spot/plugins/TargetGenerator.py:132
+#: spot/plugins/TelescopePosition.py:177
+msgid "RA:"
+msgstr "AR:"
+
+#: spot/plugins/Targets.py:457
+msgid "Remove highlighted items from tagged targets"
+msgstr "Rimuovi gli elementi evidenziati dai target contrassegnati"
+
+#: spot/plugins/Targets.py:963
+#, python-brace-format
+msgid "Replaced PRM file '{}'"
+msgstr "File PRM '{}' sostituito"
+
+#: spot/plugins/Targets.py:964
+#, python-brace-format
+msgid ""
+"Replaced existing PRM file '{}' in\n"
+"{}"
+msgstr ""
+"File PRM esistente '{}' sostituito in\n"
+"{}"
+
+#: spot/plugins/SPOTToolbar.py:94
+msgid "Reset all transformations and rotations"
+msgstr "Reimposta tutte le trasformazioni e rotazioni"
+
+#: spot/plugins/SPOTToolbar.py:98
+msgid "Reset contrast"
+msgstr "Reimposta contrasto"
+
+#: spot/plugins/FindImage.py:240
+msgid "Reset pan"
+msgstr "Reimposta spostamento"
+
+#: spot/plugins/SPOTToolbar.py:51
+msgid "Rotate image -90 deg"
+msgstr "Ruota l'immagine di -90°"
+
+#: spot/plugins/SPOTToolbar.py:49
+msgid "Rotate image 90 deg"
+msgstr "Ruota l'immagine di 90°"
+
+#: spot/plugins/InsFov.py:162
+msgid "Rotate image with PA to keep position of overlay"
+msgstr ""
+"Ruota l'immagine con il PA per mantenere la posizione della "
+"sovrapposizione"
+
+#: spot/plugins/Targets.py:522
+msgid "Rotate target colors"
+msgstr "Ruota i colori dei target"
+
+#: spot/plugins/Targets.py:523
+msgid "Rotate target colors for each file loaded"
+msgstr "Ruota i colori dei target per ogni file caricato"
+
+#: spot/plugins/InsFov.py:129
+msgid "Rotate w/PA"
+msgstr "Ruota con PA"
+
+#: spot/plugins/LGS.py:112
+msgid "Sat window:"
+msgstr "Finestra sat:"
+
+#: spot/plugins/LGS.py:107
+msgid "Satellites / PAM"
+msgstr "Satelliti / PAM"
+
+#: spot/plugins/FindImage.py:328 spot/plugins/SiteSelector.py:224
+#: spot/plugins/SkyCam.py:294 spot/plugins/Targets.py:550
+msgid "Save config"
+msgstr "Salva configurazione"
+
+#: spot/plugins/CPanel.py:271
+msgid "Save the size and position of workspace windows"
+msgstr "Salva la dimensione e la posizione delle finestre dell'area di lavoro"
+
+#: spot/plugins/SiteSelector.py:226 spot/plugins/SkyCam.py:296
+msgid "Save this plugin's configuration for the workspace"
+msgstr "Salva la configurazione di questo plugin per l'area di lavoro"
+
+#: spot/plugins/FindImage.py:330 spot/plugins/Targets.py:552
+msgid "Save this plugin's settings for this workspace"
+msgstr "Salva le impostazioni di questo plugin per quest'area di lavoro"
+
+#: spot/plugins/CPanel.py:269
+#, python-brace-format
+msgid "Save {} layout"
+msgstr "Salva il layout di {}"
+
+#: spot/plugins/Targets.py:968
+#, python-brace-format
+msgid "Saved PRM file '{}'"
+msgstr "File PRM '{}' salvato"
+
+#: spot/plugins/Targets.py:969
+#, python-brace-format
+msgid ""
+"Saved PRM file '{}' into\n"
+"{}"
+msgstr ""
+"File PRM '{}' salvato in\n"
+"{}"
+
+#: spot/plugins/FindImage.py:356 spot/plugins/SiteSelector.py:248
+#: spot/plugins/SkyCam.py:318 spot/plugins/Targets.py:574
+#, python-brace-format
+msgid "Saved configuration for {}"
+msgstr "Configurazione salvata per {}"
+
+#: spot/plugins/SPOTToolbar.py:77
+msgid "Scroll to set color distribution algorithm"
+msgstr "Scorri per impostare l'algoritmo di distribuzione dei colori"
+
+#: spot/plugins/SPOTToolbar.py:80
+msgid "Scroll to set color map"
+msgstr "Scorri per impostare la mappa dei colori"
+
+#: spot/plugins/TargetGenerator.py:155
+msgid "Search name"
+msgstr "Cerca nome"
+
+#: spot/plugins/Targets.py:476
+#, python-brace-format
+msgid "Search {} for information about the target"
+msgstr "Cerca in {} informazioni sul target"
+
+#: spot/plugins/Targets.py:460
+msgid "Select All"
+msgstr "Seleziona tutto"
+
+#: spot/plugins/CPanel.py:118
+msgid "Select Workspace:"
+msgstr "Seleziona area di lavoro:"
+
+#: spot/plugins/Targets.py:461
+msgid "Select all targets"
+msgstr "Seleziona tutti i target"
+
+#: spot/plugins/CPanel.py:129
+msgid "Select an existing workspace, or type a new name"
+msgstr "Seleziona un'area di lavoro esistente o digita un nuovo nome"
+
+#: spot/plugins/CPanel.py:134
+msgid "Select an opened workspace"
+msgstr "Seleziona un'area di lavoro aperta"
+
+#: spot/plugins/Targets.py:364
+msgid "Select target file"
+msgstr "Seleziona il file dei target"
+
+#: spot/plugins/Targets.py:378
+msgid "Select target files"
+msgstr "Seleziona i file dei target"
+
+#: spot/plugins/Targets.py:490 spot/plugins/Visibility.py:238
+msgid "Selected"
+msgstr "Selezionato"
+
+#: spot/plugins/SPOTToolbar.py:101
+msgid "Set channel preferences (in focused channel)"
+msgstr "Imposta le preferenze del canale (nel canale attivo)"
+
+#: spot/plugins/SiteSelector.py:198
+msgid "Set date time for visibility calculations"
+msgstr "Imposta data e ora per i calcoli di visibilità"
+
+#: spot/plugins/InsFov.py:155
+msgid "Set desired position angle"
+msgstr "Imposta l'angolo di posizione desiderato"
+
+#: spot/plugins/FindImage.py:256
+msgid "Set pan position to telescope position"
+msgstr "Imposta la posizione di spostamento su quella del telescopio"
+
+#: spot/plugins/Targets.py:417
+msgid "Set the color of the loaded targets"
+msgstr "Imposta il colore dei target caricati"
+
+#: spot/plugins/Visibility.py:228
+msgid "Set time axis for visibility plot"
+msgstr "Imposta l'asse temporale del grafico di visibilità"
+
+#: spot/plugins/Targets.py:534 spot/plugins/Visibility.py:262
+msgid "Settings"
+msgstr "Impostazioni"
+
+#: spot/plugins/SkyCam.py:262
+msgid "Show Differential Image"
+msgstr "Mostra immagine differenziale"
+
+#: spot/plugins/SkyCam.py:234
+msgid "Show Sky Image"
+msgstr "Mostra immagine del cielo"
+
+#: spot/plugins/Visibility.py:269
+msgid "Show moon separation on plot lines"
+msgstr "Mostra la separazione dalla Luna sulle linee del grafico"
+
+#: spot/plugins/Targets.py:511
+msgid "Show unreferenced targets (e.g. from .prm files"
+msgstr "Mostra i target non referenziati (es. da file .prm)"
+
+#: spot/plugins/PolarSky.py:144
+msgid "Site Date/Time"
+msgstr "Data/ora del sito"
+
+#: spot/plugins/PolarSky.py:172 spot/plugins/SiteSelector.py:161
+msgid "Site:"
+msgstr "Sito:"
+
+#: spot/plugins/FindImage.py:274
+msgid "Size (arcmin):"
+msgstr "Dimensione (arcmin):"
+
+#: spot/instruments/subaru.py:890
+msgid "Skip:"
+msgstr "Salta:"
+
+#: spot/plugins/TelescopePosition.py:182
+msgid "Slew Time:"
+msgstr "Tempo di puntamento:"
+
+#: spot/plugins/FindImage.py:273
+msgid "Source:"
+msgstr "Sorgente:"
+
+#: spot/plugins/TargetGenerator.py:189
+msgid "Start time of observation (YYYY-MM-DD HH:MM:SS) in OBSERVER's time"
+msgstr ""
+"Ora di inizio dell'osservazione (AAAA-MM-GG HH:MM:SS) nell'ora "
+"dell'OSSERVATORE"
+
+#: spot/plugins/TargetGenerator.py:180
+msgid "Start time:"
+msgstr "Ora di inizio:"
+
+#: spot/plugins/TelescopePosition.py:181
+msgid "Status:"
+msgstr "Stato:"
+
+#: spot/plugins/TargetGenerator.py:191
+msgid "Step time of observation"
+msgstr "Passo temporale dell'osservazione"
+
+#: spot/plugins/TargetGenerator.py:182
+msgid "Step:"
+msgstr "Passo:"
+
+#: spot/plugins/TargetGenerator.py:190
+msgid "Stop time of observation (YYYY-MM-DD HH:MM:SS) in OBSERVER's time"
+msgstr ""
+"Ora di fine dell'osservazione (AAAA-MM-GG HH:MM:SS) nell'ora "
+"dell'OSSERVATORE"
+
+#: spot/plugins/TargetGenerator.py:181
+msgid "Stop time:"
+msgstr "Ora di fine:"
+
+#: spot/instruments/subaru.py:891
+msgid "Stop:"
+msgstr "Fine:"
+
+#: spot/plugins/PolarSky.py:168
+msgid "Sun"
+msgstr "Sole"
+
+#: spot/plugins/PolarSky.py:188
+msgid "Sunrise"
+msgstr "Alba"
+
+#: spot/plugins/PolarSky.py:177
+msgid "Sunset"
+msgstr "Tramonto"
+
+#: spot/plugins/SPOTToolbar.py:46
+msgid "Swap X and Y axes"
+msgstr "Scambia gli assi X e Y"
+
+#: spot/plugins/Targets.py:426
+msgid "Sync integgui2"
+msgstr "Sincronizza integgui2"
+
+#: spot/plugins/Targets.py:452
+msgid "Tag"
+msgstr "Contrassegna"
+
+#: spot/plugins/Targets.py:490 spot/plugins/Visibility.py:238
+msgid "Tagged+selected"
+msgstr "Contrassegnato+selezionato"
+
+#: spot/plugins/TelescopePosition.py:189
+msgid "Target"
+msgstr "Target"
+
+#: spot/plugins/TelescopePosition.py:203
+msgid "Target follows telescope"
+msgstr "Il target segue il telescopio"
+
+#: spot/plugins/Visibility.py:254
+msgid "Target visibility calculation progress"
+msgstr "Avanzamento del calcolo di visibilità del target"
+
+#: spot/plugins/LGS.py:111
+msgid "Target:"
+msgstr "Target:"
+
+#: spot/plugins/TelescopePosition.py:176
+msgid "Telescope"
+msgstr "Telescopio"
+
+#: spot/plugins/InsFov.py:180
+msgid "The Declination at the target"
+msgstr "La declinazione del target"
+
+#: spot/plugins/InsFov.py:178
+msgid "The Right Ascension at the target"
+msgstr "L'ascensione retta del target"
+
+#: spot/plugins/SiteSelector.py:173
+msgid "Time"
+msgstr "Ora"
+
+#: spot/plugins/Visibility.py:230
+msgid "Time axis:"
+msgstr "Asse temporale:"
+
+#: spot/plugins/LGS.py:122
+msgid "Time left:"
+msgstr "Tempo rimanente:"
+
+#: spot/plugins/PolarSky.py:147
+msgid "Time:"
+msgstr "Ora:"
+
+#: spot/plugins/TelescopePosition.py:221
+msgid "Track target by telescope position"
+msgstr "Insegui il target in base alla posizione del telescopio"
+
+#: spot/plugins/SiteSelector.py:203
+msgid "UTC offset for setting fixed time"
+msgstr "Offset UTC per impostare l'ora fissa"
+
+#: spot/plugins/PolarSky.py:148
+msgid "UTC:"
+msgstr "UTC:"
+
+#: spot/plugins/Targets.py:491 spot/plugins/Visibility.py:239
+msgid "Uncollapsed"
+msgstr "Non compresso"
+
+#: spot/plugins/Targets.py:456
+msgid "Untag"
+msgstr "Rimuovi contrassegno"
+
+#: spot/instruments/subaru.py:892
+msgid "Update View"
+msgstr "Aggiorna vista"
+
+#: spot/plugins/SkyCam.py:273
+msgid "Use a differential image"
+msgstr "Usa un'immagine differenziale"
+
+#: spot/plugins/SPOTToolbar.py:107
+msgid "View image metadata (Header plugin)"
+msgstr "Visualizza i metadati dell'immagine (plugin Header)"
+
+#: spot/plugins/SPOTMenubar.py:38
+msgid "Workspace"
+msgstr "Area di lavoro"
+
+#: spot/plugins/CPanel.py:361
+#, python-brace-format
+msgid "Workspace positions saved for {}"
+msgstr "Posizioni dell'area di lavoro salvate per {}"
+
+#: spot/plugins/SPOTToolbar.py:58
+msgid "Zoom in"
+msgstr "Ingrandisci"
+
+#: spot/plugins/SPOTToolbar.py:60
+msgid "Zoom out"
+msgstr "Riduci"
+
+#: spot/plugins/SPOTToolbar.py:64
+msgid "Zoom to 100% (1:1)"
+msgstr "Zoom al 100% (1:1)"
+
+#: spot/plugins/SPOTToolbar.py:62
+msgid "Zoom to fit window size"
+msgstr "Zoom per adattare alla dimensione della finestra"
+
+#: spot/plugins/Targets.py:370
+msgid "[Drop file here]"
+msgstr "[Trascina qui il file]"
+
+#: spot/plugins/TelescopePosition.py:181
+msgid "action"
+msgstr ""
+
+#: spot/plugins/TelescopePosition.py:179
+msgid "az"
+msgstr ""
+
+#: spot/plugins/TelescopePosition.py:192
+msgid "az_cmd"
+msgstr ""
+
+#: spot/plugins/TelescopePosition.py:178
+msgid "dec"
+msgstr ""
+
+#: spot/plugins/TelescopePosition.py:191
+msgid "dec_cmd"
+msgstr ""
+
+#: spot/plugins/TelescopePosition.py:180
+msgid "el"
+msgstr ""
+
+#: spot/plugins/TelescopePosition.py:193
+msgid "el_cmd"
+msgstr ""
+
+#: spot/plugins/FindImage.py:468
+#, python-brace-format
+msgid "failed to find image: {}"
+msgstr "Impossibile trovare l'immagine: {}"
+
+#: spot/plugins/TelescopePosition.py:177
+msgid "ra"
+msgstr ""
+
+#: spot/plugins/TelescopePosition.py:190
+msgid "ra_cmd"
+msgstr ""
+
+#: spot/plugins/LGS.py:113
+msgid "sat_time_label"
+msgstr ""
+
+#: spot/plugins/TelescopePosition.py:182
+msgid "slew"
+msgstr ""
+
+#: spot/plugins/FindImage.py:744
+msgid "uncheck 'Follow telescope' to get selection"
+msgstr "Deseleziona 'Follow telescope' per ottenere la selezione"
+

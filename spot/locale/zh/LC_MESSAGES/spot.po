@@ -1,0 +1,1094 @@
+# Chinese translations for spot.
+# Copyright (C) 2026 ORGANIZATION
+# This file is distributed under the same license as the spot project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: spot VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2026-08-22 10:57-1000\n"
+"PO-Revision-Date: 2026-08-22 10:58-1000\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh\n"
+"Language-Team: zh <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+
+#: spot/plugins/CPanel.py:197
+#, python-brace-format
+msgid "'{}' already exists; pick a new name"
+msgstr "'{}' 已存在；请另选一个名称"
+
+#: spot/plugins/LGS.py:222
+#, python-brace-format
+msgid "'{}' does not seem to be a directory"
+msgstr "'{}' 似乎不是一个目录"
+
+#: spot/plugins/SPOTMenubar.py:75
+msgid "About"
+msgstr "关于"
+
+#: spot/plugins/TargetGenerator.py:137
+msgid "Add Target"
+msgstr "添加目标"
+
+#: spot/plugins/Targets.py:453
+msgid "Add highlighted items to tagged targets"
+msgstr "将高亮项添加到已标记的目标"
+
+#: spot/plugins/TargetGenerator.py:143
+msgid "Add target to the target list"
+msgstr "将目标添加到目标列表"
+
+#: spot/plugins/Targets.py:491 spot/plugins/Visibility.py:239
+msgid "All"
+msgstr "全部"
+
+#: spot/plugins/SkyCam.py:232
+msgid "All Sky Camera"
+msgstr "全天相机"
+
+#: spot/plugins/Targets.py:529
+msgid "Allow DateTime column in target CSV to set fixed time"
+msgstr "允许目标 CSV 中的 DateTime 列设置固定时间"
+
+#: spot/plugins/PolarSky.py:208
+msgid "Altitude:"
+msgstr "高度:"
+
+#: spot/plugins/PolarSky.py:175
+msgid "Astronomical:"
+msgstr "天文:"
+
+#: spot/plugins/SPOTToolbar.py:96
+msgid "Auto cut levels"
+msgstr "自动截断电平"
+
+#: spot/plugins/TelescopePosition.py:192
+msgid "Az Cmd:"
+msgstr "方位角指令:"
+
+#: spot/plugins/TargetGenerator.py:118 spot/plugins/TelescopePosition.py:179
+msgid "Az:"
+msgstr "方位角:"
+
+#: spot/plugins/Targets.py:1047
+#, python-brace-format
+msgid "Bad coordinate for '{}': RA={} DEC={} EQ={}: {}"
+msgstr "'{}' 的坐标无效：RA={} DEC={} EQ={}: {}"
+
+#: spot/plugins/Targets.py:479
+msgid "Browse"
+msgstr "浏览"
+
+#: spot/plugins/Targets.py:481
+msgid "Browse for information about a target"
+msgstr "浏览有关目标的信息"
+
+#: spot/plugins/SkyCam.py:236
+msgid "Camera Server:"
+msgstr "相机服务器:"
+
+#: spot/plugins/SPOTToolbar.py:91
+msgid "Center image"
+msgstr "居中图像"
+
+#: spot/plugins/FindImage.py:262
+msgid "Center on target position"
+msgstr "以目标位置为中心"
+
+#: spot/plugins/InsFov.py:127
+msgid "Choose"
+msgstr "选择"
+
+#: spot/plugins/InsFov.py:151
+msgid "Choose instrument overlay"
+msgstr "选择仪器叠加层"
+
+#: spot/plugins/Targets.py:401
+msgid "Choose target color"
+msgstr "选择目标颜色"
+
+#: spot/plugins/TargetGenerator.py:173
+msgid "Choose the object name resolver"
+msgstr "选择天体名称解析器"
+
+#: spot/plugins/Targets.py:495 spot/plugins/Visibility.py:243
+msgid "Choose what is plotted"
+msgstr "选择要绘制的内容"
+
+#: spot/plugins/PolarSky.py:173
+msgid "Civil:"
+msgstr "民用:"
+
+#: spot/plugins/FindImage.py:322 spot/plugins/InsFov.py:194
+#: spot/plugins/LGS.py:133 spot/plugins/PolarSky.py:237
+#: spot/plugins/SPOTMenubar.py:99 spot/plugins/SiteSelector.py:218
+#: spot/plugins/SkyCam.py:288 spot/plugins/TargetGenerator.py:202
+#: spot/plugins/Targets.py:544 spot/plugins/TelescopePosition.py:232
+#: spot/plugins/Visibility.py:282
+msgid "Close"
+msgstr "关闭"
+
+#: spot/plugins/SPOTMenubar.py:42
+msgid "Close Workspace"
+msgstr "关闭工作区"
+
+#: spot/plugins/CPanel.py:275
+msgid "Close this workspace"
+msgstr "关闭此工作区"
+
+#: spot/plugins/CPanel.py:273
+#, python-brace-format
+msgid "Close workspace {}"
+msgstr "关闭工作区 {}"
+
+#: spot/plugins/Targets.py:468
+msgid "Collapse All"
+msgstr "全部折叠"
+
+#: spot/plugins/Targets.py:469
+msgid "Collapse all loaded files"
+msgstr "折叠所有已加载的文件"
+
+#: spot/plugins/Targets.py:396
+msgid "Color"
+msgstr "颜色"
+
+#: spot/plugins/Targets.py:536 spot/plugins/Visibility.py:263
+msgid "Configure some settings for this plugin"
+msgstr "配置此插件的一些设置"
+
+#: spot/plugins/SPOTToolbar.py:86
+msgid "Contrast/bias with left/right/up/down"
+msgstr "使用左/右/上/下调节对比度/偏置"
+
+#: spot/plugins/FindImage.py:276
+msgid "Create Blank"
+msgstr "创建空白"
+
+#: spot/plugins/FindImage.py:297
+msgid "Create a blank image"
+msgstr "创建空白图像"
+
+#: spot/plugins/Visibility.py:224
+msgid "Current"
+msgstr "当前"
+
+#: spot/plugins/TelescopePosition.py:191
+msgid "DEC Cmd:"
+msgstr "赤纬指令:"
+
+#: spot/instruments/subaru.py:887
+msgid "DEC Offset:"
+msgstr "赤纬偏移:"
+
+#: spot/plugins/FindImage.py:235 spot/plugins/InsFov.py:168
+#: spot/plugins/PolarSky.py:213 spot/plugins/TargetGenerator.py:132
+#: spot/plugins/TelescopePosition.py:178
+msgid "DEC:"
+msgstr "赤纬:"
+
+#: spot/plugins/PolarSky.py:146
+msgid "Date:"
+msgstr "日期:"
+
+#: spot/plugins/Visibility.py:224
+msgid "Day Center"
+msgstr "白昼中点"
+
+#: spot/plugins/Targets.py:464
+msgid "Delete"
+msgstr "删除"
+
+#: spot/plugins/Targets.py:465
+msgid "Delete selected target from targets"
+msgstr "从目标中删除所选目标"
+
+#: spot/plugins/SkyCam.py:261
+msgid "Differential Image"
+msgstr "差分图像"
+
+#: spot/instruments/subaru.py:888
+msgid "Dith1:"
+msgstr "抖动1:"
+
+#: spot/instruments/subaru.py:889
+msgid "Dith2:"
+msgstr "抖动2:"
+
+#: spot/instruments/subaru.py:926
+msgid "Dither Pos:"
+msgstr "抖动位置:"
+
+#: spot/instruments/subaru.py:885
+msgid "Dither Steps:"
+msgstr "抖动步数:"
+
+#: spot/instruments/subaru.py:884
+msgid "Dither Type:"
+msgstr "抖动类型:"
+
+#: spot/plugins/SPOTToolbar.py:74
+msgid "Drag left to rotate; click right to reset to 0 deg"
+msgstr "左键拖动旋转；右键单击重置为 0 度"
+
+#: spot/plugins/TelescopePosition.py:193
+msgid "El Cmd:"
+msgstr "高度角指令:"
+
+#: spot/plugins/TargetGenerator.py:118 spot/plugins/TelescopePosition.py:180
+msgid "El:"
+msgstr "高度角:"
+
+#: spot/plugins/Targets.py:528
+msgid "Enable DateTime setting"
+msgstr "启用 DateTime 设置"
+
+#: spot/plugins/FindImage.py:237 spot/plugins/TargetGenerator.py:134
+msgid "Equinox:"
+msgstr "分点:"
+
+#: spot/plugins/SkyCam.py:590
+msgid "Error downloading, check log"
+msgstr "下载出错，请检查日志"
+
+#: spot/plugins/FindImage.py:690
+msgid "Error getting coordinate: please check selected target"
+msgstr "获取坐标出错：请检查所选目标"
+
+#: spot/plugins/Targets.py:953
+#, python-brace-format
+msgid ""
+"Error saving PRM file '{}':\n"
+"{}"
+msgstr ""
+"保存 PRM 文件 '{}' 出错：\n"
+"{}"
+
+#: spot/plugins/CPanel.py:370
+#, python-brace-format
+msgid "Error saving workspace {}: {}"
+msgstr "保存工作区 {} 出错：{}"
+
+#: spot/plugins/FindImage.py:358 spot/plugins/SiteSelector.py:250
+#: spot/plugins/SkyCam.py:320 spot/plugins/Targets.py:576
+#, python-brace-format
+msgid "Error saving {} config: {}"
+msgstr "保存 {} 配置出错：{}"
+
+#: spot/plugins/TargetGenerator.py:344 spot/plugins/TargetGenerator.py:354
+#, python-brace-format
+msgid "Exception looking up name '{}': {}"
+msgstr "查找名称 '{}' 时发生异常：{}"
+
+#: spot/plugins/SPOTMenubar.py:30 spot/plugins/Targets.py:362
+msgid "File"
+msgstr "文件"
+
+#: spot/plugins/FindImage.py:275
+msgid "Find image"
+msgstr "查找图像"
+
+#: spot/plugins/SiteSelector.py:185
+msgid "Fixed"
+msgstr "固定"
+
+#: spot/plugins/InsFov.py:129
+msgid "Flip"
+msgstr "翻转"
+
+#: spot/plugins/SPOTToolbar.py:42
+msgid "Flip image in X axis"
+msgstr "沿 X 轴翻转图像"
+
+#: spot/plugins/SPOTToolbar.py:44
+msgid "Flip image in Y axis"
+msgstr "沿 Y 轴翻转图像"
+
+#: spot/plugins/InsFov.py:159
+msgid "Flip orientation"
+msgstr "翻转方向"
+
+#: spot/plugins/LGS.py:120
+msgid "Folder where PAM files are stored"
+msgstr "存放 PAM 文件的文件夹"
+
+#: spot/plugins/FindImage.py:239
+msgid "Follow telescope"
+msgstr "跟随望远镜"
+
+#: spot/plugins/TargetGenerator.py:116
+msgid "From Azimuth/Elevation"
+msgstr "根据方位角/高度角"
+
+#: spot/plugins/TargetGenerator.py:149
+msgid "From Name Server"
+msgstr "根据名称服务器"
+
+#: spot/plugins/TargetGenerator.py:130
+msgid "From RA/DEC Coordinate"
+msgstr "根据赤经/赤纬坐标"
+
+#: spot/plugins/TargetGenerator.py:119
+msgid "Gen Target"
+msgstr "生成目标"
+
+#: spot/plugins/Targets.py:425
+msgid "Gen2"
+msgstr "Gen2"
+
+#: spot/plugins/TargetGenerator.py:127
+msgid "Generate a target from AZ/EL at given time"
+msgstr "根据给定时间的方位角/高度角生成目标"
+
+#: spot/plugins/FindImage.py:239
+msgid "Get Selected"
+msgstr "获取所选"
+
+#: spot/plugins/FindImage.py:258
+msgid "Get the coordinates from the selected target in Targets table"
+msgstr "从目标表中所选目标获取坐标"
+
+#: spot/plugins/CPanel.py:151 spot/plugins/FindImage.py:325
+#: spot/plugins/InsFov.py:197 spot/plugins/LGS.py:136
+#: spot/plugins/PolarSky.py:240 spot/plugins/SPOTMenubar.py:73
+#: spot/plugins/SiteSelector.py:221 spot/plugins/SkyCam.py:291
+#: spot/plugins/TargetGenerator.py:205 spot/plugins/Targets.py:547
+#: spot/plugins/TelescopePosition.py:235 spot/plugins/Visibility.py:285
+msgid "Help"
+msgstr "帮助"
+
+#: spot/plugins/Targets.py:922 spot/plugins/Targets.py:1008
+#, python-brace-format
+msgid "I don't know how to load files of type '{}'"
+msgstr "无法加载 '{}' 类型的文件"
+
+#: spot/plugins/PolarSky.py:211
+msgid "Illum:"
+msgstr "照度:"
+
+#: spot/plugins/FindImage.py:304 spot/plugins/SkyCam.py:275
+msgid "Image Download Info"
+msgstr "图像下载信息"
+
+#: spot/plugins/FindImage.py:271
+msgid "Image Source"
+msgstr "图像来源"
+
+#: spot/plugins/FindImage.py:465
+#, python-brace-format
+msgid "Image download failed at: {}"
+msgstr "图像下载失败于：{}"
+
+#: spot/plugins/InsFov.py:124
+msgid "Instrument"
+msgstr "仪器"
+
+#: spot/plugins/InsFov.py:126
+msgid "Instrument:"
+msgstr "仪器:"
+
+#: spot/plugins/TargetGenerator.py:177
+msgid "JPL Horizons (Non-sidereal)"
+msgstr "JPL Horizons（非恒星）"
+
+#: spot/plugins/PolarSky.py:149
+msgid "LST:"
+msgstr "LST:"
+
+#: spot/plugins/Targets.py:826
+#, python-brace-format
+msgid "Last updated at: {} [{}]"
+msgstr "上次更新于：{} [{}]"
+
+#: spot/plugins/SPOTToolbar.py:70
+msgid ""
+"Left/right click zooms in/out;\n"
+"hold middle to pan freely over image"
+msgstr ""
+"左键/右键单击放大/缩小；\n"
+"按住中键可在图像上自由平移"
+
+#: spot/plugins/SPOTToolbar.py:83
+msgid "Left/right sets hi cut, up/down sets lo cut"
+msgstr "左/右设置高截断，上/下设置低截断"
+
+#: spot/plugins/Targets.py:510
+msgid "List unreferenced targets"
+msgstr "列出未引用的目标"
+
+#: spot/plugins/FindImage.py:276
+msgid "Load FITS"
+msgstr "加载 FITS"
+
+#: spot/plugins/FindImage.py:300
+msgid "Load a FITS image with WCS"
+msgstr "加载带 WCS 的 FITS 图像"
+
+#: spot/plugins/TargetGenerator.py:183
+msgid "Lookup name"
+msgstr "查找名称"
+
+#: spot/plugins/TargetGenerator.py:160
+msgid "Lookup name and populate ra/dec coordinates"
+msgstr "查找名称并填充赤经/赤纬坐标"
+
+#: spot/plugins/TargetGenerator.py:194
+msgid "Lookup non-sidereal target at JPL Horizons"
+msgstr "在 JPL Horizons 查找非恒星目标"
+
+#: spot/plugins/SPOTToolbar.py:109
+msgid "Magnify detail (Zoom plugin)"
+msgstr "放大细节（Zoom 插件）"
+
+#: spot/plugins/FindImage.py:240
+msgid "Mark target"
+msgstr "标记目标"
+
+#: spot/plugins/FindImage.py:263
+msgid "Mark the target position"
+msgstr "标记目标位置"
+
+#: spot/plugins/Targets.py:504
+msgid "Merge Targets"
+msgstr "合并目标"
+
+#: spot/plugins/SPOTToolbar.py:89
+msgid "Modes are oneshot or locked"
+msgstr "模式为单次或锁定"
+
+#: spot/plugins/SkyCam.py:235
+msgid "Monochrome"
+msgstr "单色"
+
+#: spot/plugins/PolarSky.py:205
+msgid "Moon"
+msgstr "月亮"
+
+#: spot/plugins/TargetGenerator.py:188
+msgid "Name or code as known to JPL Horizons"
+msgstr "JPL Horizons 中已知的名称或代码"
+
+#: spot/plugins/FindImage.py:238 spot/plugins/TargetGenerator.py:135
+#: spot/plugins/TargetGenerator.py:179
+msgid "Name:"
+msgstr "名称:"
+
+#: spot/plugins/PolarSky.py:174
+msgid "Nautical:"
+msgstr "航海:"
+
+#: spot/plugins/PolarSky.py:209
+msgid "Next Rise:"
+msgstr "下次升起:"
+
+#: spot/plugins/PolarSky.py:210
+msgid "Next Set:"
+msgstr "下次落下:"
+
+#: spot/plugins/Visibility.py:224
+msgid "Night Center"
+msgstr "夜间中点"
+
+#: spot/plugins/PolarSky.py:176
+msgid "Night center:"
+msgstr "夜间中点:"
+
+#: spot/plugins/SiteSelector.py:185
+msgid "Now"
+msgstr "现在"
+
+#: spot/plugins/SiteSelector.py:188
+msgid "Now or fixed time for visibility calculations"
+msgstr "用于可见性计算的当前时间或固定时间"
+
+#: spot/plugins/Targets.py:980
+msgid "OK"
+msgstr "OK"
+
+#: spot/plugins/SiteSelector.py:160
+msgid "Observing Location"
+msgstr "观测地点"
+
+#: spot/plugins/CPanel.py:117 spot/plugins/SPOTMenubar.py:40
+msgid "Open Workspace"
+msgstr "打开工作区"
+
+#: spot/plugins/CPanel.py:131
+msgid "Open the selected or named workspace"
+msgstr "打开所选或指定名称的工作区"
+
+#: spot/plugins/SPOTToolbar.py:55
+msgid "Orient image N=Up E=Left"
+msgstr "定向图像 N=上 E=左"
+
+#: spot/plugins/SPOTToolbar.py:53
+msgid "Orient image N=Up E=Right"
+msgstr "定向图像 N=上 E=右"
+
+#: spot/plugins/InsFov.py:128
+msgid "PA (deg):"
+msgstr "PA（度）:"
+
+#: spot/plugins/LGS.py:109
+msgid "PAM Dir:"
+msgstr "PAM 目录:"
+
+#: spot/plugins/LGS.py:110
+msgid "PAM Files:"
+msgstr "PAM 文件:"
+
+#: spot/plugins/Targets.py:956
+msgid "PRM file not saved"
+msgstr "未保存 PRM 文件"
+
+#: spot/plugins/Targets.py:966
+msgid "PRM file replaced"
+msgstr "PRM 文件已替换"
+
+#: spot/plugins/Targets.py:970
+msgid "PRM file saved"
+msgstr "PRM 文件已保存"
+
+#: spot/plugins/TelescopePosition.py:205
+msgid "Pan to telescope position"
+msgstr "平移到望远镜位置"
+
+#: spot/plugins/TelescopePosition.py:224
+msgid "Pan to the position of the target"
+msgstr "平移到目标位置"
+
+#: spot/plugins/SPOTToolbar.py:67
+msgid "Pan with left, zoom with right"
+msgstr "左键平移，右键缩放"
+
+#: spot/plugins/TargetGenerator.py:246
+msgid "Please enter a name to look up"
+msgstr "请输入要查找的名称"
+
+#: spot/plugins/Targets.py:1152 spot/plugins/Targets.py:1162
+msgid "Please install the 'oscript' module to use this feature"
+msgstr "请安装 'oscript' 模块以使用此功能"
+
+#: spot/plugins/FindImage.py:309
+msgid "Please select 'Find image' to find your selected image"
+msgstr "请选择 'Find image' 来查找所选图像"
+
+#: spot/plugins/FindImage.py:683
+msgid "Please select a target and click 'Get Selected'"
+msgstr "请选择一个目标并单击 'Get Selected'"
+
+#: spot/plugins/FindImage.py:749
+msgid "Please select exactly one target in the Targets table!"
+msgstr "请在目标表中恰好选择一个目标！"
+
+#: spot/plugins/Targets.py:420
+msgid "Please select file for list display"
+msgstr "请选择要在列表中显示的文件"
+
+#: spot/plugins/Targets.py:1513
+msgid "Please select just one target"
+msgstr "请仅选择一个目标"
+
+#: spot/plugins/Visibility.py:274
+msgid "Plot Az/El paths on polar plot"
+msgstr "在极坐标图上绘制方位角/高度角路径"
+
+#: spot/plugins/Visibility.py:266
+msgid "Plot moon separation"
+msgstr "绘制月亮角距"
+
+#: spot/plugins/Visibility.py:271
+msgid "Plot polar AzEl"
+msgstr "绘制极坐标 AzEl"
+
+#: spot/plugins/Targets.py:516
+msgid "Plot solar system objects"
+msgstr "绘制太阳系天体"
+
+#: spot/plugins/Targets.py:517
+msgid "Plot sun, moon and planets"
+msgstr "绘制太阳、月亮和行星"
+
+#: spot/plugins/TelescopePosition.py:202
+msgid "Plot telescope position"
+msgstr "绘制望远镜位置"
+
+#: spot/plugins/TelescopePosition.py:216
+msgid "Plot the telescope position"
+msgstr "绘制望远镜的位置"
+
+#: spot/plugins/Targets.py:487 spot/plugins/Visibility.py:244
+msgid "Plot:"
+msgstr "绘图:"
+
+#: spot/plugins/FindImage.py:233 spot/plugins/InsFov.py:166
+msgid "Pointing"
+msgstr "指向"
+
+#: spot/plugins/Targets.py:505
+msgid "Put all targets under one category called 'Targets'"
+msgstr "将所有目标归入名为 'Targets' 的一个类别"
+
+#: spot/plugins/SPOTMenubar.py:34
+msgid "Quit"
+msgstr "退出"
+
+#: spot/plugins/TelescopePosition.py:190
+msgid "RA Cmd:"
+msgstr "赤经指令:"
+
+#: spot/instruments/subaru.py:886
+msgid "RA Offset:"
+msgstr "赤经偏移:"
+
+#: spot/plugins/FindImage.py:235 spot/plugins/InsFov.py:168
+#: spot/plugins/PolarSky.py:212 spot/plugins/TargetGenerator.py:132
+#: spot/plugins/TelescopePosition.py:177
+msgid "RA:"
+msgstr "赤经:"
+
+#: spot/plugins/Targets.py:457
+msgid "Remove highlighted items from tagged targets"
+msgstr "从已标记的目标中移除高亮项"
+
+#: spot/plugins/Targets.py:963
+#, python-brace-format
+msgid "Replaced PRM file '{}'"
+msgstr "已替换 PRM 文件 '{}'"
+
+#: spot/plugins/Targets.py:964
+#, python-brace-format
+msgid ""
+"Replaced existing PRM file '{}' in\n"
+"{}"
+msgstr ""
+"已替换位于\n"
+"{} 的现有 PRM 文件 '{}'"
+
+#: spot/plugins/SPOTToolbar.py:94
+msgid "Reset all transformations and rotations"
+msgstr "重置所有变换和旋转"
+
+#: spot/plugins/SPOTToolbar.py:98
+msgid "Reset contrast"
+msgstr "重置对比度"
+
+#: spot/plugins/FindImage.py:240
+msgid "Reset pan"
+msgstr "重置平移"
+
+#: spot/plugins/SPOTToolbar.py:51
+msgid "Rotate image -90 deg"
+msgstr "将图像旋转 -90 度"
+
+#: spot/plugins/SPOTToolbar.py:49
+msgid "Rotate image 90 deg"
+msgstr "将图像旋转 90 度"
+
+#: spot/plugins/InsFov.py:162
+msgid "Rotate image with PA to keep position of overlay"
+msgstr "按 PA 旋转图像以保持叠加层位置"
+
+#: spot/plugins/Targets.py:522
+msgid "Rotate target colors"
+msgstr "轮换目标颜色"
+
+#: spot/plugins/Targets.py:523
+msgid "Rotate target colors for each file loaded"
+msgstr "为每个加载的文件轮换目标颜色"
+
+#: spot/plugins/InsFov.py:129
+msgid "Rotate w/PA"
+msgstr "按 PA 旋转"
+
+#: spot/plugins/LGS.py:112
+msgid "Sat window:"
+msgstr "卫星窗口:"
+
+#: spot/plugins/LGS.py:107
+msgid "Satellites / PAM"
+msgstr "卫星 / PAM"
+
+#: spot/plugins/FindImage.py:328 spot/plugins/SiteSelector.py:224
+#: spot/plugins/SkyCam.py:294 spot/plugins/Targets.py:550
+msgid "Save config"
+msgstr "保存配置"
+
+#: spot/plugins/CPanel.py:271
+msgid "Save the size and position of workspace windows"
+msgstr "保存工作区窗口的大小和位置"
+
+#: spot/plugins/SiteSelector.py:226 spot/plugins/SkyCam.py:296
+msgid "Save this plugin's configuration for the workspace"
+msgstr "为工作区保存此插件的配置"
+
+#: spot/plugins/FindImage.py:330 spot/plugins/Targets.py:552
+msgid "Save this plugin's settings for this workspace"
+msgstr "为此工作区保存此插件的设置"
+
+#: spot/plugins/CPanel.py:269
+#, python-brace-format
+msgid "Save {} layout"
+msgstr "保存 {} 布局"
+
+#: spot/plugins/Targets.py:968
+#, python-brace-format
+msgid "Saved PRM file '{}'"
+msgstr "已保存 PRM 文件 '{}'"
+
+#: spot/plugins/Targets.py:969
+#, python-brace-format
+msgid ""
+"Saved PRM file '{}' into\n"
+"{}"
+msgstr ""
+"已将 PRM 文件 '{}' 保存到\n"
+"{}"
+
+#: spot/plugins/FindImage.py:356 spot/plugins/SiteSelector.py:248
+#: spot/plugins/SkyCam.py:318 spot/plugins/Targets.py:574
+#, python-brace-format
+msgid "Saved configuration for {}"
+msgstr "已保存 {} 的配置"
+
+#: spot/plugins/SPOTToolbar.py:77
+msgid "Scroll to set color distribution algorithm"
+msgstr "滚动以设置颜色分布算法"
+
+#: spot/plugins/SPOTToolbar.py:80
+msgid "Scroll to set color map"
+msgstr "滚动以设置颜色映射"
+
+#: spot/plugins/TargetGenerator.py:155
+msgid "Search name"
+msgstr "搜索名称"
+
+#: spot/plugins/Targets.py:476
+#, python-brace-format
+msgid "Search {} for information about the target"
+msgstr "在 {} 中搜索有关目标的信息"
+
+#: spot/plugins/Targets.py:460
+msgid "Select All"
+msgstr "全选"
+
+#: spot/plugins/CPanel.py:118
+msgid "Select Workspace:"
+msgstr "选择工作区:"
+
+#: spot/plugins/Targets.py:461
+msgid "Select all targets"
+msgstr "选择所有目标"
+
+#: spot/plugins/CPanel.py:129
+msgid "Select an existing workspace, or type a new name"
+msgstr "选择现有工作区，或输入新名称"
+
+#: spot/plugins/CPanel.py:134
+msgid "Select an opened workspace"
+msgstr "选择一个已打开的工作区"
+
+#: spot/plugins/Targets.py:364
+msgid "Select target file"
+msgstr "选择目标文件"
+
+#: spot/plugins/Targets.py:378
+msgid "Select target files"
+msgstr "选择目标文件"
+
+#: spot/plugins/Targets.py:490 spot/plugins/Visibility.py:238
+msgid "Selected"
+msgstr "已选择"
+
+#: spot/plugins/SPOTToolbar.py:101
+msgid "Set channel preferences (in focused channel)"
+msgstr "设置通道首选项（在聚焦的通道中）"
+
+#: spot/plugins/SiteSelector.py:198
+msgid "Set date time for visibility calculations"
+msgstr "为可见性计算设置日期时间"
+
+#: spot/plugins/InsFov.py:155
+msgid "Set desired position angle"
+msgstr "设置所需的位置角"
+
+#: spot/plugins/FindImage.py:256
+msgid "Set pan position to telescope position"
+msgstr "将平移位置设为望远镜位置"
+
+#: spot/plugins/Targets.py:417
+msgid "Set the color of the loaded targets"
+msgstr "设置已加载目标的颜色"
+
+#: spot/plugins/Visibility.py:228
+msgid "Set time axis for visibility plot"
+msgstr "设置可见性图的时间轴"
+
+#: spot/plugins/Targets.py:534 spot/plugins/Visibility.py:262
+msgid "Settings"
+msgstr "设置"
+
+#: spot/plugins/SkyCam.py:262
+msgid "Show Differential Image"
+msgstr "显示差分图像"
+
+#: spot/plugins/SkyCam.py:234
+msgid "Show Sky Image"
+msgstr "显示天空图像"
+
+#: spot/plugins/Visibility.py:269
+msgid "Show moon separation on plot lines"
+msgstr "在图线上显示月亮角距"
+
+#: spot/plugins/Targets.py:511
+msgid "Show unreferenced targets (e.g. from .prm files"
+msgstr "显示未引用的目标（例如来自 .prm 文件）"
+
+#: spot/plugins/PolarSky.py:144
+msgid "Site Date/Time"
+msgstr "站点日期/时间"
+
+#: spot/plugins/PolarSky.py:172 spot/plugins/SiteSelector.py:161
+msgid "Site:"
+msgstr "站点:"
+
+#: spot/plugins/FindImage.py:274
+msgid "Size (arcmin):"
+msgstr "尺寸（角分）:"
+
+#: spot/instruments/subaru.py:890
+msgid "Skip:"
+msgstr "跳过:"
+
+#: spot/plugins/TelescopePosition.py:182
+msgid "Slew Time:"
+msgstr "转向时间:"
+
+#: spot/plugins/FindImage.py:273
+msgid "Source:"
+msgstr "来源:"
+
+#: spot/plugins/TargetGenerator.py:189
+msgid "Start time of observation (YYYY-MM-DD HH:MM:SS) in OBSERVER's time"
+msgstr "观测开始时间（YYYY-MM-DD HH:MM:SS），以观测者时间计"
+
+#: spot/plugins/TargetGenerator.py:180
+msgid "Start time:"
+msgstr "开始时间:"
+
+#: spot/plugins/TelescopePosition.py:181
+msgid "Status:"
+msgstr "状态:"
+
+#: spot/plugins/TargetGenerator.py:191
+msgid "Step time of observation"
+msgstr "观测的时间步长"
+
+#: spot/plugins/TargetGenerator.py:182
+msgid "Step:"
+msgstr "步长:"
+
+#: spot/plugins/TargetGenerator.py:190
+msgid "Stop time of observation (YYYY-MM-DD HH:MM:SS) in OBSERVER's time"
+msgstr "观测结束时间（YYYY-MM-DD HH:MM:SS），以观测者时间计"
+
+#: spot/plugins/TargetGenerator.py:181
+msgid "Stop time:"
+msgstr "结束时间:"
+
+#: spot/instruments/subaru.py:891
+msgid "Stop:"
+msgstr "结束:"
+
+#: spot/plugins/PolarSky.py:168
+msgid "Sun"
+msgstr "太阳"
+
+#: spot/plugins/PolarSky.py:188
+msgid "Sunrise"
+msgstr "日出"
+
+#: spot/plugins/PolarSky.py:177
+msgid "Sunset"
+msgstr "日落"
+
+#: spot/plugins/SPOTToolbar.py:46
+msgid "Swap X and Y axes"
+msgstr "交换 X 轴和 Y 轴"
+
+#: spot/plugins/Targets.py:426
+msgid "Sync integgui2"
+msgstr "同步 integgui2"
+
+#: spot/plugins/Targets.py:452
+msgid "Tag"
+msgstr "标记"
+
+#: spot/plugins/Targets.py:490 spot/plugins/Visibility.py:238
+msgid "Tagged+selected"
+msgstr "已标记+已选择"
+
+#: spot/plugins/TelescopePosition.py:189
+msgid "Target"
+msgstr "目标"
+
+#: spot/plugins/TelescopePosition.py:203
+msgid "Target follows telescope"
+msgstr "目标跟随望远镜"
+
+#: spot/plugins/Visibility.py:254
+msgid "Target visibility calculation progress"
+msgstr "目标可见性计算进度"
+
+#: spot/plugins/LGS.py:111
+msgid "Target:"
+msgstr "目标:"
+
+#: spot/plugins/TelescopePosition.py:176
+msgid "Telescope"
+msgstr "望远镜"
+
+#: spot/plugins/InsFov.py:180
+msgid "The Declination at the target"
+msgstr "目标处的赤纬"
+
+#: spot/plugins/InsFov.py:178
+msgid "The Right Ascension at the target"
+msgstr "目标处的赤经"
+
+#: spot/plugins/SiteSelector.py:173
+msgid "Time"
+msgstr "时间"
+
+#: spot/plugins/Visibility.py:230
+msgid "Time axis:"
+msgstr "时间轴:"
+
+#: spot/plugins/LGS.py:122
+msgid "Time left:"
+msgstr "剩余时间:"
+
+#: spot/plugins/PolarSky.py:147
+msgid "Time:"
+msgstr "时间:"
+
+#: spot/plugins/TelescopePosition.py:221
+msgid "Track target by telescope position"
+msgstr "按望远镜位置跟踪目标"
+
+#: spot/plugins/SiteSelector.py:203
+msgid "UTC offset for setting fixed time"
+msgstr "用于设置固定时间的 UTC 偏移"
+
+#: spot/plugins/PolarSky.py:148
+msgid "UTC:"
+msgstr "UTC:"
+
+#: spot/plugins/Targets.py:491 spot/plugins/Visibility.py:239
+msgid "Uncollapsed"
+msgstr "已展开"
+
+#: spot/plugins/Targets.py:456
+msgid "Untag"
+msgstr "取消标记"
+
+#: spot/instruments/subaru.py:892
+msgid "Update View"
+msgstr "更新视图"
+
+#: spot/plugins/SkyCam.py:273
+msgid "Use a differential image"
+msgstr "使用差分图像"
+
+#: spot/plugins/SPOTToolbar.py:107
+msgid "View image metadata (Header plugin)"
+msgstr "查看图像元数据（Header 插件）"
+
+#: spot/plugins/SPOTMenubar.py:38
+msgid "Workspace"
+msgstr "工作区"
+
+#: spot/plugins/CPanel.py:361
+#, python-brace-format
+msgid "Workspace positions saved for {}"
+msgstr "已为 {} 保存工作区位置"
+
+#: spot/plugins/SPOTToolbar.py:58
+msgid "Zoom in"
+msgstr "放大"
+
+#: spot/plugins/SPOTToolbar.py:60
+msgid "Zoom out"
+msgstr "缩小"
+
+#: spot/plugins/SPOTToolbar.py:64
+msgid "Zoom to 100% (1:1)"
+msgstr "缩放到 100%（1:1）"
+
+#: spot/plugins/SPOTToolbar.py:62
+msgid "Zoom to fit window size"
+msgstr "缩放以适应窗口大小"
+
+#: spot/plugins/Targets.py:370
+msgid "[Drop file here]"
+msgstr "[将文件拖放到此处]"
+
+#: spot/plugins/TelescopePosition.py:181
+msgid "action"
+msgstr ""
+
+#: spot/plugins/TelescopePosition.py:179
+msgid "az"
+msgstr ""
+
+#: spot/plugins/TelescopePosition.py:192
+msgid "az_cmd"
+msgstr ""
+
+#: spot/plugins/TelescopePosition.py:178
+msgid "dec"
+msgstr ""
+
+#: spot/plugins/TelescopePosition.py:191
+msgid "dec_cmd"
+msgstr ""
+
+#: spot/plugins/TelescopePosition.py:180
+msgid "el"
+msgstr ""
+
+#: spot/plugins/TelescopePosition.py:193
+msgid "el_cmd"
+msgstr ""
+
+#: spot/plugins/FindImage.py:468
+#, python-brace-format
+msgid "failed to find image: {}"
+msgstr "未能找到图像：{}"
+
+#: spot/plugins/TelescopePosition.py:177
+msgid "ra"
+msgstr ""
+
+#: spot/plugins/TelescopePosition.py:190
+msgid "ra_cmd"
+msgstr ""
+
+#: spot/plugins/LGS.py:113
+msgid "sat_time_label"
+msgstr ""
+
+#: spot/plugins/TelescopePosition.py:182
+msgid "slew"
+msgstr ""
+
+#: spot/plugins/FindImage.py:744
+msgid "uncheck 'Follow telescope' to get selection"
+msgstr "取消勾选 'Follow telescope' 以获取选择"
+

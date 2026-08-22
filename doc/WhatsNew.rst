@@ -3,6 +3,16 @@ What's New
 ++++++++++
 
 
+Ver 1.5.2 (unreleased)
+======================
+- Added user-interface translations for Korean, Simplified Chinese, Spanish,
+  Italian, French and German, joining the existing Japanese localization.
+  Each language ships a compiled gettext catalog
+  (``spot/locale/<lang>/LC_MESSAGES/spot.mo``) covering the plugin UI strings
+  plus whole-document translations of the plugin help screens
+  (``spot/locale/<lang>/docs/plugins/*.rst``).  The languages appear in the
+  menubar's Language menu.
+
 Ver 1.5.1 (2026-08-17)
 ======================
 - Packaging fix: the ``spot/config``, ``spot/examples`` and per-language
