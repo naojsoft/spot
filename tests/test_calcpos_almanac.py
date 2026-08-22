@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from spot.util import calcpos, sites
+from spot.util import sites
 sites.configure_default_sites()
 
 

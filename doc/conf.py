@@ -22,7 +22,6 @@
 
 import datetime
 import os
-import sys
 from importlib.metadata import version as _get_version, PackageNotFoundError
 
 # Get configuration information from pyproject.toml
