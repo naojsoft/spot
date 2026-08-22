@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: spot VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-22 10:57-1000\n"
+"POT-Creation-Date: 2026-08-22 12:06-1000\n"
 "PO-Revision-Date: 2026-08-22 10:58-1000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh\n"
@@ -167,6 +167,10 @@ msgstr "配置此插件的一些设置"
 msgid "Contrast/bias with left/right/up/down"
 msgstr "使用左/右/上/下调节对比度/偏置"
 
+#: spot/plugins/SkyCam.py:254
+msgid "Convert a color image to monochrome by channel mixing"
+msgstr "通过通道混合将彩色图像转换为单色"
+
 #: spot/plugins/FindImage.py:276
 msgid "Create Blank"
 msgstr "创建空白"
@@ -192,6 +196,10 @@ msgstr "赤纬偏移:"
 #: spot/plugins/TelescopePosition.py:178
 msgid "DEC:"
 msgstr "赤纬:"
+
+#: spot/plugins/SiteSelector.py:192
+msgid "Date time:"
+msgstr "日期时间:"
 
 #: spot/plugins/PolarSky.py:146
 msgid "Date:"
@@ -475,7 +483,7 @@ msgid "Name or code as known to JPL Horizons"
 msgstr "JPL Horizons 中已知的名称或代码"
 
 #: spot/plugins/FindImage.py:238 spot/plugins/TargetGenerator.py:135
-#: spot/plugins/TargetGenerator.py:179
+#: spot/plugins/TargetGenerator.py:154 spot/plugins/TargetGenerator.py:179
 msgid "Name:"
 msgstr "名称:"
 
@@ -567,6 +575,10 @@ msgstr "平移到目标位置"
 msgid "Pan with left, zoom with right"
 msgstr "左键平移，右键缩放"
 
+#: spot/plugins/SkyCam.py:249
+msgid "Place the all sky image on the background"
+msgstr "将全天图像放置在背景上"
+
 #: spot/plugins/TargetGenerator.py:246
 msgid "Please enter a name to look up"
 msgstr "请输入要查找的名称"
@@ -578,6 +590,10 @@ msgstr "请安装 'oscript' 模块以使用此功能"
 #: spot/plugins/FindImage.py:309
 msgid "Please select 'Find image' to find your selected image"
 msgstr "请选择 'Find image' 来查找所选图像"
+
+#: spot/plugins/SkyCam.py:276
+msgid "Please select 'Show Sky Image' to display an image"
+msgstr "请选择 'Show Sky Image' 以显示图像"
 
 #: spot/plugins/FindImage.py:683
 msgid "Please select a target and click 'Get Selected'"
@@ -806,6 +822,10 @@ msgstr "选择目标文件"
 msgid "Selected"
 msgstr "已选择"
 
+#: spot/plugins/TargetGenerator.py:152
+msgid "Server:"
+msgstr "服务器:"
+
 #: spot/plugins/SPOTToolbar.py:101
 msgid "Set channel preferences (in focused channel)"
 msgstr "设置通道首选项（在聚焦的通道中）"
@@ -974,6 +994,10 @@ msgstr "时间轴:"
 msgid "Time left:"
 msgstr "剩余时间:"
 
+#: spot/plugins/SiteSelector.py:176
+msgid "Time mode:"
+msgstr "时间模式:"
+
 #: spot/plugins/PolarSky.py:147
 msgid "Time:"
 msgstr "时间:"
@@ -981,6 +1005,10 @@ msgstr "时间:"
 #: spot/plugins/TelescopePosition.py:221
 msgid "Track target by telescope position"
 msgstr "按望远镜位置跟踪目标"
+
+#: spot/plugins/SiteSelector.py:193
+msgid "UTC offset (min):"
+msgstr "UTC 偏移（分钟）:"
 
 #: spot/plugins/SiteSelector.py:203
 msgid "UTC offset for setting fixed time"

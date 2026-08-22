@@ -173,7 +173,7 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         fr = Widgets.Frame(_tr("Time"))
 
         vbox = Widgets.VBox()
-        captions = (("Time mode:", 'llabel', "mode", 'combobox'),
+        captions = (("Time mode:", 'label', "mode", 'combobox'),
                     )
 
         w, b = Widgets.build_info(captions)
@@ -189,8 +189,8 @@ class SiteSelector(GingaPlugin.LocalPlugin):
         b.mode.add_callback('activated', self.set_datetime_cb)
         vbox.add_widget(w, stretch=0)
 
-        captions = (("Date time:", 'llabel', 'datetime', 'entryset'),
-                    ("UTC offset (min):", 'llabel', 'timeoff', 'entryset'),
+        captions = (("Date time:", 'label', 'datetime', 'entryset'),
+                    ("UTC offset (min):", 'label', 'timeoff', 'entryset'),
                     )
 
         w, b = Widgets.build_info(captions)

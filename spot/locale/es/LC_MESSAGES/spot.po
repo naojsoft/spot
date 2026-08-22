@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: spot VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-22 10:57-1000\n"
+"POT-Creation-Date: 2026-08-22 12:06-1000\n"
 "PO-Revision-Date: 2026-08-22 10:58-1000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -167,6 +167,10 @@ msgstr "Configurar algunos ajustes de este complemento"
 msgid "Contrast/bias with left/right/up/down"
 msgstr "Contraste/sesgo con izquierda/derecha/arriba/abajo"
 
+#: spot/plugins/SkyCam.py:254
+msgid "Convert a color image to monochrome by channel mixing"
+msgstr "Convertir una imagen en color a monocromo mediante mezcla de canales"
+
 #: spot/plugins/FindImage.py:276
 msgid "Create Blank"
 msgstr "Crear en blanco"
@@ -192,6 +196,10 @@ msgstr "Desfase DEC:"
 #: spot/plugins/TelescopePosition.py:178
 msgid "DEC:"
 msgstr "DEC:"
+
+#: spot/plugins/SiteSelector.py:192
+msgid "Date time:"
+msgstr "Fecha y hora:"
 
 #: spot/plugins/PolarSky.py:146
 msgid "Date:"
@@ -475,7 +483,7 @@ msgid "Name or code as known to JPL Horizons"
 msgstr "Nombre o código conocido por JPL Horizons"
 
 #: spot/plugins/FindImage.py:238 spot/plugins/TargetGenerator.py:135
-#: spot/plugins/TargetGenerator.py:179
+#: spot/plugins/TargetGenerator.py:154 spot/plugins/TargetGenerator.py:179
 msgid "Name:"
 msgstr "Nombre:"
 
@@ -567,6 +575,10 @@ msgstr "Desplazar a la posición del objetivo"
 msgid "Pan with left, zoom with right"
 msgstr "Desplazar con el izquierdo, zoom con el derecho"
 
+#: spot/plugins/SkyCam.py:249
+msgid "Place the all sky image on the background"
+msgstr "Colocar la imagen de todo el cielo en el fondo"
+
 #: spot/plugins/TargetGenerator.py:246
 msgid "Please enter a name to look up"
 msgstr "Introduzca un nombre para buscar"
@@ -578,6 +590,10 @@ msgstr "Instale el módulo 'oscript' para usar esta función"
 #: spot/plugins/FindImage.py:309
 msgid "Please select 'Find image' to find your selected image"
 msgstr "Seleccione 'Find image' para encontrar la imagen elegida"
+
+#: spot/plugins/SkyCam.py:276
+msgid "Please select 'Show Sky Image' to display an image"
+msgstr "Seleccione 'Show Sky Image' para mostrar una imagen"
 
 #: spot/plugins/FindImage.py:683
 msgid "Please select a target and click 'Get Selected'"
@@ -806,6 +822,10 @@ msgstr "Seleccionar archivos de objetivos"
 msgid "Selected"
 msgstr "Seleccionado"
 
+#: spot/plugins/TargetGenerator.py:152
+msgid "Server:"
+msgstr "Servidor:"
+
 #: spot/plugins/SPOTToolbar.py:101
 msgid "Set channel preferences (in focused channel)"
 msgstr "Configurar las preferencias del canal (en el canal enfocado)"
@@ -976,6 +996,10 @@ msgstr "Eje temporal:"
 msgid "Time left:"
 msgstr "Tiempo restante:"
 
+#: spot/plugins/SiteSelector.py:176
+msgid "Time mode:"
+msgstr "Modo de hora:"
+
 #: spot/plugins/PolarSky.py:147
 msgid "Time:"
 msgstr "Hora:"
@@ -983,6 +1007,10 @@ msgstr "Hora:"
 #: spot/plugins/TelescopePosition.py:221
 msgid "Track target by telescope position"
 msgstr "Seguir el objetivo por la posición del telescopio"
+
+#: spot/plugins/SiteSelector.py:193
+msgid "UTC offset (min):"
+msgstr "Desfase UTC (min):"
 
 #: spot/plugins/SiteSelector.py:203
 msgid "UTC offset for setting fixed time"

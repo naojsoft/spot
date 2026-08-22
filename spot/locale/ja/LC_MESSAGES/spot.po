@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: spot VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-08-05 14:56-1000\n"
+"POT-Creation-Date: 2026-08-22 12:06-1000\n"
 "PO-Revision-Date: 2026-08-05 14:59-1000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -167,6 +167,10 @@ msgstr "このプラグインの設定を行う"
 msgid "Contrast/bias with left/right/up/down"
 msgstr "上下左右でコントラスト/バイアスを調整"
 
+#: spot/plugins/SkyCam.py:254
+msgid "Convert a color image to monochrome by channel mixing"
+msgstr "チャンネルミキシングでカラー画像をモノクロに変換します"
+
 #: spot/plugins/FindImage.py:276
 msgid "Create Blank"
 msgstr "空の画像を作成"
@@ -192,6 +196,10 @@ msgstr "DECオフセット:"
 #: spot/plugins/TelescopePosition.py:178
 msgid "DEC:"
 msgstr "赤緯:"
+
+#: spot/plugins/SiteSelector.py:192
+msgid "Date time:"
+msgstr "日時:"
 
 #: spot/plugins/PolarSky.py:146
 msgid "Date:"
@@ -475,7 +483,7 @@ msgid "Name or code as known to JPL Horizons"
 msgstr "JPL Horizonsで使われる名前またはコード"
 
 #: spot/plugins/FindImage.py:238 spot/plugins/TargetGenerator.py:135
-#: spot/plugins/TargetGenerator.py:179
+#: spot/plugins/TargetGenerator.py:154 spot/plugins/TargetGenerator.py:179
 msgid "Name:"
 msgstr "名前:"
 
@@ -567,6 +575,10 @@ msgstr "ターゲットの位置へ移動"
 msgid "Pan with left, zoom with right"
 msgstr "左で移動、右でズーム"
 
+#: spot/plugins/SkyCam.py:249
+msgid "Place the all sky image on the background"
+msgstr "全天画像を背景に表示します"
+
 #: spot/plugins/TargetGenerator.py:246
 msgid "Please enter a name to look up"
 msgstr "検索する名前を入力してください"
@@ -578,6 +590,10 @@ msgstr "この機能を使うには 'oscript' モジュールをインストー�
 #: spot/plugins/FindImage.py:309
 msgid "Please select 'Find image' to find your selected image"
 msgstr "選択した画像を探すには「画像を検索」を選んでください"
+
+#: spot/plugins/SkyCam.py:276
+msgid "Please select 'Show Sky Image' to display an image"
+msgstr "画像を表示するには「Show Sky Image」を選択してください"
 
 #: spot/plugins/FindImage.py:683
 msgid "Please select a target and click 'Get Selected'"
@@ -806,6 +822,10 @@ msgstr "ターゲットファイルを選択"
 msgid "Selected"
 msgstr "選択済み"
 
+#: spot/plugins/TargetGenerator.py:152
+msgid "Server:"
+msgstr "サーバー:"
+
 #: spot/plugins/SPOTToolbar.py:101
 msgid "Set channel preferences (in focused channel)"
 msgstr "チャンネル設定（フォーカス中のチャンネル）"
@@ -974,6 +994,10 @@ msgstr "時間軸:"
 msgid "Time left:"
 msgstr "残り時間:"
 
+#: spot/plugins/SiteSelector.py:176
+msgid "Time mode:"
+msgstr "時刻モード:"
+
 #: spot/plugins/PolarSky.py:147
 msgid "Time:"
 msgstr "時刻:"
@@ -981,6 +1005,10 @@ msgstr "時刻:"
 #: spot/plugins/TelescopePosition.py:221
 msgid "Track target by telescope position"
 msgstr "望遠鏡の位置でターゲットを追尾"
+
+#: spot/plugins/SiteSelector.py:193
+msgid "UTC offset (min):"
+msgstr "UTC オフセット（分）:"
 
 #: spot/plugins/SiteSelector.py:203
 msgid "UTC offset for setting fixed time"

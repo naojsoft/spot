@@ -246,12 +246,12 @@ class SkyCam(GingaPlugin.LocalPlugin):
         b.show_sky_image.add_callback('activated',
                                       self.sky_image_toggle_cb)
         b.show_sky_image.set_tooltip(
-            "Place the all sky image on the background")
+            _tr("Place the all sky image on the background"))
         b.monochrome.set_state(self.settings['image_convert_monochrome'])
         b.monochrome.add_callback('activated',
                                   self.mono_image_toggle_cb)
         b.monochrome.set_tooltip(
-            "Convert a color image to monochrome by channel mixing")
+            _tr("Convert a color image to monochrome by channel mixing"))
 
         for name in self.configs.keys():
             b.image_source.append_text(name)
@@ -273,7 +273,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
         b.show_differential_image.set_tooltip(_tr("Use a differential image"))
 
         fr = Widgets.Frame(_tr("Image Download Info"))
-        image_info_text = "Please select 'Show Sky Image' to display an image"
+        image_info_text = _tr("Please select 'Show Sky Image' to display an image")
         self.w.select_image_info = Widgets.Label(image_info_text)
 
         fr.set_widget(self.w.select_image_info)

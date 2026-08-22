@@ -149,9 +149,9 @@ class TargetGenerator(GingaPlugin.LocalPlugin):
         fr = Widgets.Frame(_tr("From Name Server"))
         fr.set_widget(vbox)
 
-        captions = (('Server:', 'llabel', 'server', 'combobox',
+        captions = (('Server:', 'label', 'server', 'combobox',
                      '_x1', 'spacer'),
-                    ('Name:', 'llabel', 'obj_name', 'entry',
+                    ('Name:', 'label', 'obj_name', 'entry',
                      'Search name', 'button')
                     )
         w, b = Widgets.build_info(captions)
