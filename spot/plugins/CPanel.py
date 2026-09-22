@@ -232,6 +232,7 @@ class CPanel(GingaPlugin.GlobalPlugin):
         ch_tgts = self.fv.add_channel(chname_tgts, workspace=wsname,
                                       num_images=1)
         ch_tgts.viewer.set_enter_focus(False)
+        ch_tgts.viewer.add_callback('configure', self._fit_window)
         ch_tgts.opmon.add_callback('activate-plugin', self.activate_cb, cb_dct)
         ch_tgts.opmon.add_callback('deactivate-plugin', self.deactivate_cb, cb_dct)
 
@@ -240,6 +241,7 @@ class CPanel(GingaPlugin.GlobalPlugin):
         ch_find = self.fv.add_channel(chname_find, workspace=wsname,
                                       num_images=1)
         ch_find.viewer.set_enter_focus(False)
+        ch_find.viewer.add_callback('configure', self._fit_window)
         ch_find.opmon.add_callback('activate-plugin', self.activate_cb, cb_dct)
         ch_find.opmon.add_callback('deactivate-plugin', self.deactivate_cb, cb_dct)
         ch_find.viewer.show_pan_mark(True, color='red')
@@ -291,6 +293,10 @@ class CPanel(GingaPlugin.GlobalPlugin):
         # SiteSelector, the time source) come up before the others.
         for cb, plname, chname in to_start:
             self.activate_plugin_cb(cb, True, wsname, plname, chname)
+
+    def _fit_window(self, viewer, *args):
+        # make the graphic resize to fit the window if we resize the viewer
+        viewer.zoom_fit(no_reset=True)
 
     def select_workspace_cb(self, w, idx):
         wsname = w.get_text()
