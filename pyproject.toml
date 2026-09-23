@@ -31,7 +31,7 @@ dependencies = [
     "skyfield>=1.53",
     "python-dateutil>=2.8.2",
     "matplotlib>=3.8",
-    "ginga>=7.4.0",
+    "ginga>=7.5.0",
 ]
 
 [project.scripts]
@@ -49,11 +49,9 @@ docs = [
     "sphinx_rtd_theme",
 ]
 pg = [
-    "websockets",
-    "pgwidgets-js>=0.4.0",
-    "pgwidgets-python>=0.4.0",
-    "pycairo>=1.28.0",
-    "cairosvg>=2.9.0",
+    "websockets>=16.0",
+    "pgwidgets-js>=0.4.2",
+    "pgwidgets-python>=0.4.2",
 ]
 
 [tool.setuptools]

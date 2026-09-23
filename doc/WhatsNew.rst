@@ -3,7 +3,7 @@ What's New
 ++++++++++
 
 
-Ver 1.5.2 (unreleased)
+Ver 1.5.2 (2026-09-22)
 ======================
 - Added user-interface translations for Korean, Simplified Chinese, Spanish,
   Italian, French and German, joining the existing Japanese localization.
@@ -12,6 +12,8 @@ Ver 1.5.2 (unreleased)
   plus whole-document translations of the plugin help screens
   (``spot/locale/<lang>/docs/plugins/*.rst``).  The languages appear in the
   menubar's Language menu.
+- Make the PolarSky plot resize to the window when the window is resized
+- Update requirement to Ginga v7.5.0
 
 Ver 1.5.1 (2026-08-17)
 ======================
