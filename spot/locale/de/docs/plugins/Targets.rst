@@ -81,6 +81,10 @@ mit rotem Rand. Andernfalls wird das Ziel gemäß der Farbe eingefärbt, die
 beim Laden der Datei mit den Zielen manuell oder automatisch ausgewählt
 wurde.
 
+Wenn das SkyCam-Plugin ein Bild einer Ganzhimmelkamera anzeigt und „Ziele
+in Wolken hervorheben“ aktiviert ist, werden Ziele in oder nahe Wolken
+unabhängig von ihrer sonstigen Farbe in Orangerot angezeigt.
+
 Die Schaltfläche „Alle auswählen“ wählt alle Ziele in der Tabelle aus.
 
 Das Auswählen von Zielen und Drücken von „Löschen“ entfernt die ausgewählten

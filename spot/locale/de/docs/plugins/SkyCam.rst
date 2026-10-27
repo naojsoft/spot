@@ -61,6 +61,13 @@ Die Bedienelemente sind:
   feststehende Objekte wie Kuppeln oder Bäume nahe dem Horizont können dann
   gekrümmte Streifen hinterlassen.
 
+* „Wolkenbewegung anzeigen“: einen Pfeil für Richtung und Geschwindigkeit
+  der Wolken anzeigen (siehe „Wolkenbewegung und Ziele in Wolken“).
+
+* „Ziele in Wolken hervorheben“: Ziele in oder nahe Wolken im
+  Targets-Plugin in der Farbe für Ziele in Wolken anzeigen (standardmäßig
+  Orangerot).
+
 * „Schwellenwert“: Eine Veränderung von mehr als so vielen Sigma zählt für den
   Bewölkungsgrad als Wolke (Voreinstellung 5).
 
@@ -92,6 +99,30 @@ Die Schaltfläche „Konfiguration speichern“ speichert Ihre aktuelle Auswahl
 (Kameraserver, „Himmelsbild anzeigen“, „Differenzbild anzeigen“ und
 „Monochrom“) für den Arbeitsbereich, sodass sie beim nächsten Öffnen
 wiederhergestellt wird.
+
+Wolkenbewegung und Ziele in Wolken
+==================================
+
+Nachts ermittelt SkyCam außerdem, wo sich Wolken befinden, und verfolgt ihre
+Bewegung. Eine Stelle am Himmel gilt als bewölkt, wenn sich mehr als 20 %
+des Himmels im Umkreis von etwa 3 Grad um mehr als den Schwellenwert
+verändert haben; so werden Ziele nahe einer Wolke ebenso hervorgehoben wie
+Ziele direkt dahinter. Ist „Ziele in Wolken hervorheben“ aktiviert, zeigt
+das Targets-Plugin diese Ziele in der Farbe für Ziele in Wolken an.
+
+Sobald drei Bilder empfangen wurden, wird die Wolkenbewegung durch den
+Vergleich der letzten beiden Differenzen zwischen den Bildern bestimmt, was
+Kuppeln, Vignettierung und Mondlicht entfernt. Ist „Wolkenbewegung
+anzeigen“ aktiviert, zeigt ein weißer Pfeil vom Zenit, in welche Richtung
+sich die Wolken bewegen und wie weit sie in etwa 5 Minuten ziehen, beschriftet
+mit ihrer Geschwindigkeit am Himmel in Grad pro Minute. (Die Höhe der Wolken
+ist nicht bekannt, daher lässt sich ihre Geschwindigkeit in Kilometern pro
+Stunde nicht angeben.) Der Pfeil wird nur angezeigt, wenn die Bewegung
+eindeutig ist; eine Wolkenschicht bewegt sich meist als Ganzes, daher wird
+für den ganzen Himmel ein einziger Pfeil angezeigt.
+
+In der Dämmerung und bei Tag wird beides nicht angezeigt. Die Einstellungen,
+die sie steuern, sind im SPOT-Handbuch beschrieben.
 
 Bewölkungsverlauf
 =================

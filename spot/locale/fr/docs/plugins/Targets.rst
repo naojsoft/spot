@@ -83,6 +83,11 @@ avec une bordure rouge dans la fenêtre `<wsname>_TGTS`. Sinon, la cible sera
 colorée selon la couleur qui a été sélectionnée manuellement ou
 automatiquement lors du chargement du fichier contenant les cibles.
 
+Si le module SkyCam affiche une image de caméra tout-ciel et que « Signaler
+les cibles nuageuses » est coché, les cibles situées dans les nuages ou à
+proximité sont affichées en rouge orangé, quelle que soit leur autre
+couleur.
+
 Le bouton « Tout sélectionner » sélectionnera toutes les cibles de la table.
 
 Sélectionner des cibles et appuyer sur « Supprimer » retirera les cibles

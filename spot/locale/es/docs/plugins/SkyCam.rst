@@ -62,6 +62,14 @@ Los controles son:
   fijos en el campo de la cámara, como cúpulas o árboles cerca del
   horizonte, pueden dejar entonces trazos curvos.
 
+* "Mostrar movimiento de nubes": mostrar una flecha con la dirección y la
+  velocidad de las nubes (véase "Movimiento de las nubes y objetivos
+  nublados").
+
+* "Marcar objetivos nublados": mostrar en el complemento Targets los
+  objetivos dentro o cerca de las nubes con el color de objetivos nublados
+  (rojo anaranjado por defecto).
+
 * "Umbral": un cambio mayor que este número de sigmas cuenta como nube
   para la nubosidad (valor predeterminado 5).
 
@@ -92,6 +100,29 @@ anterior (la cámara aún no se ha actualizado), se ignora.
 El botón "Guardar configuración" guarda sus selecciones actuales (servidor de cámara,
 "Mostrar imagen del cielo", "Mostrar imagen diferencial" y "Monocromo") para el espacio
 de trabajo, de modo que se restauren la próxima vez que se abra.
+
+Movimiento de las nubes y objetivos nublados
+============================================
+
+De noche, SkyCam también localiza las nubes y sigue su movimiento. Un punto
+del cielo se considera nublado cuando más del 20% del cielo a unos 3 grados
+a su alrededor ha cambiado más que el umbral, de modo que se marcan tanto
+los objetivos cercanos a una nube como los que están justo detrás de ella.
+Con "Marcar objetivos nublados" marcado, el complemento Targets muestra
+estos objetivos con el color de objetivos nublados.
+
+Cuando se han recibido tres imágenes, el movimiento de las nubes se obtiene
+comparando las dos últimas diferencias entre imágenes, lo que elimina las
+cúpulas, el viñeteo y la luz de la Luna. Con "Mostrar movimiento de nubes"
+marcado, una flecha blanca desde el cenit muestra la dirección en que se
+mueven las nubes y cuánto se desplazan en unos 5 minutos, con su velocidad
+en el cielo en grados por minuto. (No se conoce la altura de las nubes, así
+que no se puede dar su velocidad en kilómetros por hora.) La flecha solo se
+muestra cuando el movimiento es claro; una capa de nubes suele moverse en
+bloque, así que se muestra una sola flecha para todo el cielo.
+
+Ninguno de los dos se muestra en el crepúsculo ni de día. Los ajustes que
+los controlan se describen en el manual de SPOT.
 
 Historial de la nubosidad
 =========================

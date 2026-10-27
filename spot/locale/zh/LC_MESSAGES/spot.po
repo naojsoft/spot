@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: spot VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 11:27-1000\n"
+"POT-Creation-Date: 2026-10-27 12:32-1000\n"
 "PO-Revision-Date: 2026-08-22 10:58-1000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh\n"
@@ -36,7 +36,7 @@ msgstr "关于"
 msgid "Add Target"
 msgstr "添加目标"
 
-#: spot/plugins/Targets.py:453
+#: spot/plugins/Targets.py:470
 msgid "Add highlighted items to tagged targets"
 msgstr "将高亮项添加到已标记的目标"
 
@@ -44,15 +44,15 @@ msgstr "将高亮项添加到已标记的目标"
 msgid "Add target to the target list"
 msgstr "将目标添加到目标列表"
 
-#: spot/plugins/Targets.py:491 spot/plugins/Visibility.py:239
+#: spot/plugins/Targets.py:508 spot/plugins/Visibility.py:239
 msgid "All"
 msgstr "全部"
 
-#: spot/plugins/SkyCam.py:407
+#: spot/plugins/SkyCam.py:471
 msgid "All Sky Camera"
 msgstr "全天相机"
 
-#: spot/plugins/Targets.py:529
+#: spot/plugins/Targets.py:546
 msgid "Allow DateTime column in target CSV to set fixed time"
 msgstr "允许目标 CSV 中的 DateTime 列设置固定时间"
 
@@ -76,28 +76,28 @@ msgstr "方位角指令:"
 msgid "Az:"
 msgstr "方位角:"
 
-#: spot/plugins/Targets.py:1047
+#: spot/plugins/Targets.py:1064
 #, python-brace-format
 msgid "Bad coordinate for '{}': RA={} DEC={} EQ={}: {}"
 msgstr "'{}' 的坐标无效：RA={} DEC={} EQ={}: {}"
 
-#: spot/plugins/SkyCam.py:135
+#: spot/plugins/SkyCam.py:136
 msgid "Blue/Red"
 msgstr "蓝/红"
 
-#: spot/plugins/Targets.py:479
+#: spot/plugins/Targets.py:496
 msgid "Browse"
 msgstr "浏览"
 
-#: spot/plugins/Targets.py:481
+#: spot/plugins/Targets.py:498
 msgid "Browse for information about a target"
 msgstr "浏览有关目标的信息"
 
-#: spot/plugins/SkyCam.py:490
+#: spot/plugins/SkyCam.py:567
 msgid "Camera"
 msgstr "相机"
 
-#: spot/plugins/SkyCam.py:411
+#: spot/plugins/SkyCam.py:475
 msgid "Camera Server:"
 msgstr "相机服务器:"
 
@@ -109,11 +109,11 @@ msgstr "居中图像"
 msgid "Center on target position"
 msgstr "以目标位置为中心"
 
-#: spot/plugins/SkyCam.py:130
+#: spot/plugins/SkyCam.py:131
 msgid "Change"
 msgstr "变化量"
 
-#: spot/plugins/SkyCam.py:464
+#: spot/plugins/SkyCam.py:541
 msgid ""
 "Change (in units of the image noise) above which a pixel counts toward "
 "cloud cover"
@@ -127,7 +127,7 @@ msgstr "选择"
 msgid "Choose instrument overlay"
 msgstr "选择仪器叠加层"
 
-#: spot/plugins/Targets.py:401
+#: spot/plugins/Targets.py:418
 msgid "Choose target color"
 msgstr "选择目标颜色"
 
@@ -135,7 +135,7 @@ msgstr "选择目标颜色"
 msgid "Choose the object name resolver"
 msgstr "选择天体名称解析器"
 
-#: spot/plugins/Targets.py:495 spot/plugins/Visibility.py:243
+#: spot/plugins/Targets.py:512 spot/plugins/Visibility.py:243
 msgid "Choose what is plotted"
 msgstr "选择要绘制的内容"
 
@@ -143,19 +143,19 @@ msgstr "选择要绘制的内容"
 msgid "Civil:"
 msgstr "民用:"
 
-#: spot/plugins/SkyCam.py:499
+#: spot/plugins/SkyCam.py:576
 msgid "Clear"
 msgstr "清除"
 
-#: spot/plugins/SkyCam.py:501
+#: spot/plugins/SkyCam.py:578
 msgid "Clear the cloud cover history"
 msgstr "清除云量历史"
 
 #: spot/plugins/FindImage.py:322 spot/plugins/InsFov.py:194
 #: spot/plugins/LGS.py:133 spot/plugins/PolarSky.py:237
 #: spot/plugins/SPOTMenubar.py:99 spot/plugins/SiteSelector.py:218
-#: spot/plugins/SkyCam.py:512 spot/plugins/TargetGenerator.py:202
-#: spot/plugins/Targets.py:544 spot/plugins/TelescopePosition.py:232
+#: spot/plugins/SkyCam.py:589 spot/plugins/TargetGenerator.py:202
+#: spot/plugins/Targets.py:561 spot/plugins/TelescopePosition.py:232
 #: spot/plugins/Visibility.py:282
 msgid "Close"
 msgstr "关闭"
@@ -173,7 +173,7 @@ msgstr "关闭此工作区"
 msgid "Close workspace {}"
 msgstr "关闭工作区 {}"
 
-#: spot/plugins/SkyCam.py:441
+#: spot/plugins/SkyCam.py:507
 msgid "Cloud Cover:"
 msgstr "云量:"
 
@@ -181,29 +181,29 @@ msgstr "云量:"
 msgid "Cloud cover (%)"
 msgstr "云量 (%)"
 
-#: spot/plugins/Targets.py:468
+#: spot/plugins/Targets.py:485
 msgid "Collapse All"
 msgstr "全部折叠"
 
-#: spot/plugins/Targets.py:469
+#: spot/plugins/Targets.py:486
 msgid "Collapse all loaded files"
 msgstr "折叠所有已加载的文件"
 
-#: spot/plugins/Targets.py:396
+#: spot/plugins/Targets.py:413
 msgid "Color"
 msgstr "颜色"
 
-#: spot/plugins/SkyCam.py:440
+#: spot/plugins/SkyCam.py:506
 msgid "Color Map:"
 msgstr "色图:"
 
-#: spot/plugins/SkyCam.py:474
+#: spot/plugins/SkyCam.py:551
 msgid ""
 "Color map for the differential image (you can also pick any color map and"
 " adjust the cut levels and contrast with the usual viewer controls)"
 msgstr "差分图像的色图（你也可以用常规的查看器控件选择任意色图并调整截断水平和对比度）"
 
-#: spot/plugins/Targets.py:536 spot/plugins/Visibility.py:263
+#: spot/plugins/Targets.py:553 spot/plugins/Visibility.py:263
 msgid "Configure some settings for this plugin"
 msgstr "配置此插件的一些设置"
 
@@ -211,7 +211,7 @@ msgstr "配置此插件的一些设置"
 msgid "Contrast/bias with left/right/up/down"
 msgstr "使用左/右/上/下调节对比度/偏置"
 
-#: spot/plugins/SkyCam.py:429
+#: spot/plugins/SkyCam.py:493
 msgid "Convert a color image to monochrome by channel mixing"
 msgstr "通过通道混合将彩色图像转换为单色"
 
@@ -253,19 +253,19 @@ msgstr "日期:"
 msgid "Day Center"
 msgstr "白昼中点"
 
-#: spot/plugins/Targets.py:464
+#: spot/plugins/Targets.py:481
 msgid "Delete"
 msgstr "删除"
 
-#: spot/plugins/Targets.py:465
+#: spot/plugins/Targets.py:482
 msgid "Delete selected target from targets"
 msgstr "从目标中删除所选目标"
 
-#: spot/plugins/SkyCam.py:438
+#: spot/plugins/SkyCam.py:502
 msgid "Derotate Sky"
 msgstr "补偿天空旋转"
 
-#: spot/plugins/SkyCam.py:436
+#: spot/plugins/SkyCam.py:500
 msgid "Differential Image"
 msgstr "差分图像"
 
@@ -301,7 +301,7 @@ msgstr "高度角指令:"
 msgid "El:"
 msgstr "高度角:"
 
-#: spot/plugins/Targets.py:528
+#: spot/plugins/Targets.py:545
 msgid "Enable DateTime setting"
 msgstr "启用 DateTime 设置"
 
@@ -309,7 +309,7 @@ msgstr "启用 DateTime 设置"
 msgid "Equinox:"
 msgstr "分点:"
 
-#: spot/plugins/SkyCam.py:1073
+#: spot/plugins/SkyCam.py:1234
 msgid "Error downloading, check log"
 msgstr "下载出错，请检查日志"
 
@@ -317,11 +317,11 @@ msgstr "下载出错，请检查日志"
 msgid "Error getting coordinate: please check selected target"
 msgstr "获取坐标出错：请检查所选目标"
 
-#: spot/plugins/SkyCam.py:623
+#: spot/plugins/SkyCam.py:701
 msgid "Error processing image, check log"
 msgstr "处理图像时出错，请查看日志"
 
-#: spot/plugins/Targets.py:953
+#: spot/plugins/Targets.py:970
 #, python-brace-format
 msgid ""
 "Error saving PRM file '{}':\n"
@@ -336,7 +336,7 @@ msgid "Error saving workspace {}: {}"
 msgstr "保存工作区 {} 出错：{}"
 
 #: spot/plugins/FindImage.py:358 spot/plugins/SiteSelector.py:250
-#: spot/plugins/SkyCam.py:544 spot/plugins/Targets.py:576
+#: spot/plugins/SkyCam.py:621 spot/plugins/Targets.py:593
 #, python-brace-format
 msgid "Error saving {} config: {}"
 msgstr "保存 {} 配置出错：{}"
@@ -346,7 +346,7 @@ msgstr "保存 {} 配置出错：{}"
 msgid "Exception looking up name '{}': {}"
 msgstr "查找名称 '{}' 时发生异常：{}"
 
-#: spot/plugins/SPOTMenubar.py:30 spot/plugins/Targets.py:362
+#: spot/plugins/SPOTMenubar.py:30 spot/plugins/Targets.py:379
 msgid "File"
 msgstr "文件"
 
@@ -357,6 +357,10 @@ msgstr "查找图像"
 #: spot/plugins/SiteSelector.py:185
 msgid "Fixed"
 msgstr "固定"
+
+#: spot/plugins/SkyCam.py:504
+msgid "Flag Clouded Targets"
+msgstr "标出云中的目标"
 
 #: spot/plugins/InsFov.py:129
 msgid "Flip"
@@ -398,7 +402,7 @@ msgstr "根据赤经/赤纬坐标"
 msgid "Gen Target"
 msgstr "生成目标"
 
-#: spot/plugins/Targets.py:425
+#: spot/plugins/Targets.py:442
 msgid "Gen2"
 msgstr "Gen2"
 
@@ -414,24 +418,24 @@ msgstr "获取所选"
 msgid "Get the coordinates from the selected target in Targets table"
 msgstr "从目标表中所选目标获取坐标"
 
-#: spot/plugins/SkyCam.py:127
+#: spot/plugins/SkyCam.py:128
 msgid "Gray"
 msgstr "灰色"
 
 #: spot/plugins/CPanel.py:151 spot/plugins/FindImage.py:325
 #: spot/plugins/InsFov.py:197 spot/plugins/LGS.py:136
 #: spot/plugins/PolarSky.py:240 spot/plugins/SPOTMenubar.py:73
-#: spot/plugins/SiteSelector.py:221 spot/plugins/SkyCam.py:515
-#: spot/plugins/TargetGenerator.py:205 spot/plugins/Targets.py:547
+#: spot/plugins/SiteSelector.py:221 spot/plugins/SkyCam.py:592
+#: spot/plugins/TargetGenerator.py:205 spot/plugins/Targets.py:564
 #: spot/plugins/TelescopePosition.py:235 spot/plugins/Visibility.py:285
 msgid "Help"
 msgstr "帮助"
 
-#: spot/plugins/SkyCam.py:505
+#: spot/plugins/SkyCam.py:582
 msgid "History"
 msgstr "历史"
 
-#: spot/plugins/Targets.py:922 spot/plugins/Targets.py:1008
+#: spot/plugins/Targets.py:939 spot/plugins/Targets.py:1025
 #, python-brace-format
 msgid "I don't know how to load files of type '{}'"
 msgstr "无法加载 '{}' 类型的文件"
@@ -440,7 +444,7 @@ msgstr "无法加载 '{}' 类型的文件"
 msgid "Illum:"
 msgstr "照度:"
 
-#: spot/plugins/FindImage.py:304 spot/plugins/SkyCam.py:482
+#: spot/plugins/FindImage.py:304 spot/plugins/SkyCam.py:559
 msgid "Image Download Info"
 msgstr "图像下载信息"
 
@@ -469,7 +473,7 @@ msgstr "JPL Horizons（非恒星）"
 msgid "LST:"
 msgstr "LST:"
 
-#: spot/plugins/Targets.py:826
+#: spot/plugins/Targets.py:843
 #, python-brace-format
 msgid "Last updated at: {} [{}]"
 msgstr "上次更新于：{} [{}]"
@@ -486,7 +490,7 @@ msgstr ""
 msgid "Left/right sets hi cut, up/down sets lo cut"
 msgstr "左/右设置高截断，上/下设置低截断"
 
-#: spot/plugins/Targets.py:510
+#: spot/plugins/Targets.py:527
 msgid "List unreferenced targets"
 msgstr "列出未引用的目标"
 
@@ -522,7 +526,7 @@ msgstr "标记目标"
 msgid "Mark the target position"
 msgstr "标记目标位置"
 
-#: spot/plugins/Targets.py:504
+#: spot/plugins/Targets.py:521
 msgid "Merge Targets"
 msgstr "合并目标"
 
@@ -530,7 +534,7 @@ msgstr "合并目标"
 msgid "Modes are oneshot or locked"
 msgstr "模式为单次或锁定"
 
-#: spot/plugins/SkyCam.py:410
+#: spot/plugins/SkyCam.py:474
 msgid "Monochrome"
 msgstr "单色"
 
@@ -575,7 +579,7 @@ msgstr "现在"
 msgid "Now or fixed time for visibility calculations"
 msgstr "用于可见性计算的当前时间或固定时间"
 
-#: spot/plugins/Targets.py:980
+#: spot/plugins/Targets.py:997
 msgid "OK"
 msgstr "OK"
 
@@ -611,15 +615,15 @@ msgstr "PAM 目录:"
 msgid "PAM Files:"
 msgstr "PAM 文件:"
 
-#: spot/plugins/Targets.py:956
+#: spot/plugins/Targets.py:973
 msgid "PRM file not saved"
 msgstr "未保存 PRM 文件"
 
-#: spot/plugins/Targets.py:966
+#: spot/plugins/Targets.py:983
 msgid "PRM file replaced"
 msgstr "PRM 文件已替换"
 
-#: spot/plugins/Targets.py:970
+#: spot/plugins/Targets.py:987
 msgid "PRM file saved"
 msgstr "PRM 文件已保存"
 
@@ -635,14 +639,14 @@ msgstr "平移到目标位置"
 msgid "Pan with left, zoom with right"
 msgstr "左键平移，右键缩放"
 
-#: spot/plugins/SkyCam.py:478
+#: spot/plugins/SkyCam.py:555
 #, python-brace-format
 msgid ""
 "Percentage of the sky within {}° of the zenith that changed by more than "
 "the threshold"
 msgstr "天顶 {}° 以内的天空中变化超过阈值的部分所占的百分比"
 
-#: spot/plugins/SkyCam.py:424
+#: spot/plugins/SkyCam.py:488
 msgid "Place the all sky image on the background"
 msgstr "将全天图像放置在背景上"
 
@@ -650,7 +654,7 @@ msgstr "将全天图像放置在背景上"
 msgid "Please enter a name to look up"
 msgstr "请输入要查找的名称"
 
-#: spot/plugins/Targets.py:1152 spot/plugins/Targets.py:1162
+#: spot/plugins/Targets.py:1169 spot/plugins/Targets.py:1179
 msgid "Please install the 'oscript' module to use this feature"
 msgstr "请安装 'oscript' 模块以使用此功能"
 
@@ -658,7 +662,7 @@ msgstr "请安装 'oscript' 模块以使用此功能"
 msgid "Please select 'Find image' to find your selected image"
 msgstr "请选择 'Find image' 来查找所选图像"
 
-#: spot/plugins/SkyCam.py:483
+#: spot/plugins/SkyCam.py:560
 msgid "Please select 'Show Sky Image' to display an image"
 msgstr "请选择 'Show Sky Image' 以显示图像"
 
@@ -670,11 +674,11 @@ msgstr "请选择一个目标并单击 'Get Selected'"
 msgid "Please select exactly one target in the Targets table!"
 msgstr "请在目标表中恰好选择一个目标！"
 
-#: spot/plugins/Targets.py:420
+#: spot/plugins/Targets.py:437
 msgid "Please select file for list display"
 msgstr "请选择要在列表中显示的文件"
 
-#: spot/plugins/Targets.py:1513
+#: spot/plugins/Targets.py:1554
 msgid "Please select just one target"
 msgstr "请仅选择一个目标"
 
@@ -690,11 +694,11 @@ msgstr "绘制月亮角距"
 msgid "Plot polar AzEl"
 msgstr "绘制极坐标 AzEl"
 
-#: spot/plugins/Targets.py:516
+#: spot/plugins/Targets.py:533
 msgid "Plot solar system objects"
 msgstr "绘制太阳系天体"
 
-#: spot/plugins/Targets.py:517
+#: spot/plugins/Targets.py:534
 msgid "Plot sun, moon and planets"
 msgstr "绘制太阳、月亮和行星"
 
@@ -706,7 +710,7 @@ msgstr "绘制望远镜位置"
 msgid "Plot the telescope position"
 msgstr "绘制望远镜的位置"
 
-#: spot/plugins/Targets.py:487 spot/plugins/Visibility.py:244
+#: spot/plugins/Targets.py:504 spot/plugins/Visibility.py:244
 msgid "Plot:"
 msgstr "绘图:"
 
@@ -714,7 +718,7 @@ msgstr "绘图:"
 msgid "Pointing"
 msgstr "指向"
 
-#: spot/plugins/Targets.py:505
+#: spot/plugins/Targets.py:522
 msgid "Put all targets under one category called 'Targets'"
 msgstr "将所有目标归入名为 'Targets' 的一个类别"
 
@@ -736,16 +740,16 @@ msgstr "赤经偏移:"
 msgid "RA:"
 msgstr "赤经:"
 
-#: spot/plugins/Targets.py:457
+#: spot/plugins/Targets.py:474
 msgid "Remove highlighted items from tagged targets"
 msgstr "从已标记的目标中移除高亮项"
 
-#: spot/plugins/Targets.py:963
+#: spot/plugins/Targets.py:980
 #, python-brace-format
 msgid "Replaced PRM file '{}'"
 msgstr "已替换 PRM 文件 '{}'"
 
-#: spot/plugins/Targets.py:964
+#: spot/plugins/Targets.py:981
 #, python-brace-format
 msgid ""
 "Replaced existing PRM file '{}' in\n"
@@ -778,15 +782,15 @@ msgstr "将图像旋转 90 度"
 msgid "Rotate image with PA to keep position of overlay"
 msgstr "按 PA 旋转图像以保持叠加层位置"
 
-#: spot/plugins/Targets.py:522
+#: spot/plugins/Targets.py:539
 msgid "Rotate target colors"
 msgstr "轮换目标颜色"
 
-#: spot/plugins/Targets.py:523
+#: spot/plugins/Targets.py:540
 msgid "Rotate target colors for each file loaded"
 msgstr "为每个加载的文件轮换目标颜色"
 
-#: spot/plugins/SkyCam.py:458
+#: spot/plugins/SkyCam.py:524
 msgid ""
 "Rotate the previous image with the sky so that stars cancel (requires a "
 "correctly oriented camera and its latitude)"
@@ -805,7 +809,7 @@ msgid "Satellites / PAM"
 msgstr "卫星 / PAM"
 
 #: spot/plugins/FindImage.py:328 spot/plugins/SiteSelector.py:224
-#: spot/plugins/SkyCam.py:518 spot/plugins/Targets.py:550
+#: spot/plugins/SkyCam.py:595 spot/plugins/Targets.py:567
 msgid "Save config"
 msgstr "保存配置"
 
@@ -813,11 +817,11 @@ msgstr "保存配置"
 msgid "Save the size and position of workspace windows"
 msgstr "保存工作区窗口的大小和位置"
 
-#: spot/plugins/SiteSelector.py:226 spot/plugins/SkyCam.py:520
+#: spot/plugins/SiteSelector.py:226 spot/plugins/SkyCam.py:597
 msgid "Save this plugin's configuration for the workspace"
 msgstr "为工作区保存此插件的配置"
 
-#: spot/plugins/FindImage.py:330 spot/plugins/Targets.py:552
+#: spot/plugins/FindImage.py:330 spot/plugins/Targets.py:569
 msgid "Save this plugin's settings for this workspace"
 msgstr "为此工作区保存此插件的设置"
 
@@ -826,12 +830,12 @@ msgstr "为此工作区保存此插件的设置"
 msgid "Save {} layout"
 msgstr "保存 {} 布局"
 
-#: spot/plugins/Targets.py:968
+#: spot/plugins/Targets.py:985
 #, python-brace-format
 msgid "Saved PRM file '{}'"
 msgstr "已保存 PRM 文件 '{}'"
 
-#: spot/plugins/Targets.py:969
+#: spot/plugins/Targets.py:986
 #, python-brace-format
 msgid ""
 "Saved PRM file '{}' into\n"
@@ -841,7 +845,7 @@ msgstr ""
 "{}"
 
 #: spot/plugins/FindImage.py:356 spot/plugins/SiteSelector.py:248
-#: spot/plugins/SkyCam.py:542 spot/plugins/Targets.py:574
+#: spot/plugins/SkyCam.py:619 spot/plugins/Targets.py:591
 #, python-brace-format
 msgid "Saved configuration for {}"
 msgstr "已保存 {} 的配置"
@@ -858,12 +862,12 @@ msgstr "滚动以设置颜色映射"
 msgid "Search name"
 msgstr "搜索名称"
 
-#: spot/plugins/Targets.py:476
+#: spot/plugins/Targets.py:493
 #, python-brace-format
 msgid "Search {} for information about the target"
 msgstr "在 {} 中搜索有关目标的信息"
 
-#: spot/plugins/Targets.py:460
+#: spot/plugins/Targets.py:477
 msgid "Select All"
 msgstr "全选"
 
@@ -871,7 +875,7 @@ msgstr "全选"
 msgid "Select Workspace:"
 msgstr "选择工作区:"
 
-#: spot/plugins/Targets.py:461
+#: spot/plugins/Targets.py:478
 msgid "Select all targets"
 msgstr "选择所有目标"
 
@@ -883,15 +887,15 @@ msgstr "选择现有工作区，或输入新名称"
 msgid "Select an opened workspace"
 msgstr "选择一个已打开的工作区"
 
-#: spot/plugins/Targets.py:364
+#: spot/plugins/Targets.py:381
 msgid "Select target file"
 msgstr "选择目标文件"
 
-#: spot/plugins/Targets.py:378
+#: spot/plugins/Targets.py:395
 msgid "Select target files"
 msgstr "选择目标文件"
 
-#: spot/plugins/Targets.py:490 spot/plugins/Visibility.py:238
+#: spot/plugins/Targets.py:507 spot/plugins/Visibility.py:238
 msgid "Selected"
 msgstr "已选择"
 
@@ -915,7 +919,7 @@ msgstr "设置所需的位置角"
 msgid "Set pan position to telescope position"
 msgstr "将平移位置设为望远镜位置"
 
-#: spot/plugins/Targets.py:417
+#: spot/plugins/Targets.py:434
 msgid "Set the color of the loaded targets"
 msgstr "设置已加载目标的颜色"
 
@@ -923,27 +927,39 @@ msgstr "设置已加载目标的颜色"
 msgid "Set time axis for visibility plot"
 msgstr "设置可见性图的时间轴"
 
-#: spot/plugins/Targets.py:534 spot/plugins/Visibility.py:262
+#: spot/plugins/Targets.py:551 spot/plugins/Visibility.py:262
 msgid "Settings"
 msgstr "设置"
 
-#: spot/plugins/SkyCam.py:437
+#: spot/plugins/SkyCam.py:503
+msgid "Show Cloud Motion"
+msgstr "显示云的移动"
+
+#: spot/plugins/SkyCam.py:501
 msgid "Show Differential Image"
 msgstr "显示差分图像"
 
-#: spot/plugins/SkyCam.py:409
+#: spot/plugins/SkyCam.py:473
 msgid "Show Sky Image"
 msgstr "显示天空图像"
+
+#: spot/plugins/SkyCam.py:529
+msgid "Show an arrow at the zenith for the direction and speed of the clouds"
+msgstr "在天顶显示表示云的方向和速度的箭头"
 
 #: spot/plugins/Visibility.py:269
 msgid "Show moon separation on plot lines"
 msgstr "在图线上显示月亮角距"
 
-#: spot/plugins/SkyCam.py:453
+#: spot/plugins/SkyCam.py:535
+msgid "Show targets in or near clouds in the clouded target color"
+msgstr "用云中目标的颜色显示位于云中或云附近的目标"
+
+#: spot/plugins/SkyCam.py:519
 msgid "Show the change since the previous image instead of the image itself"
 msgstr "显示自上一幅图像以来的变化，而不是图像本身"
 
-#: spot/plugins/Targets.py:511
+#: spot/plugins/Targets.py:528
 msgid "Show unreferenced targets (e.g. from .prm files"
 msgstr "显示未引用的目标（例如来自 .prm 文件）"
 
@@ -1007,7 +1023,7 @@ msgstr "结束:"
 msgid "Sun"
 msgstr "太阳"
 
-#: spot/plugins/SkyCam.py:774
+#: spot/plugins/SkyCam.py:855
 msgid "Sun up"
 msgstr "白天"
 
@@ -1023,15 +1039,15 @@ msgstr "日落"
 msgid "Swap X and Y axes"
 msgstr "交换 X 轴和 Y 轴"
 
-#: spot/plugins/Targets.py:426
+#: spot/plugins/Targets.py:443
 msgid "Sync integgui2"
 msgstr "同步 integgui2"
 
-#: spot/plugins/Targets.py:452
+#: spot/plugins/Targets.py:469
 msgid "Tag"
 msgstr "标记"
 
-#: spot/plugins/Targets.py:490 spot/plugins/Visibility.py:238
+#: spot/plugins/Targets.py:507 spot/plugins/Visibility.py:238
 msgid "Tagged+selected"
 msgstr "已标记+已选择"
 
@@ -1051,7 +1067,7 @@ msgstr "目标可见性计算进度"
 msgid "Target:"
 msgstr "目标:"
 
-#: spot/plugins/SkyCam.py:132
+#: spot/plugins/SkyCam.py:133
 msgid "Teal/Amber"
 msgstr "青/琥珀"
 
@@ -1067,7 +1083,7 @@ msgstr "目标处的赤纬"
 msgid "The Right Ascension at the target"
 msgstr "目标处的赤经"
 
-#: spot/plugins/SkyCam.py:439
+#: spot/plugins/SkyCam.py:505
 msgid "Threshold:"
 msgstr "阈值:"
 
@@ -1095,7 +1111,7 @@ msgstr "时间:"
 msgid "Track target by telescope position"
 msgstr "按望远镜位置跟踪目标"
 
-#: spot/plugins/SkyCam.py:777
+#: spot/plugins/SkyCam.py:858
 msgid "Twilight"
 msgstr "晨昏蒙影"
 
@@ -1111,11 +1127,11 @@ msgstr "用于设置固定时间的 UTC 偏移"
 msgid "UTC:"
 msgstr "UTC:"
 
-#: spot/plugins/Targets.py:491 spot/plugins/Visibility.py:239
+#: spot/plugins/Targets.py:508 spot/plugins/Visibility.py:239
 msgid "Uncollapsed"
 msgstr "已展开"
 
-#: spot/plugins/Targets.py:456
+#: spot/plugins/Targets.py:473
 msgid "Untag"
 msgstr "取消标记"
 
@@ -1127,7 +1143,7 @@ msgstr "更新视图"
 msgid "View image metadata (Header plugin)"
 msgstr "查看图像元数据（Header 插件）"
 
-#: spot/plugins/SkyCam.py:861
+#: spot/plugins/SkyCam.py:976
 msgid "Waiting for the next image to create a differential sky..."
 msgstr "正在等待下一幅图像以生成差分天空图像..."
 
@@ -1156,7 +1172,7 @@ msgstr "缩放到 100%（1:1）"
 msgid "Zoom to fit window size"
 msgstr "缩放以适应窗口大小"
 
-#: spot/plugins/Targets.py:370
+#: spot/plugins/Targets.py:387
 msgid "[Drop file here]"
 msgstr "[将文件拖放到此处]"
 

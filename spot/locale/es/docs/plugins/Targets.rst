@@ -80,6 +80,11 @@ blanco con un borde rojo en la ventana `<wsname>_TGTS`. De lo contrario, el
 objetivo se coloreará según el color que se seleccionó manual o
 automáticamente al cargar el archivo que contenía los objetivos.
 
+Si el complemento SkyCam está mostrando una imagen de cámara de todo el
+cielo con "Marcar objetivos nublados" marcado, los objetivos que están
+dentro o cerca de las nubes se muestran en rojo anaranjado, sea cual sea
+su otro color.
+
 El botón "Seleccionar todo" seleccionará todos los objetivos de la tabla.
 
 Seleccionar objetivos y pulsar "Eliminar" quitará los objetivos seleccionados

@@ -258,3 +258,80 @@ def test_read_multiframe_matches_ginga_orientation(tmp_path):
     img.load_file(png)
     assert np.array_equal(img.get_data()[..., :3], first)
     assert first[0, 0, 0] == 255       # top rows stay at the top
+
+
+def test_box_mean_matches_brute_force():
+    rng = np.random.default_rng(3)
+    data = rng.normal(size=(23, 31))
+    res = skydiff.box_mean(data, 2)
+    for r, c in ((0, 0), (5, 7), (22, 30), (11, 0)):
+        win = data[max(0, r - 2):r + 3, max(0, c - 2):c + 3]
+        assert res[r, c] == pytest.approx(win.mean())
+
+
+def _cloud_texture(size, shift=(0.0, 0.0), seed=5):
+    """Smooth random 'cloud' texture, shifted by `shift` = (dx, dy) pixels
+    (x to the right, y up = increasing row)."""
+    rng = np.random.default_rng(seed)
+    big = rng.normal(size=(size + 80, size + 80))
+    for _ in range(3):
+        big = skydiff.box_mean(big, 3)
+    yi, xi = np.indices((size, size), dtype=float)
+    return skydiff.sample_bilinear(big, yi + 40 - shift[1], xi + 40 - shift[0])
+
+
+@pytest.mark.parametrize('shift', [(30.0, 0.0), (-45.5, 20.0),
+                                   (0.0, -12.5)])
+def test_cloud_motion_recovers_shift(shift):
+    size = 401
+    old = _cloud_texture(size) * 50 + 100
+    cur = _cloud_texture(size, shift=shift) * 50 + 100
+    res = skydiff.cloud_motion(cur, old)
+    assert res is not None
+    dx, dy, peak = res
+    assert dx == pytest.approx(shift[0], abs=0.5)
+    assert dy == pytest.approx(shift[1], abs=0.5)
+
+
+def test_cloud_motion_ignores_fixed_features():
+    # with strong fixed features (a "dome" silhouette and a glow) in the
+    # frames, the differences of three frames still give the motion
+    size = 401
+    x, y, r = skydiff.radial_coords((size, size))
+    fixed = 80.0 * np.exp(-((x - 60) ** 2 + (y - 40) ** 2) / 800.0)
+    fixed[(y < -120) & (np.abs(x) < 40)] -= 100.0
+    d = (-35.0, 12.0)
+    f0, f1, f2 = [_cloud_texture(size, shift=(k * d[0], k * d[1])) * 50 +
+                  100 + fixed for k in range(3)]
+    dx, dy, peak = skydiff.cloud_motion(f2 - f1, f1 - f0)
+    assert dx == pytest.approx(d[0], abs=1.0)
+    assert dy == pytest.approx(d[1], abs=1.0)
+
+
+def test_cloud_motion_none_without_clouds():
+    # unrelated frames (no common structure): no motion reported
+    size = 401
+    old = _cloud_texture(size, seed=1) * 50 + 100
+    cur = _cloud_texture(size, seed=2) * 50 + 100
+    assert skydiff.cloud_motion(cur, old) is None
+
+
+def test_cloud_map():
+    size = SIZE
+    sig = np.zeros((size, size), dtype=np.float32)
+    # a "cloud" of changed pixels around alt 50, az 120 (south-east)
+    scale = (size * 0.5) / 90.0
+    x0, y0 = skydiff.altaz_to_xy(50.0, 120.0, scale)
+    x, y, r = skydiff.radial_coords(sig.shape)
+    sig[np.hypot(x - x0, y - y0) < 6 * scale] = 20.0
+    sig[r > size * 0.5] = np.nan
+    frac = skydiff.cloud_fraction(sig, threshold_sigma=5.0, radius_deg=3.0)
+    cmap = skydiff.CloudMap(frac, threshold=0.2)
+    assert cmap.is_cloudy(120.0, 50.0)
+    assert not cmap.is_cloudy(300.0, 50.0)     # opposite side
+    assert not cmap.is_cloudy(120.0, 80.0)
+    # array query
+    res = cmap.is_cloudy([120.0, 300.0], [50.0, 50.0])
+    assert list(res) == [True, False]
+    # below the horizon is outside the map
+    assert np.isnan(cmap.fraction_at(0.0, -10.0))

@@ -79,6 +79,10 @@ con un bordo rosso nella finestra `<wsname>_TGTS`. Altrimenti il target verrà
 colorato in base al colore selezionato manualmente o automaticamente al
 momento del caricamento del file contenente i target.
 
+Se il plugin SkyCam sta mostrando un'immagine della fotocamera all-sky con
+"Evidenzia target tra le nubi" spuntato, i target tra le nubi o vicino a
+esse sono mostrati in rosso arancio, qualunque sia il loro altro colore.
+
 Il pulsante "Seleziona tutto" selezionerà tutti i target della tabella.
 
 Selezionando dei target e premendo "Elimina" verranno rimossi i target

@@ -20,6 +20,14 @@ Ver 1.5.3 (unreleased)
   as GTC.
 - SkyCam: the cloud cover shows "Twilight" or "Sun up" instead of a
   value while the Sun is above -12 degrees at the camera.
+- SkyCam: at night a white arrow from the zenith shows the direction and
+  speed (degrees per minute) of the clouds, and targets in or near clouds
+  are shown in orange-red in the Targets plugin ("Show Cloud Motion" and
+  "Flag Clouded Targets").  The motion is found by correlating the last two
+  differences between images, which removes fixed features such as domes.
+- Targets: the rotating target colors are now bright colors that show up
+  on the sky camera images and are distinct from the selected, tagged and
+  clouded target colors (green, yellow, orange, plum, chartreuse, pink).
 - SkyCam: a "History" tab plots the cloud cover over the last 12 hours
   (the controls moved to a "Camera" tab).  The cloud cover is now
   measured for every new image, whether or not the differential image is

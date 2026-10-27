@@ -67,6 +67,12 @@ The controls are:
   new cameras`_).  Objects fixed in the camera view, such as domes or trees
   near the horizon, may then leave curved streaks.
 
+* "Show Cloud Motion": show an arrow for the direction and speed of the
+  clouds (see `Cloud Motion and Clouded Targets`_).
+
+* "Flag Clouded Targets": show targets in or near clouds in the clouded
+  target color in the Targets plugin (orange-red by default).
+
 * "Threshold": a change larger than this many sigma counts as cloud for
   the cloud cover (default 5).
 
@@ -91,6 +97,31 @@ adjust them with the usual viewer controls as well.
 After selecting a camera, the differential image appears once a second
 image has been received.  If a download returns the same image as the
 previous one (the camera has not updated yet), it is ignored.
+
+================================
+Cloud Motion and Clouded Targets
+================================
+
+At night, SkyCam also maps where the clouds are and follows how they move.
+A spot on the sky counts as clouded when more than 20% of the sky within
+about 3 degrees of it changed by more than the threshold, so targets close
+to a cloud are flagged as well as those right behind one.  With "Flag
+Clouded Targets" checked, the Targets plugin shows these targets in the
+clouded target color (see :doc:`targetlist`).
+
+Once three images have been received, the motion of the clouds is found by
+comparing the last two differences between images, which removes domes,
+vignetting and moonlight.  With "Show Cloud Motion" checked, a white arrow
+from the zenith shows the direction the clouds are moving and how far they
+move in about 5 minutes, labeled with their speed across the sky in degrees
+per minute.  (The height of the clouds is not known, so their speed in
+kilometers per hour cannot be given.)  The arrow is only shown when the
+motion is clear; one layer of cloud usually moves as a whole, so a single
+arrow is shown for the whole sky.
+
+Neither is shown in twilight or daylight.  How much cloud counts as
+clouded, and the length of the arrow, can be changed with the settings
+below.
 
 ===================
 Cloud Cover History
@@ -151,3 +182,53 @@ For example::
       longitude: -17.8920
 
 Restart spot and you should be able to pick your new camera from the list.
+
+========
+Settings
+========
+
+Besides the choices in the plugin's window, SkyCam has settings that adjust
+how the differential image, the cloud cover and the cloud motion are
+computed.  They are stored per workspace in
+``$HOME/.spot/workspaces/<workspacename>/SkyCam.cfg``, which the "Save
+config" button writes (with all the settings, including these).  To change
+one, press "Save config" once, quit SPOT, edit the value in the file and
+start SPOT again.
+
+``diff_threshold_sigma`` (default 5.0)
+    The "Threshold" control: a change larger than this many sigma counts as
+    cloud.
+
+``diff_cloud_fraction`` (default 0.2)
+    A spot on the sky counts as clouded (for "Flag Clouded Targets") when
+    more than this fraction of the sky around it changed by more than the
+    threshold.  Raise it to flag only targets well inside clouds.
+
+``diff_cloud_radius_deg`` (default 3.0)
+    The size, in degrees, of the area around each spot that is looked at
+    for clouds.  A larger value flags targets farther from a cloud's edge.
+
+``diff_motion_minutes`` (default 5.0)
+    The cloud motion arrow shows how far the clouds move in this many
+    minutes (the arrow is never longer than half the way to the horizon).
+
+``diff_max_za_deg`` (default 75.0)
+    Only the sky within this many degrees of the zenith is used for the
+    cloud cover, which keeps out the horizon, domes and trees.
+
+``diff_max_sun_alt_deg`` (default -12.0)
+    While the Sun is higher than this (in degrees) at the camera, the cloud
+    cover is not given ("Twilight" or "Sun up" is shown), and no clouds or
+    cloud motion are shown.
+
+``diff_history_hours`` (default 12.0)
+    How many hours of cloud cover the "History" tab keeps.
+
+``diff_display_sigma`` (default 10.0)
+    The initial cut levels of the differential image, in sigma (-10 to +10
+    by default); they can also be changed with the viewer controls.
+
+``diff_work_size`` (default 700) and ``diff_median_size`` (default 3)
+    The differential image is computed on a copy of the camera image
+    reduced to about this many pixels across, and median filtered over this
+    many pixels to remove stars and noise.

@@ -64,6 +64,14 @@ Les commandes sont les suivantes :
   que des coupoles ou des arbres près de l'horizon, peuvent alors laisser
   des traînées courbes.
 
+* « Afficher le mouvement des nuages » : afficher une flèche indiquant la
+  direction et la vitesse des nuages (voir « Mouvement des nuages et cibles
+  nuageuses »).
+
+* « Signaler les cibles nuageuses » : afficher dans le module Targets les
+  cibles dans les nuages ou à proximité avec la couleur des cibles
+  nuageuses (rouge orangé par défaut).
+
 * « Seuil » : une variation supérieure à ce nombre de sigmas est
   comptée comme nuage pour la couverture nuageuse (5 par défaut).
 
@@ -96,6 +104,31 @@ Le bouton « Enregistrer la configuration » enregistre vos sélections actuelle
 caméra, « Afficher l'image du ciel », « Afficher l'image différentielle » et « Monochrome »)
 pour l'espace de travail, afin qu'elles soient restaurées à sa prochaine
 ouverture.
+
+Mouvement des nuages et cibles nuageuses
+========================================
+
+La nuit, SkyCam repère aussi où se trouvent les nuages et suit leur
+mouvement. Un point du ciel est considéré comme nuageux lorsque plus de 20 %
+du ciel situé à environ 3 degrés autour de lui a varié de plus que le
+seuil : les cibles proches d'un nuage sont donc signalées aussi bien que
+celles situées juste derrière. Lorsque « Signaler les cibles nuageuses » est
+coché, le module Targets affiche ces cibles avec la couleur des cibles
+nuageuses.
+
+Dès que trois images ont été reçues, le mouvement des nuages est déterminé
+en comparant les deux dernières différences entre images, ce qui élimine
+les coupoles, le vignettage et le clair de lune. Lorsque « Afficher le
+mouvement des nuages » est coché, une flèche blanche partant du zénith
+indique la direction dans laquelle les nuages se déplacent et la distance
+parcourue en environ 5 minutes, avec leur vitesse sur le ciel en degrés par
+minute. (La hauteur des nuages n'étant pas connue, leur vitesse en
+kilomètres par heure ne peut pas être donnée.) La flèche n'est affichée que
+lorsque le mouvement est net ; une couche de nuages se déplace en général
+d'un bloc, si bien qu'une seule flèche est affichée pour tout le ciel.
+
+Ni l'un ni l'autre n'est affiché au crépuscule ou de jour. Les réglages qui
+les contrôlent sont décrits dans le manuel de SPOT.
 
 Historique de la couverture nuageuse
 ====================================

@@ -64,6 +64,13 @@ I controlli sono:
   oggetti fissi nel campo della fotocamera, come cupole o alberi vicino
   all'orizzonte, possono allora lasciare delle strisce curve.
 
+* "Mostra moto delle nubi": mostra una freccia con la direzione e la
+  velocità delle nubi (vedere "Moto delle nubi e target tra le nubi").
+
+* "Evidenzia target tra le nubi": mostra nel plugin Targets i target tra
+  le nubi o vicino a esse nel colore dei target tra le nubi (rosso
+  arancio per impostazione predefinita).
+
 * "Soglia": una variazione maggiore di questo numero di sigma viene
   contata come nube per la copertura nuvolosa (valore predefinito 5).
 
@@ -96,6 +103,29 @@ viene ignorato.
 Il pulsante "Salva configurazione" registra le vostre selezioni attuali (server della
 fotocamera, "Mostra immagine del cielo", "Mostra immagine differenziale" e "Monocromatico") per
 lo spazio di lavoro, così che vengano ripristinate alla successiva apertura.
+
+Moto delle nubi e target tra le nubi
+====================================
+
+Di notte SkyCam individua anche dove si trovano le nubi e ne segue il moto.
+Un punto del cielo è considerato tra le nubi quando più del 20% del cielo
+entro circa 3 gradi intorno a esso è cambiato più della soglia, per cui
+vengono evidenziati sia i target vicini a una nube sia quelli proprio dietro
+a essa. Con "Evidenzia target tra le nubi" spuntato, il plugin Targets
+mostra questi target nel colore dei target tra le nubi.
+
+Quando sono state ricevute tre immagini, il moto delle nubi viene ricavato
+confrontando le ultime due differenze tra immagini, il che elimina cupole,
+vignettatura e luce lunare. Con "Mostra moto delle nubi" spuntato, una
+freccia bianca che parte dallo zenit mostra la direzione in cui si muovono
+le nubi e quanto si spostano in circa 5 minuti, con la loro velocità sul
+cielo in gradi al minuto. (L'altezza delle nubi non è nota, quindi non si
+può dare la loro velocità in chilometri all'ora.) La freccia viene mostrata
+solo quando il moto è chiaro; uno strato di nubi di solito si muove nel suo
+insieme, quindi viene mostrata una sola freccia per tutto il cielo.
+
+Nessuno dei due viene mostrato durante il crepuscolo o di giorno. Le
+impostazioni che li controllano sono descritte nel manuale di SPOT.
 
 Cronologia della copertura nuvolosa
 ===================================

@@ -327,3 +327,142 @@ def sky_diff(cur, old, dt_sec=0.0, lat_deg=None, derotate_sky=True,
 
     return dict(sig=sig, cc_pct=cc_pct, sigma=float(sigma), gain=gain,
                 mask=mask)
+
+
+def box_mean(data_np, radius):
+    """Mean of a 2D array over a (2 * radius + 1) square box at each pixel
+    (edges are handled by shrinking the box)."""
+    radius = int(radius)
+    if radius <= 0:
+        return data_np.astype(np.float64)
+    ht, wd = data_np.shape
+    c = np.zeros((ht + 1, wd + 1))
+    c[1:, 1:] = np.cumsum(np.cumsum(data_np, axis=0), axis=1)
+    r0 = np.clip(np.arange(ht) - radius, 0, ht)
+    r1 = np.clip(np.arange(ht) + radius + 1, 0, ht)
+    c0 = np.clip(np.arange(wd) - radius, 0, wd)
+    c1 = np.clip(np.arange(wd) + radius + 1, 0, wd)
+    total = (c[np.ix_(r1, c1)] - c[np.ix_(r0, c1)] -
+             c[np.ix_(r1, c0)] + c[np.ix_(r0, c0)])
+    count = np.outer(r1 - r0, c1 - c0)
+    return total / count
+
+
+def cloud_fraction(sig, threshold_sigma=5.0, radius_deg=3.0):
+    """Fraction of changed pixels (|sig| > threshold) around each pixel,
+    within about `radius_deg` (a square box), from the output of
+    `sky_diff`.  NaN where there is (almost) no valid data.
+    """
+    valid = np.isfinite(sig)
+    changed = valid & (np.abs(np.where(valid, sig, 0.0)) > threshold_sigma)
+    scale = (sig.shape[1] * 0.5) / 90.0
+    radius = max(1, int(round(radius_deg * scale)))
+    n_valid = box_mean(valid.astype(np.float64), radius)
+    n_changed = box_mean(changed.astype(np.float64), radius)
+    with np.errstate(invalid='ignore', divide='ignore'):
+        frac = n_changed / n_valid
+    frac[n_valid < 0.25] = np.nan
+    return frac.astype(np.float32)
+
+
+class CloudMap:
+    """Read-only map of the local cloud fraction (0..1) over the sky,
+    queried by azimuth and altitude.  Made from a working frame, so it
+    uses the same orientation and projection (see the module docstring).
+    """
+
+    def __init__(self, frac, threshold=0.2):
+        self.frac = frac
+        self.threshold = threshold
+        ht, wd = frac.shape
+        self.scale = (wd * 0.5) / 90.0
+        self.cx, self.cy = (wd - 1) * 0.5, (ht - 1) * 0.5
+
+    def fraction_at(self, az_deg, alt_deg):
+        """Cloud fraction at the given position(s); NaN outside the map."""
+        x, y = altaz_to_xy(np.asarray(alt_deg, dtype=float),
+                           np.asarray(az_deg, dtype=float), self.scale)
+        col = np.rint(x + self.cx).astype(int)
+        row = np.rint(y + self.cy).astype(int)
+        ht, wd = self.frac.shape
+        inside = (row >= 0) & (row < ht) & (col >= 0) & (col < wd)
+        res = np.full(np.shape(col), np.nan, dtype=np.float32)
+        res[inside] = self.frac[row[inside], col[inside]]
+        return res if res.ndim > 0 else float(res)
+
+    def is_cloudy(self, az_deg, alt_deg):
+        """True where the cloud fraction is above the threshold."""
+        with np.errstate(invalid='ignore'):
+            return np.asarray(self.fraction_at(az_deg, alt_deg)) > \
+                self.threshold
+
+
+def bandpass(data_np, lo_px, hi_px):
+    """Band-pass filter a 2D array (NaNs count as 0): the difference of
+    two box means, keeping structure between about `lo_px` and `hi_px`
+    pixels across."""
+    a0 = np.where(np.isfinite(data_np), data_np, 0.0)
+    return box_mean(a0, lo_px) - box_mean(a0, hi_px)
+
+
+def cloud_motion(cur, old, scales_deg=(2.4, 12.0), max_za_deg=60.0,
+                 max_shift_deg=35.0, min_shift_deg=1.0, min_peak=0.2):
+    """Estimate how clouds moved between two images of the sky, `old` and
+    `cur`, by cross-correlation.
+
+    Pass the differences of three consecutive working frames, ``f1 - f0``
+    as `old` and ``f2 - f1`` as `cur`: for clouds moving uniformly the
+    second is the first shifted by the motion, while fixed features (domes,
+    vignetting, moonlight), which would otherwise correlate at zero shift,
+    cancel out.  The frames must *not* be derotated: clouds move with the
+    wind, not with the sky.  (Plain frames also work if there are no
+    strong fixed features.)
+
+    Clouds can move tens of degrees between images a few minutes apart
+    (high cloud in a jet stream crosses ~10 deg/min near the zenith), and
+    their fine texture changes in that time, so this correlates the whole
+    sky within `max_za_deg` of the zenith, band-passed to cloud-sized
+    structure (`scales_deg`), over shifts from `min_shift_deg` up to
+    `max_shift_deg`.
+
+    Returns (dx, dy, peak) -- the shift in working-frame pixels (x to the
+    right, y up) and the normalized correlation at the peak -- or None if
+    no clear motion was found (the peak is below `min_peak`; unrelated
+    images peak at about 0.1).
+    """
+    ht, wd = cur.shape
+    scale = (wd * 0.5) / 90.0
+    _x, _y, r = radial_coords(cur.shape)
+    inner = (r <= max_za_deg * scale) & np.isfinite(cur) & np.isfinite(old)
+    lo, hi = [max(1, int(round(s * scale))) for s in scales_deg]
+    a = np.where(inner, bandpass(cur, lo, hi), 0.0)
+    b = np.where(inner, bandpass(old, lo, hi), 0.0)
+    norm = np.sqrt((a * a).sum() * (b * b).sum())
+    if norm == 0:
+        return None
+    corr = np.real(np.fft.ifft2(np.fft.fft2(a) * np.conj(np.fft.fft2(b))))
+    corr = np.fft.fftshift(corr / norm)
+    cy, cx = ht // 2, wd // 2
+
+    m = min(int(round(max_shift_deg * scale)), cy - 1, cx - 1)
+    sub = corr[cy - m:cy + m + 1, cx - m:cx + m + 1]
+    sy, sx = np.indices(sub.shape)
+    dist = np.hypot(sx - m, sy - m)
+    search = (dist >= min_shift_deg * scale) & (dist <= m)
+    vals = np.where(search, sub, -np.inf)
+    iy, ix = np.unravel_index(np.argmax(vals), vals.shape)
+    peak = float(sub[iy, ix])
+    if peak < min_peak:
+        return None
+
+    def subpix(cm, c0, cp):
+        denom = cm - 2 * c0 + cp
+        return 0.0 if denom == 0 else 0.5 * (cm - cp) / denom
+
+    dx = ix - m
+    dy = iy - m
+    if 0 < ix < sub.shape[1] - 1:
+        dx += subpix(sub[iy, ix - 1], peak, sub[iy, ix + 1])
+    if 0 < iy < sub.shape[0] - 1:
+        dy += subpix(sub[iy - 1, ix], peak, sub[iy + 1, ix])
+    return float(dx), float(dy), peak

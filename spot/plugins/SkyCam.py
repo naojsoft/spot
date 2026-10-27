@@ -110,6 +110,7 @@ from ginga.AstroImage import AstroImage
 from ginga.RGBImage import RGBImage
 from ginga import GingaPlugin
 from ginga.misc import Future
+from ginga.misc.Callback import Callbacks
 from ginga.util.paths import ginga_home
 
 # where our config files are stored
@@ -217,6 +218,12 @@ class SkyCam(GingaPlugin.LocalPlugin):
       view, such as domes or trees near the horizon, may then leave curved
       streaks.
 
+    * "Show Cloud Motion": show an arrow for the direction and speed of
+      the clouds (see "Cloud Motion and Clouded Targets").
+
+    * "Flag Clouded Targets": show targets in or near clouds in the
+      clouded target color in the Targets plugin (orange-red by default).
+
     * "Threshold": a change larger than this many sigma counts as cloud
       for the cloud cover (default 5).
 
@@ -246,6 +253,30 @@ class SkyCam(GingaPlugin.LocalPlugin):
     The "Save config" button records your current selections (camera
     server, "Show Sky Image", "Show Differential Image" and "Monochrome")
     for the workspace, so they are restored the next time it is opened.
+
+    Cloud Motion and Clouded Targets
+    ================================
+
+    At night, SkyCam also maps where the clouds are and follows how they
+    move.  A spot on the sky counts as clouded when more than 20% of the
+    sky within about 3 degrees of it changed by more than the threshold,
+    so targets close to a cloud are flagged as well as those right behind
+    one.  With "Flag Clouded Targets" checked, the Targets plugin shows
+    these targets in the clouded target color.
+
+    Once three images have been received, the motion of the clouds is
+    found by comparing the last two differences between images, which
+    removes domes, vignetting and moonlight.  With "Show Cloud Motion"
+    checked, a white arrow from the zenith shows the direction the clouds
+    are moving and how far they move in about 5 minutes, labeled with
+    their speed across the sky in degrees per minute.  (The height of the
+    clouds is not known, so their speed in kilometers per hour cannot be
+    given.)  The arrow is only shown when the motion is clear; one layer
+    of cloud usually moves as a whole, so a single arrow is shown for the
+    whole sky.
+
+    Neither is shown in twilight or daylight.  The settings that control
+    them are described in the SPOT manual.
 
     Cloud Cover History
     ===================
@@ -294,6 +325,11 @@ class SkyCam(GingaPlugin.LocalPlugin):
         # superclass defines some variables for us, like logger
         super().__init__(fv, fitsimage)
 
+        # other plugins (e.g. Targets) can follow the clouds: the callback
+        # gets a skydiff.CloudMap, or None when there is no current one
+        self.cb = Callbacks()
+        self.cb.enable_callback('clouds-changed')
+
         if not self.chname.endswith('_TGTS'):
             return
 
@@ -316,7 +352,12 @@ class SkyCam(GingaPlugin.LocalPlugin):
                                    diff_max_za_deg=75.0,
                                    diff_color_map='skydiff_gray',
                                    diff_max_sun_alt_deg=-12.0,
-                                   diff_history_hours=12.0)
+                                   diff_history_hours=12.0,
+                                   diff_show_motion=True,
+                                   diff_flag_targets=True,
+                                   diff_cloud_radius_deg=3.0,
+                                   diff_cloud_fraction=0.2,
+                                   diff_motion_minutes=5.0)
         self.settings.load(onError='silent')
 
         self.viewer = self.fitsimage
@@ -329,6 +370,13 @@ class SkyCam(GingaPlugin.LocalPlugin):
         self.old_work = None
         self.cur_work_t = None
         self.old_work_t = None
+        # the frame before old_work, for the cloud motion
+        self.older_work = None
+        self.older_work_t = None
+        # latest cloud map and motion (dx, dy in data coords per
+        # diff_motion_minutes, speed in deg/min), or None
+        self.cloud_map = None
+        self.cloud_motion = None
         self.bin_factor = 1
         self.cc_text = "--"
         # image processing runs off the GUI thread; the lock serializes it,
@@ -452,6 +500,8 @@ class SkyCam(GingaPlugin.LocalPlugin):
         fr = Widgets.Frame(_tr("Differential Image"))
         captions = (('Show Differential Image', 'checkbutton',
                      'Derotate Sky', 'checkbutton'),
+                    ('Show Cloud Motion', 'checkbutton',
+                     'Flag Clouded Targets', 'checkbutton'),
                     ('Threshold:', 'label', 'Threshold', 'spinfloat'),
                     ('Color Map:', 'label', 'Diff Color Map', 'combobox'),
                     ('Cloud Cover:', 'label', 'Cloud Cover', 'llabel'),
@@ -473,6 +523,17 @@ class SkyCam(GingaPlugin.LocalPlugin):
         b.derotate_sky.set_tooltip(
             _tr("Rotate the previous image with the sky so that stars cancel "
                 "(requires a correctly oriented camera and its latitude)"))
+        b.show_cloud_motion.set_state(self.settings['diff_show_motion'])
+        b.show_cloud_motion.add_callback('activated', self.show_motion_cb)
+        b.show_cloud_motion.set_tooltip(
+            _tr("Show an arrow at the zenith for the direction and speed "
+                "of the clouds"))
+        b.flag_clouded_targets.set_state(self.settings['diff_flag_targets'])
+        b.flag_clouded_targets.add_callback('activated',
+                                            self.flag_targets_cb)
+        b.flag_clouded_targets.set_tooltip(
+            _tr("Show targets in or near clouds in the clouded target "
+                "color"))
         b.threshold.set_limits(1.0, 50.0, incr_value=0.5)
         b.threshold.set_value(self.settings['diff_threshold_sigma'])
         b.threshold.add_callback('value-changed', self.threshold_cb)
@@ -580,6 +641,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
 
     def stop(self):
         self.gui_up = False
+        self.cb.make_callback('clouds-changed', None)
         # leave the viewer with the normal color map and cut levels
         self._set_view_mode('normal')
         # remove the canvas from the image
@@ -697,8 +759,9 @@ class SkyCam(GingaPlugin.LocalPlugin):
 
         if self.cur_work is not None and work.shape != self.cur_work.shape:
             # camera changed size; start over
-            self.cur_work = None
+            self.cur_work = self.old_work = None
 
+        self.older_work, self.older_work_t = self.old_work, self.old_work_t
         self.old_work, self.old_work_t = self.cur_work, self.cur_work_t
         self.cur_work, self.cur_work_t = work, t_start
         self.logger.debug("work frame %s (bin %d) made in %.3f sec" % (
@@ -764,6 +827,8 @@ class SkyCam(GingaPlugin.LocalPlugin):
         yet.  Sets self.cc_text to the text for the cloud cover display
         and records the cloud cover in the history.
         """
+        self.cloud_map = None
+        self.cloud_motion = None
         if self.old_work is None or self.cur_work is None:
             self.cc_text = "--"
             return None
@@ -793,6 +858,8 @@ class SkyCam(GingaPlugin.LocalPlugin):
                 self.cc_text = _tr("Twilight")
                 night = False
         self._record_history(self.cur_work_t, res['cc_pct'], night)
+        if night:
+            self._find_clouds(res['sig'])
         self.logger.info("sky diff: CC=%.1f%% sigma=%.3g gain=%.3f "
                          "sun_alt=%s" % (res['cc_pct'], res['sigma'],
                                          res['gain'], sun_alt))
@@ -805,6 +872,37 @@ class SkyCam(GingaPlugin.LocalPlugin):
         img = AstroImage(data_np=data_np, logger=self.logger)
         img.set(name=self.img_src_name, nothumb=True, path=None)
         return img
+
+    def _find_clouds(self, sig):
+        """Make the cloud map and estimate the cloud motion from the
+        latest differential image `sig` (in units of sigma).
+        """
+        frac = skydiff.cloud_fraction(
+            sig, threshold_sigma=self.settings['diff_threshold_sigma'],
+            radius_deg=self.settings['diff_cloud_radius_deg'])
+        self.cloud_map = skydiff.CloudMap(
+            frac, threshold=self.settings['diff_cloud_fraction'])
+
+        if self.older_work is None:
+            return
+        # the frames are not derotated here: clouds move with the wind
+        res = skydiff.cloud_motion(self.cur_work - self.old_work,
+                                   self.old_work - self.older_work)
+        if res is None:
+            return
+        dx, dy, peak = res
+        # the two differences are, on average, half the time spanned by
+        # the three frames apart
+        dt_min = (self.cur_work_t - self.older_work_t) / 2.0 / 60.0
+        if dt_min <= 0:
+            return
+        scale = (self.cur_work.shape[1] * 0.5) / 90.0     # px/deg
+        speed = np.hypot(dx, dy) / scale / dt_min           # deg/min
+        # in display data coordinates, over diff_motion_minutes
+        f = self.bin_factor * self.settings['diff_motion_minutes'] / dt_min
+        self.cloud_motion = (dx * f, dy * f, speed)
+        self.logger.info("cloud motion: %.1f deg/min (peak %.2f)" % (
+            speed, peak))
 
     def _record_history(self, t, cc_pct, night):
         """Add (or, if this frame was already recorded, e.g. after the
@@ -865,7 +963,8 @@ class SkyCam(GingaPlugin.LocalPlugin):
         # the cloud cover (and its history) is computed whether or not
         # the differential image is shown
         diff_img = self._make_diff_image()
-        status = dict(cc_text=self.cc_text, history=list(self.cc_history))
+        status = dict(cc_text=self.cc_text, history=list(self.cc_history),
+                      cloud_map=self.cloud_map, motion=self.cloud_motion)
 
         info_text = None
         if self.flag_use_diff_image:
@@ -885,9 +984,11 @@ class SkyCam(GingaPlugin.LocalPlugin):
         self.fv.gui_do(self.__update_display, img, info_text=info_text,
                        **status)
 
-    def _update_status(self, cc_text="--", history=None, info_text=None):
-        """Update the cloud cover readout and history plot, and the image
-        info text if given.  Runs on the GUI thread.
+    def _update_status(self, cc_text="--", history=None, info_text=None,
+                       cloud_map=None, motion=None):
+        """Update the cloud cover readout and history plot, the cloud
+        motion arrow, the image info text if given, and let other plugins
+        know about the clouds.  Runs on the GUI thread.
         """
         if not self.gui_up:
             return
@@ -896,6 +997,36 @@ class SkyCam(GingaPlugin.LocalPlugin):
             self.w.select_image_info.set_text(info_text)
         if history is not None and history != self._plotted_history:
             self._plot_history(history)
+        self._draw_motion(motion)
+        if not self.settings['diff_flag_targets']:
+            cloud_map = None
+        self.cb.make_callback('clouds-changed', cloud_map)
+
+    def _draw_motion(self, motion):
+        """Draw (or remove) the cloud motion arrow at the zenith."""
+        self.canvas.delete_object_by_tag('motion', redraw=False)
+        if motion is not None and self.settings['diff_show_motion']:
+            dx, dy, speed = motion
+            # keep the arrow on the sky: at most half way to the horizon
+            r_max = 0.5 * self.settings['image_radius']
+            length = np.hypot(dx, dy)
+            if length > r_max:
+                dx, dy = dx * r_max / length, dy * r_max / length
+            color = 'white'
+            # a dark outline keeps the arrow visible on bright clouds
+            outline = self.dc.Line(0.0, 0.0, dx, dy, color='black',
+                                   linewidth=6, alpha=0.6, arrow='end',
+                                   showcap=False)
+            arrow = self.dc.Line(0.0, 0.0, dx, dy, color=color, linewidth=3,
+                                 arrow='end', showcap=False)
+            text = self.dc.Text(dx, dy, " {:.1f}°/min ".format(speed),
+                                color=color, fontscale=True,
+                                fontsize_min=12, fontsize_max=16,
+                                font="Roboto condensed bold",
+                                bgcolor='black', bgalpha=0.6)
+            self.canvas.add(self.dc.CompoundObject(outline, arrow, text),
+                            tag='motion', redraw=False)
+        self.viewer.redraw(whence=3)
 
     def _plot_history(self, history):
         if self.cc_plot is None:
@@ -918,8 +1049,8 @@ class SkyCam(GingaPlugin.LocalPlugin):
         if self.gui_up:
             self.w.select_image_info.set_text(text)
 
-    def __update_display(self, img, scale=1, mode='normal', cc_text="--",
-                         history=None, info_text=None):
+    def __update_display(self, img, scale=1, mode='normal', info_text=None,
+                         **status):
         self.fv.assert_gui_thread()
         if not self.gui_up:
             # plugin was closed while the image was being processed
@@ -949,8 +1080,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
             image_timestamp = datetime.datetime.now()
             info_text = "Image download complete, displayed at: " + \
                 image_timestamp.strftime("%D %H:%M:%S")
-        self._update_status(cc_text=cc_text, history=history,
-                            info_text=info_text)
+        self._update_status(info_text=info_text, **status)
 
     def download_sky_image(self):
         try:
@@ -1059,6 +1189,15 @@ class SkyCam(GingaPlugin.LocalPlugin):
         elif self.view_state['diff'] is not None:
             self.view_state['diff']['color_map'] = name
 
+    def show_motion_cb(self, w, tf):
+        self.settings.set(diff_show_motion=tf)
+        self._draw_motion(self.cloud_motion)
+
+    def flag_targets_cb(self, w, tf):
+        self.settings.set(diff_flag_targets=tf)
+        self.cb.make_callback('clouds-changed',
+                              self.cloud_map if tf else None)
+
     def threshold_cb(self, w, val):
         self.settings.set(diff_threshold_sigma=float(val))
         if self.flag_use_diff_image:
@@ -1077,11 +1216,15 @@ class SkyCam(GingaPlugin.LocalPlugin):
             self.cur_data = self.cur_coverage = None
             self.cur_work = self.old_work = None
             self.cur_work_t = self.old_work_t = None
+            self.older_work = self.older_work_t = None
+            self.cloud_map = self.cloud_motion = None
             self.cc_text = "--"
             self.cc_history = []
         self.need_autolevels = True
         self.w.cloud_cover.set_text(self.cc_text)
         self._plot_history([])
+        self._draw_motion(None)
+        self.cb.make_callback('clouds-changed', None)
         try:
             self.canvas.delete_all_objects()
             self._sky_image_canvas_setup()
