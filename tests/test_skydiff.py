@@ -1,0 +1,213 @@
+#
+# test_skydiff.py -- unit tests for the all-sky camera difference imaging
+#
+# The frames are synthetic: a smooth sky background plus a field of point
+# "stars" placed by their HA/Dec, so that the same stars can be rendered
+# at two different times as the sky rotates.  A cloud is a smooth blob
+# added to (or dimming) one of the frames.
+#
+import numpy as np
+import pytest
+
+from spot.util import skydiff
+
+LAT = 19.8
+# exercise both hemispheres (Mauna Kea, Mt. Stromlo)
+LATS = [19.8, -35.3]
+SIZE = 401
+
+
+def _star_field(n=600, seed=1):
+    rng = np.random.default_rng(seed)
+    ra = rng.uniform(0, 360, n)
+    dec = np.degrees(np.arcsin(rng.uniform(-1, 1, n)))
+    flux = rng.uniform(50, 200, n)
+    return ra, dec, flux
+
+
+def _render(stars, lst_deg, cloud=None, size=SIZE, noise=1.0, seed=0,
+            lat=LAT):
+    """Render a frame at local sidereal time `lst_deg`."""
+    ra, dec, flux = stars
+    x, y, r = skydiff.radial_coords((size, size))
+    scale = (size * 0.5) / 90.0
+    data = 20.0 + 0.02 * r                    # brightening toward horizon
+    alt, az = skydiff.hadec_to_altaz(lst_deg - ra, dec, lat)
+    up = alt > 0
+    sx, sy = skydiff.altaz_to_xy(alt[up], az[up], scale)
+    cx = (size - 1) * 0.5
+    cols = np.round(sx + cx).astype(int)
+    rows = np.round(sy + cx).astype(int)
+    ok = (rows >= 0) & (rows < size) & (cols >= 0) & (cols < size)
+    stars_np = np.zeros_like(data)
+    np.add.at(stars_np, (rows[ok], cols[ok]), flux[up][ok])
+    # give the stars a ~2 pixel PSF
+    for _ in range(2):
+        stars_np = (stars_np + np.roll(stars_np, 1, 0) +
+                    np.roll(stars_np, -1, 0)) / 3.0
+        stars_np = (stars_np + np.roll(stars_np, 1, 1) +
+                    np.roll(stars_np, -1, 1)) / 3.0
+    data = data + stars_np
+    if cloud is not None:
+        x0, y0, rad, amp = cloud
+        data = data + amp * np.exp(-((x - x0) ** 2 + (y - y0) ** 2) /
+                                   (2 * rad ** 2))
+    rng = np.random.default_rng(seed)
+    data = data + rng.normal(0, noise, data.shape)
+    return data.astype(np.float32)
+
+
+@pytest.mark.parametrize('lat', LATS)
+def test_altaz_hadec_roundtrip(lat):
+    alt = np.array([5.0, 30.0, 60.0, 89.0])
+    az = np.array([10.0, 100.0, -170.0, 250.0])
+    ha, dec = skydiff.altaz_to_hadec(alt, az, lat)
+    alt2, az2 = skydiff.hadec_to_altaz(ha, dec, lat)
+    assert np.allclose(alt, alt2)
+    assert np.allclose(np.cos(np.radians(az)), np.cos(np.radians(az2)))
+    assert np.allclose(np.sin(np.radians(az)), np.sin(np.radians(az2)))
+
+
+def test_star_rises_in_east():
+    # a star on the eastern horizon has negative hour angle
+    ha, dec = skydiff.altaz_to_hadec(0.0, 90.0, 0.0)
+    assert ha == pytest.approx(-90.0)
+    assert dec == pytest.approx(0.0, abs=1e-9)
+
+
+def test_xy_altaz_orientation():
+    scale = 2.0
+    # North is up (+y), East is left (-x)
+    assert np.allclose(skydiff.altaz_to_xy(0.0, 0.0, scale), (0, 180))
+    assert np.allclose(skydiff.altaz_to_xy(0.0, 90.0, scale), (-180, 0))
+    alt, az = skydiff.xy_to_altaz(-180.0, 0.0, scale)
+    assert alt == pytest.approx(0.0) and az == pytest.approx(90.0)
+
+
+def test_block_median_removes_point_sources():
+    data = np.full((40, 40), 10.0, dtype=np.float32)
+    data[5, 5] = 1000.0
+    data[22, 31] = 500.0
+    res = skydiff.block_median(data, 4)
+    assert res.shape == (10, 10)
+    assert np.all(res == 10.0)
+
+
+def test_median_filter_preserves_shape():
+    data = np.arange(100, dtype=np.float32).reshape(10, 10)
+    data[4, 4] = 1e4
+    res = skydiff.median_filter(data, 3)
+    assert res.shape == data.shape
+    assert res[4, 4] < 100
+
+
+def test_to_mono():
+    rgb = np.zeros((4, 5, 3), dtype=np.uint8)
+    rgb[..., 1] = 100
+    res = skydiff.to_mono(rgb)
+    assert res.shape == (4, 5) and res.dtype == np.float32
+    assert np.allclose(res, 71.52)
+
+
+def test_celestial_poles():
+    # the visible pole is due North (up) in the north and due South
+    # (down) in the south, at an altitude equal to the latitude
+    alt, az = skydiff.hadec_to_altaz(0.0, 90.0, 19.8)
+    assert alt == pytest.approx(19.8) and az % 360 == pytest.approx(0.0)
+    alt, az = skydiff.hadec_to_altaz(0.0, -90.0, -35.3)
+    assert alt == pytest.approx(35.3) and az % 360 == pytest.approx(180.0)
+    x, y = skydiff.altaz_to_xy(alt, az, 1.0)
+    assert x == pytest.approx(0.0, abs=1e-9) and y < 0
+
+
+@pytest.mark.parametrize('lat', LATS)
+def test_derotation_cancels_stars(lat):
+    stars = _star_field()
+    dt = 300.0
+    dlst = dt * skydiff.sidereal_rate_deg_s
+    old = skydiff.make_work_frame(_render(stars, 0.0, seed=1, lat=lat), 1, 1)
+    cur = skydiff.make_work_frame(_render(stars, dlst, seed=2, lat=lat),
+                                  1, 1)
+
+    plain = skydiff.sky_diff(cur, old, dt_sec=dt, lat_deg=lat,
+                             derotate_sky=False)
+    derot = skydiff.sky_diff(cur, old, dt_sec=dt, lat_deg=lat,
+                             derotate_sky=True)
+    m = plain['mask'] & derot['mask']
+    # star residuals dominate the tail of the distribution
+    tail_plain = np.percentile(np.abs(plain['sig'][m] * plain['sigma']), 99.9)
+    tail_derot = np.percentile(np.abs(derot['sig'][m] * derot['sigma']), 99.9)
+    assert tail_derot < 0.5 * tail_plain
+    # and what is left is close to the noise (sqrt(2) for two frames)
+    rms_derot = np.sqrt(np.mean((derot['sig'][m] * derot['sigma']) ** 2))
+    assert rms_derot < 1.5 * np.sqrt(2.0)
+
+
+@pytest.mark.parametrize('lat', LATS)
+def test_clear_sky_has_low_cloud_cover(lat):
+    stars = _star_field()
+    dt = 180.0
+    dlst = dt * skydiff.sidereal_rate_deg_s
+    old = skydiff.make_work_frame(_render(stars, 0.0, seed=1, lat=lat), 1, 3)
+    cur = skydiff.make_work_frame(_render(stars, dlst, seed=2, lat=lat),
+                                  1, 3)
+    res = skydiff.sky_diff(cur, old, dt_sec=dt, lat_deg=lat)
+    assert res['cc_pct'] < 2.0
+
+
+@pytest.mark.parametrize('amp', [15.0, -15.0])
+def test_cloud_is_detected(amp):
+    stars = _star_field()
+    dt = 180.0
+    dlst = dt * skydiff.sidereal_rate_deg_s
+    cloud = (40.0, -30.0, 25.0, amp)
+    old = skydiff.make_work_frame(_render(stars, 0.0, seed=1), 1, 3)
+    cur = skydiff.make_work_frame(_render(stars, dlst, cloud=cloud,
+                                          seed=2), 1, 3)
+    res = skydiff.sky_diff(cur, old, dt_sec=dt, lat_deg=LAT)
+    assert res['cc_pct'] > 2.0
+    # the change is at the cloud, with the right sign
+    cx = (SIZE - 1) * 0.5
+    val = res['sig'][int(round(cx - 30)), int(round(cx + 40))]
+    assert np.sign(val) == np.sign(amp)
+    assert abs(val) > 5.0
+
+
+def test_gain_change_is_normalized():
+    stars = _star_field()
+    old = skydiff.make_work_frame(_render(stars, 0.0, seed=1), 1, 3)
+    cur = skydiff.make_work_frame(_render(stars, 0.0, seed=2), 1, 3)
+    res = skydiff.sky_diff(1.5 * cur, old, dt_sec=0.0, lat_deg=LAT)
+    assert res['gain'] == pytest.approx(1.5, rel=0.05)
+    assert res['cc_pct'] < 2.0
+
+
+def test_shape_mismatch_raises():
+    with pytest.raises(ValueError):
+        skydiff.sky_diff(np.zeros((10, 10)), np.zeros((12, 12)))
+
+
+@pytest.mark.parametrize('rot_deg', [0.0, -35.6])
+def test_orient_frame_centers_zenith(rot_deg):
+    # a 640x480 frame whose sky circle (r=300) runs off the top and bottom,
+    # like the GTC camera; mark the zenith pixel
+    frame = np.full((480, 640), 10, dtype=np.uint8)
+    xc, yc, r = 327, 252, 300
+    frame[yc, xc] = 255
+    out, cover = skydiff.orient_frame(frame, xc, yc, r, rot_deg=rot_deg,
+                                      flip_ud=True)
+    assert out.shape == (2 * r + 1, 2 * r + 1)
+    # the zenith stays exactly at the center, even after rotation
+    assert out[r, r] == 255
+    # the parts of the circle outside the camera frame are not covered
+    assert cover[r, r] and not cover.all()
+    assert np.all(out[~cover] == 0)
+    if rot_deg == 0.0:
+        # frame rows 0..479 land at rows 48..527 of the square, which
+        # flip_ud turns into rows 73..552
+        n = 2 * r + 1
+        top, bot = n - 480 + (yc - r), n - 1 + (yc - r)
+        assert top == 73 and bot == 552
+        col = cover[:, r]
+        assert col[top:bot + 1].all()
+        assert not col[:top].any() and not col[bot + 1:].any()

@@ -9,6 +9,7 @@
     flip_y: False
     flip_x: False
     update_interval: 120.0
+    latitude: 19.8255
   
   Canada France Hawaii Telescope Nānā ao (Visible):
     url: "https://www.cfht.hawaii.edu/~nanaao/last_vis.png"
@@ -20,6 +21,7 @@
     flip_y: False
     flip_x: True
     update_interval: 120.0
+    latitude: 19.8253
   
   Canada France Hawaii Nānā ao (Mid-IR):
     url: "https://www.cfht.hawaii.edu/~nanaao/last_ir.png"
@@ -31,9 +33,10 @@
     flip_y: False
     flip_x: True
     update_interval: 180.0
+    latitude: 19.8253
     
   Canary - La Palma/GTC (Visual):
-    url: "http://www.gtc.iac.es/multimedia/netcam/camaraAllSky.jpg"
+    url: "https://www.gtc.iac.es/multimedia/netcam/camaraAllSky.jpg"
     title: "Canary - La Palma/GTC (Visual)"
     ctr_x: 327
     ctr_y: 252
@@ -42,6 +45,7 @@
     flip_y: False
     flip_x: False
     update_interval: 180.0
+    latitude: 28.7564
     
     
   Australia - Mount Stromlo (Visual):
@@ -54,4 +58,5 @@
     flip_y: False
     flip_x: False
     update_interval: 120.0
+    latitude: -35.3206
   
