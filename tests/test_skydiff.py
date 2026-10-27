@@ -211,3 +211,50 @@ def test_orient_frame_centers_zenith(rot_deg):
         col = cover[:, r]
         assert col[top:bot + 1].all()
         assert not col[:top].any() and not col[bot + 1:].any()
+
+
+def _write_gif(path, n_frames):
+    from PIL import Image
+    frames = []
+    for i in range(n_frames):
+        arr = np.zeros((20, 30, 3), dtype=np.uint8)
+        arr[:5, :, 0] = 255           # mark the top rows (orientation)
+        arr[10:, :, 1] = 40 * (i + 1)  # frame number in the bottom half
+        frames.append(Image.fromarray(arr))
+    frames[0].save(path, save_all=True, append_images=frames[1:],
+                   duration=70, loop=0)
+
+
+def test_read_multiframe(tmp_path):
+    path = str(tmp_path / 'loop.gif')
+    _write_gif(path, 4)
+    last = skydiff.read_multiframe(path)
+    assert last.shape == (20, 30, 3)
+    assert last[15, 0, 1] == 160          # last frame
+    assert skydiff.read_multiframe(path, frame=0)[15, 0, 1] == 40
+    assert skydiff.read_multiframe(path, frame=-2)[15, 0, 1] == 120
+
+    # single-frame image: not handled here
+    one = str(tmp_path / 'one.gif')
+    _write_gif(one, 1)
+    assert skydiff.read_multiframe(one) is None
+
+
+def test_read_multiframe_matches_ginga_orientation(tmp_path):
+    # the frame must come out oriented like ginga's own loader does it,
+    # since the camera geometry in skycams.yml refers to that
+    import logging
+    from ginga.RGBImage import RGBImage
+    from PIL import Image
+    path = str(tmp_path / 'loop.gif')
+    _write_gif(path, 3)
+    first = skydiff.read_multiframe(path, frame=0)
+    # (ginga reads a palette GIF as palette indices, so compare with the
+    # same frame saved as an RGB PNG)
+    png = str(tmp_path / 'first.png')
+    with Image.open(path) as im:
+        im.convert('RGB').save(png)
+    img = RGBImage(logger=logging.getLogger('test'))
+    img.load_file(png)
+    assert np.array_equal(img.get_data()[..., :3], first)
+    assert first[0, 0, 0] == 255       # top rows stay at the top

@@ -71,6 +71,21 @@ def orient_frame(data_np, ctr_x, ctr_y, radius, rot_deg=0.0,
     return out, cover > 127
 
 
+def read_multiframe(path, frame=-1):
+    """If the image file at `path` has more than one frame (e.g. an
+    animated GIF loop), return frame number `frame` (negative counts from
+    the end; default: the last frame) as an RGB array.  Return None for a
+    single-frame image.
+    """
+    from PIL import Image
+    with Image.open(path) as im:
+        n_frames = getattr(im, 'n_frames', 1)
+        if n_frames <= 1:
+            return None
+        im.seek(int(frame) % n_frames)
+        return np.asarray(im.convert('RGB'))
+
+
 def to_mono(data_np):
     """Return a 2D float32 luminance image from a 2D or RGB(A) array."""
     data_np = np.asarray(data_np)

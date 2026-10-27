@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: spot VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 09:37-1000\n"
+"POT-Creation-Date: 2026-10-27 10:10-1000\n"
 "PO-Revision-Date: 2026-08-22 10:57-1000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ko\n"
@@ -48,7 +48,7 @@ msgstr "대상을 대상 목록에 추가"
 msgid "All"
 msgstr "전체"
 
-#: spot/plugins/SkyCam.py:380
+#: spot/plugins/SkyCam.py:392
 msgid "All Sky Camera"
 msgstr "전천 카메라"
 
@@ -81,7 +81,7 @@ msgstr "방위각:"
 msgid "Bad coordinate for '{}': RA={} DEC={} EQ={}: {}"
 msgstr "'{}' 의 좌표가 잘못됨: RA={} DEC={} EQ={}: {}"
 
-#: spot/plugins/SkyCam.py:133
+#: spot/plugins/SkyCam.py:134
 msgid "Blue/Red"
 msgstr "파랑/빨강"
 
@@ -93,7 +93,7 @@ msgstr "찾아보기"
 msgid "Browse for information about a target"
 msgstr "대상에 대한 정보 찾아보기"
 
-#: spot/plugins/SkyCam.py:384
+#: spot/plugins/SkyCam.py:396
 msgid "Camera Server:"
 msgstr "카메라 서버:"
 
@@ -105,11 +105,11 @@ msgstr "이미지 중앙 정렬"
 msgid "Center on target position"
 msgstr "대상 위치를 중앙에 배치"
 
-#: spot/plugins/SkyCam.py:128
+#: spot/plugins/SkyCam.py:129
 msgid "Change"
 msgstr "변화량"
 
-#: spot/plugins/SkyCam.py:437
+#: spot/plugins/SkyCam.py:449
 msgid ""
 "Change (in units of the image noise) above which a pixel counts toward "
 "cloud cover"
@@ -142,7 +142,7 @@ msgstr "상용:"
 #: spot/plugins/FindImage.py:322 spot/plugins/InsFov.py:194
 #: spot/plugins/LGS.py:133 spot/plugins/PolarSky.py:237
 #: spot/plugins/SPOTMenubar.py:99 spot/plugins/SiteSelector.py:218
-#: spot/plugins/SkyCam.py:468 spot/plugins/TargetGenerator.py:202
+#: spot/plugins/SkyCam.py:480 spot/plugins/TargetGenerator.py:202
 #: spot/plugins/Targets.py:544 spot/plugins/TelescopePosition.py:232
 #: spot/plugins/Visibility.py:282
 msgid "Close"
@@ -161,7 +161,7 @@ msgstr "이 작업공간 닫기"
 msgid "Close workspace {}"
 msgstr "작업공간 {} 닫기"
 
-#: spot/plugins/SkyCam.py:414
+#: spot/plugins/SkyCam.py:426
 msgid "Cloud Cover:"
 msgstr "운량:"
 
@@ -177,11 +177,11 @@ msgstr "불러온 모든 파일 접기"
 msgid "Color"
 msgstr "색상"
 
-#: spot/plugins/SkyCam.py:413
+#: spot/plugins/SkyCam.py:425
 msgid "Color Map:"
 msgstr "컬러맵:"
 
-#: spot/plugins/SkyCam.py:447
+#: spot/plugins/SkyCam.py:459
 msgid ""
 "Color map for the differential image (you can also pick any color map and"
 " adjust the cut levels and contrast with the usual viewer controls)"
@@ -195,7 +195,7 @@ msgstr "이 플러그인의 일부 설정 구성"
 msgid "Contrast/bias with left/right/up/down"
 msgstr "좌/우/상/하로 대비/바이어스 조정"
 
-#: spot/plugins/SkyCam.py:402
+#: spot/plugins/SkyCam.py:414
 msgid "Convert a color image to monochrome by channel mixing"
 msgstr "채널 믹싱으로 컬러 이미지를 흑백으로 변환"
 
@@ -245,11 +245,11 @@ msgstr "삭제"
 msgid "Delete selected target from targets"
 msgstr "선택한 대상을 대상 목록에서 삭제"
 
-#: spot/plugins/SkyCam.py:411
+#: spot/plugins/SkyCam.py:423
 msgid "Derotate Sky"
 msgstr "하늘 회전 보정"
 
-#: spot/plugins/SkyCam.py:409
+#: spot/plugins/SkyCam.py:421
 msgid "Differential Image"
 msgstr "차분 영상"
 
@@ -293,13 +293,17 @@ msgstr "DateTime 설정 활성화"
 msgid "Equinox:"
 msgstr "분점:"
 
-#: spot/plugins/SkyCam.py:910
+#: spot/plugins/SkyCam.py:981
 msgid "Error downloading, check log"
 msgstr "다운로드 오류, 로그를 확인하세요"
 
 #: spot/plugins/FindImage.py:690
 msgid "Error getting coordinate: please check selected target"
 msgstr "좌표를 가져오는 중 오류: 선택한 대상을 확인하세요"
+
+#: spot/plugins/SkyCam.py:591
+msgid "Error processing image, check log"
+msgstr "이미지 처리 오류, 로그를 확인하십시오"
 
 #: spot/plugins/Targets.py:953
 #, python-brace-format
@@ -316,7 +320,7 @@ msgid "Error saving workspace {}: {}"
 msgstr "작업공간 {} 저장 오류: {}"
 
 #: spot/plugins/FindImage.py:358 spot/plugins/SiteSelector.py:250
-#: spot/plugins/SkyCam.py:500 spot/plugins/Targets.py:576
+#: spot/plugins/SkyCam.py:512 spot/plugins/Targets.py:576
 #, python-brace-format
 msgid "Error saving {} config: {}"
 msgstr "{} 설정 저장 오류: {}"
@@ -394,14 +398,14 @@ msgstr "선택 항목 가져오기"
 msgid "Get the coordinates from the selected target in Targets table"
 msgstr "대상 테이블에서 선택한 대상의 좌표 가져오기"
 
-#: spot/plugins/SkyCam.py:125
+#: spot/plugins/SkyCam.py:126
 msgid "Gray"
 msgstr "회색"
 
 #: spot/plugins/CPanel.py:151 spot/plugins/FindImage.py:325
 #: spot/plugins/InsFov.py:197 spot/plugins/LGS.py:136
 #: spot/plugins/PolarSky.py:240 spot/plugins/SPOTMenubar.py:73
-#: spot/plugins/SiteSelector.py:221 spot/plugins/SkyCam.py:471
+#: spot/plugins/SiteSelector.py:221 spot/plugins/SkyCam.py:483
 #: spot/plugins/TargetGenerator.py:205 spot/plugins/Targets.py:547
 #: spot/plugins/TelescopePosition.py:235 spot/plugins/Visibility.py:285
 msgid "Help"
@@ -416,7 +420,7 @@ msgstr "'{}' 형식의 파일을 불러오는 방법을 알 수 없습니다"
 msgid "Illum:"
 msgstr "조도:"
 
-#: spot/plugins/FindImage.py:304 spot/plugins/SkyCam.py:455
+#: spot/plugins/FindImage.py:304 spot/plugins/SkyCam.py:467
 msgid "Image Download Info"
 msgstr "이미지 다운로드 정보"
 
@@ -506,7 +510,7 @@ msgstr "대상 병합"
 msgid "Modes are oneshot or locked"
 msgstr "모드는 원샷 또는 잠금"
 
-#: spot/plugins/SkyCam.py:383
+#: spot/plugins/SkyCam.py:395
 msgid "Monochrome"
 msgstr "흑백"
 
@@ -611,14 +615,14 @@ msgstr "대상 위치로 이동"
 msgid "Pan with left, zoom with right"
 msgstr "왼쪽으로 이동, 오른쪽으로 확대/축소"
 
-#: spot/plugins/SkyCam.py:451
+#: spot/plugins/SkyCam.py:463
 #, python-brace-format
 msgid ""
 "Percentage of the sky within {}° of the zenith that changed by more than "
 "the threshold"
 msgstr "천정에서 {}° 이내의 하늘 중 임계값보다 크게 변한 부분의 비율"
 
-#: spot/plugins/SkyCam.py:397
+#: spot/plugins/SkyCam.py:409
 msgid "Place the all sky image on the background"
 msgstr "전천 이미지를 배경에 배치"
 
@@ -634,7 +638,7 @@ msgstr "이 기능을 사용하려면 'oscript' 모듈을 설치하세요"
 msgid "Please select 'Find image' to find your selected image"
 msgstr "선택한 이미지를 찾으려면 'Find image'를 선택하세요"
 
-#: spot/plugins/SkyCam.py:456
+#: spot/plugins/SkyCam.py:468
 msgid "Please select 'Show Sky Image' to display an image"
 msgstr "이미지를 표시하려면 'Show Sky Image'를 선택하세요"
 
@@ -762,7 +766,7 @@ msgstr "대상 색상 순환"
 msgid "Rotate target colors for each file loaded"
 msgstr "불러온 각 파일마다 대상 색상 순환"
 
-#: spot/plugins/SkyCam.py:431
+#: spot/plugins/SkyCam.py:443
 msgid ""
 "Rotate the previous image with the sky so that stars cancel (requires a "
 "correctly oriented camera and its latitude)"
@@ -781,7 +785,7 @@ msgid "Satellites / PAM"
 msgstr "위성 / PAM"
 
 #: spot/plugins/FindImage.py:328 spot/plugins/SiteSelector.py:224
-#: spot/plugins/SkyCam.py:474 spot/plugins/Targets.py:550
+#: spot/plugins/SkyCam.py:486 spot/plugins/Targets.py:550
 msgid "Save config"
 msgstr "설정 저장"
 
@@ -789,7 +793,7 @@ msgstr "설정 저장"
 msgid "Save the size and position of workspace windows"
 msgstr "작업공간 창의 크기와 위치 저장"
 
-#: spot/plugins/SiteSelector.py:226 spot/plugins/SkyCam.py:476
+#: spot/plugins/SiteSelector.py:226 spot/plugins/SkyCam.py:488
 msgid "Save this plugin's configuration for the workspace"
 msgstr "이 플러그인의 구성을 작업공간에 저장"
 
@@ -817,7 +821,7 @@ msgstr ""
 "{}"
 
 #: spot/plugins/FindImage.py:356 spot/plugins/SiteSelector.py:248
-#: spot/plugins/SkyCam.py:498 spot/plugins/Targets.py:574
+#: spot/plugins/SkyCam.py:510 spot/plugins/Targets.py:574
 #, python-brace-format
 msgid "Saved configuration for {}"
 msgstr "{} 의 구성을 저장했습니다"
@@ -903,11 +907,11 @@ msgstr "가시성 그래프의 시간축 설정"
 msgid "Settings"
 msgstr "설정"
 
-#: spot/plugins/SkyCam.py:410
+#: spot/plugins/SkyCam.py:422
 msgid "Show Differential Image"
 msgstr "차분 영상 표시"
 
-#: spot/plugins/SkyCam.py:382
+#: spot/plugins/SkyCam.py:394
 msgid "Show Sky Image"
 msgstr "하늘 영상 표시"
 
@@ -915,7 +919,7 @@ msgstr "하늘 영상 표시"
 msgid "Show moon separation on plot lines"
 msgstr "그래프 선에 달 이격 표시"
 
-#: spot/plugins/SkyCam.py:426
+#: spot/plugins/SkyCam.py:438
 msgid "Show the change since the previous image instead of the image itself"
 msgstr "영상 자체 대신 이전 영상 이후의 변화를 표시합니다"
 
@@ -983,6 +987,10 @@ msgstr "종료:"
 msgid "Sun"
 msgstr "태양"
 
+#: spot/plugins/SkyCam.py:731
+msgid "Sun up"
+msgstr "낮"
+
 #: spot/plugins/PolarSky.py:188
 msgid "Sunrise"
 msgstr "일출"
@@ -1023,7 +1031,7 @@ msgstr "대상 가시성 계산 진행 상황"
 msgid "Target:"
 msgstr "대상:"
 
-#: spot/plugins/SkyCam.py:130
+#: spot/plugins/SkyCam.py:131
 msgid "Teal/Amber"
 msgstr "청록/호박"
 
@@ -1039,7 +1047,7 @@ msgstr "대상의 적위"
 msgid "The Right Ascension at the target"
 msgstr "대상의 적경"
 
-#: spot/plugins/SkyCam.py:412
+#: spot/plugins/SkyCam.py:424
 msgid "Threshold:"
 msgstr "임계값:"
 
@@ -1066,6 +1074,10 @@ msgstr "시간:"
 #: spot/plugins/TelescopePosition.py:221
 msgid "Track target by telescope position"
 msgstr "망원경 위치로 대상 추적"
+
+#: spot/plugins/SkyCam.py:733
+msgid "Twilight"
+msgstr "박명"
 
 #: spot/plugins/SiteSelector.py:193
 msgid "UTC offset (min):"
@@ -1095,7 +1107,7 @@ msgstr "보기 업데이트"
 msgid "View image metadata (Header plugin)"
 msgstr "이미지 메타데이터 보기 (Header 플러그인)"
 
-#: spot/plugins/SkyCam.py:702
+#: spot/plugins/SkyCam.py:799
 msgid "Waiting for the next image to create a differential sky..."
 msgstr "차분 영상을 만들기 위해 다음 영상을 기다리는 중..."
 

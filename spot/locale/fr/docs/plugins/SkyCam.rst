@@ -71,7 +71,10 @@ Les commandes sont les suivantes :
 * « Couverture nuageuse » : le pourcentage du ciel situé à moins de 75 degrés du
   zénith qui a varié de plus que le seuil. Il mesure les nuages qui se
   déplacent ou changent d'une image à l'autre ; un ciel uniformément couvert
-  qui ne change pas n'apparaîtra pas.
+  qui ne change pas n'apparaîtra pas. Tant que le Soleil est à moins de 12
+  degrés sous l'horizon au niveau de la caméra, la luminosité du ciel
+  change trop vite pour que la valeur ait un sens : « Crépuscule » ou
+  « Jour » est alors affiché à la place.
 
 L'image différentielle conserve sa propre table de couleurs et ses propres
 niveaux de coupure (de -10 à +10 sigma par défaut), distincts de ceux de
@@ -99,11 +102,18 @@ fournir une URL de téléchargement des images, un titre, un pixel central
 (coordonnées X et Y) de l'image représentant le zénith, le rayon en pixels
 du cercle jusqu'à l'horizon, une rotation à appliquer, s'il faut retourner
 l'image selon X ou Y, et un intervalle de mise à jour exprimé en secondes.
-Vous pouvez aussi indiquer la latitude de la caméra en degrés (négative dans
-l'hémisphère sud) sous la clé « latitude » ; elle sert à compenser la
-rotation du ciel dans l'image différentielle. À défaut, la latitude du site
-sélectionné dans SPOT est utilisée, ce qui est inexact si la caméra se
-trouve sur un autre site.
+Vous pouvez aussi indiquer la position de la caméra en degrés sous les clés
+« latitude » (négative dans l'hémisphère sud) et « longitude » (négative à
+l'ouest de Greenwich). La latitude sert à compenser la rotation du ciel dans
+l'image différentielle, et les deux servent à savoir quand il fait nuit au
+niveau de la caméra. À défaut, la position du site sélectionné dans SPOT
+est utilisée, ce qui est inexact si la caméra se trouve sur un autre site.
+
+Certaines caméras ne publient qu'une image animée (par exemple une boucle
+GIF des dernières images). SPOT utilise alors la dernière image de
+l'animation, qui est normalement la plus récente ; pour en utiliser une
+autre, indiquez son numéro sous la clé « frame » (en comptant à partir de
+0, ou de -1 pour la dernière).
 
 La rotation et les retournements doivent orienter l'image de sorte que le
 nord soit en haut et l'est à gauche, comme dans le graphique polaire du ciel

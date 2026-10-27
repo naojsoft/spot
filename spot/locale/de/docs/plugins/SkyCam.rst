@@ -69,6 +69,10 @@ Die Bedienelemente sind:
   Zenit, der sich um mehr als den Schwellenwert verändert hat. Er erfasst
   Wolken, die sich zwischen den Bildern bewegen oder verändern; eine
   gleichmäßige Bewölkung, die sich nicht verändert, erscheint nicht.
+  Solange die Sonne am Standort der Kamera weniger als 12 Grad unter dem
+  Horizont steht, ändert sich die Himmelshelligkeit zu schnell, als dass
+  der Wert aussagekräftig wäre; dann wird stattdessen „Dämmerung“ oder
+  „Tag“ angezeigt.
 
 Das Differenzbild behält eine eigene Farbtabelle und eigene Schnittwerte
 (standardmäßig -10 bis +10 Sigma), getrennt von denen des normalen Bildes,
@@ -96,12 +100,18 @@ müssen eine URL zum Herunterladen der Bilder angeben, einen Titel, ein
 Mittelpixel (X- und Y-Koordinaten) im Bild, das den Zenit darstellt, den
 Radius des Kreises bis zum Horizont in Pixeln, eine anzuwendende Drehung, ob
 das Bild in X- oder Y-Richtung gespiegelt werden soll, sowie ein
-Aktualisierungsintervall in Sekunden. Sie können außerdem die geografische
-Breite der Kamera in Grad (auf der Südhalbkugel negativ) als „latitude“
-angeben; sie wird verwendet, um im Differenzbild die Drehung des Himmels
-auszugleichen. Fehlt sie, wird die Breite des in SPOT ausgewählten
-Standorts verwendet, was falsch ist, wenn sich die Kamera an einem anderen
-Standort befindet.
+Aktualisierungsintervall in Sekunden. Sie können außerdem den Standort der
+Kamera in Grad als „latitude“ (auf der Südhalbkugel negativ) und
+„longitude“ (westlich von Greenwich negativ) angeben. Die Breite wird
+verwendet, um im Differenzbild die Drehung des Himmels auszugleichen, und
+beide zusammen, um festzustellen, wann es an der Kamera Nacht ist. Fehlen
+sie, wird der Standort des in SPOT ausgewählten Ortes verwendet, was falsch
+ist, wenn sich die Kamera an einem anderen Standort befindet.
+
+Manche Kameras veröffentlichen nur ein animiertes Bild (etwa eine GIF-Schleife
+der letzten Bilder). SPOT verwendet dann das letzte Bild der Animation, das
+normalerweise das neueste ist; um ein anderes Bild zu verwenden, geben Sie
+dessen Nummer als „frame“ an (ab 0 gezählt, oder ab -1 für das letzte).
 
 Drehung und Spiegelungen müssen das Bild so ausrichten, dass Norden oben und
 Osten links liegt, wie im polaren Himmelsdiagramm (auf beiden

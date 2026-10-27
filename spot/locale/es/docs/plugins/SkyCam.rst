@@ -69,6 +69,10 @@ Los controles son:
 * "Nubosidad": el porcentaje del cielo a menos de 75 grados del cenit que
   ha cambiado más que el umbral. Mide las nubes que se mueven o cambian
   entre imágenes; un cielo cubierto uniforme que no cambia no aparecerá.
+  Mientras el Sol está a menos de 12 grados por debajo del horizonte en la
+  cámara, el brillo del cielo cambia demasiado deprisa para que el valor
+  tenga sentido, así que se muestra "Crepúsculo" o "Sol arriba" en su
+  lugar.
 
 La imagen diferencial mantiene su propio mapa de colores y sus propios
 niveles de corte (de -10 a +10 sigma por defecto), separados de los de la
@@ -95,10 +99,18 @@ para descargar las imágenes, un título, un píxel central (coordenadas X e Y)
 de la imagen que represente el cenit, el radio en píxeles del círculo hasta
 el horizonte, una rotación que aplicar, si se debe voltear la imagen en las
 dimensiones X o Y, y un intervalo de actualización medido en segundos.
-También puede indicar la latitud de la cámara en grados (negativa en el
-hemisferio sur) como "latitude"; se usa para compensar la rotación del cielo
-en la imagen diferencial. Si no se indica, se usa la latitud del sitio
-seleccionado en SPOT, lo cual es incorrecto si la cámara está en otro sitio.
+También puede indicar la ubicación de la cámara en grados como "latitude"
+(negativa en el hemisferio sur) y "longitude" (negativa al oeste de
+Greenwich). La latitud se usa para compensar la rotación del cielo en la
+imagen diferencial, y ambas se usan para saber cuándo es de noche en la
+cámara. Si no se indican, se usa la ubicación del sitio seleccionado en
+SPOT, lo cual es incorrecto si la cámara está en otro sitio.
+
+Algunas cámaras solo publican una imagen animada (por ejemplo, un bucle GIF
+de las últimas imágenes). En ese caso SPOT usa el último fotograma de la
+animación, que normalmente es el más reciente; para usar otro fotograma,
+indique su número como "frame" (contando desde 0, o desde -1 para el
+último).
 
 La rotación y los volteos deben orientar la imagen de modo que el norte
 quede arriba y el este a la izquierda, como en el gráfico polar del cielo

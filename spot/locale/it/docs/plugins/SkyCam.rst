@@ -71,7 +71,10 @@ I controlli sono:
 * "Copertura nuvolosa": la percentuale di cielo entro 75 gradi dallo zenit che è
   cambiata più della soglia. Misura le nubi che si spostano o cambiano tra
   un'immagine e l'altra; un cielo coperto uniforme che non cambia non
-  compare.
+  compare. Finché il Sole si trova a meno di 12 gradi sotto l'orizzonte
+  presso la fotocamera, la luminosità del cielo cambia troppo rapidamente
+  perché il valore abbia senso, quindi viene mostrato invece "Crepuscolo"
+  o "Sole alto".
 
 L'immagine differenziale mantiene una propria mappa di colori e propri
 livelli di taglio (per impostazione predefinita da -10 a +10 sigma),
@@ -99,11 +102,19 @@ indicare un URL per scaricare le immagini, un titolo, un pixel centrale
 (coordinate X e Y) dell'immagine che rappresenti lo zenit, il raggio in
 pixel del cerchio fino all'orizzonte, una rotazione da applicare, se
 capovolgere l'immagine nelle dimensioni X o Y, e un intervallo di
-aggiornamento misurato in secondi. Potete anche indicare la latitudine della
-fotocamera in gradi (negativa nell'emisfero australe) come "latitude"; viene
-usata per compensare la rotazione del cielo nell'immagine differenziale. Se
-non è indicata, viene usata la latitudine del sito selezionato in SPOT, che
-non è corretta se la fotocamera si trova in un altro sito.
+aggiornamento misurato in secondi. Potete anche indicare la posizione della
+fotocamera in gradi come "latitude" (negativa nell'emisfero australe) e
+"longitude" (negativa a ovest di Greenwich). La latitudine viene usata per
+compensare la rotazione del cielo nell'immagine differenziale, ed entrambe
+servono a stabilire quando è notte presso la fotocamera. Se non sono
+indicate, viene usata la posizione del sito selezionato in SPOT, che non è
+corretta se la fotocamera si trova in un altro sito.
+
+Alcune fotocamere pubblicano solo un'immagine animata (ad esempio un ciclo
+GIF delle ultime immagini). In tal caso SPOT usa l'ultimo fotogramma
+dell'animazione, che di norma è il più recente; per usare un fotogramma
+diverso, indicatene il numero come "frame" (contando da 0, oppure da -1 per
+l'ultimo).
 
 La rotazione e i capovolgimenti devono orientare l'immagine in modo che il
 nord sia in alto e l'est a sinistra, come nel grafico polare del cielo (in

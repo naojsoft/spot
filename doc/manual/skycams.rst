@@ -74,7 +74,9 @@ The controls are:
 * "Cloud Cover": the percentage of the sky within 75 degrees of the zenith
   that changed by more than the threshold.  It measures clouds that move or
   change between images; a uniform overcast that does not change will not
-  show up.
+  show up.  While the Sun is less than 12 degrees below the horizon at the
+  camera the sky brightness changes too quickly for this to mean anything,
+  so "Twilight" or "Sun up" is shown instead.
 
 The differential image keeps its own color map and cut levels (by default
 -10 to +10 sigma), separate from those of the normal image, and you can
@@ -97,10 +99,17 @@ for downloading images, a title, a center pixel (X and Y coords) in the
 image representing the zenith, the radius of the circle to the horizon
 in pixels, a rotation to be applied, whether to flip the image in X or
 Y dimensions, and an update interval measured in seconds.  You can also
-give the latitude of the camera in degrees (negative in the southern
-hemisphere) as "latitude"; it is used to derotate the sky for the
-differential image.  Without it, the latitude of the site selected in SPOT
-is used, which is wrong if the camera is at a different site.
+give the location of the camera in degrees as "latitude" (negative in the
+southern hemisphere) and "longitude" (negative west of Greenwich).  The
+latitude is used to derotate the sky for the differential image, and both
+are used to tell when it is night at the camera.  Without them, the
+location of the site selected in SPOT is used, which is wrong if the camera
+is at a different site.
+
+Some cameras only publish an animated image (such as a GIF loop of the last
+several images).  SPOT then uses the last frame of the animation, which is
+normally the most recent one; to use a different frame, give its number as
+"frame" (counting from 0, or from -1 for the last frame).
 
 The rotation and flips must turn the image so that North is up and East is
 to the left, as in the polar sky plot (in both hemispheres).  A good check
@@ -121,5 +130,6 @@ For example::
       flip_x: False
       update_interval: 180.0
       latitude: 28.7564
+      longitude: -17.8920
 
 Restart spot and you should be able to pick your new camera from the list.

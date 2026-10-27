@@ -97,6 +97,7 @@ naojsoft packages
 import os
 import time
 import datetime
+import threading
 
 # 3rd party
 import numpy as np
@@ -114,7 +115,7 @@ from ginga.util.paths import ginga_home
 # where our config files are stored
 from spot import __file__
 from spot.util.config import get_workspace_settings, save_settings
-from spot.util import skydiff
+from spot.util import skydiff, calcpos
 from spot.locale import _tr, N_, get_plugin_doc
 cfgdir = os.path.join(os.path.dirname(__file__), 'config')
 
@@ -223,7 +224,10 @@ class SkyCam(GingaPlugin.LocalPlugin):
     * "Cloud Cover": the percentage of the sky within 75 degrees of the
       zenith that changed by more than the threshold.  It measures clouds
       that move or change between images; a uniform overcast that does
-      not change will not show up.
+      not change will not show up.  While the Sun is less than 12 degrees
+      below the horizon at the camera the sky brightness changes too
+      quickly for this to mean anything, so "Twilight" or "Sun up" is
+      shown instead.
 
     The differential image keeps its own color map and cut levels (by
     default -10 to +10 sigma), separate from those of the normal image, and
@@ -249,10 +253,17 @@ class SkyCam(GingaPlugin.LocalPlugin):
     image representing the zenith, the radius of the circle to the horizon
     in pixels, a rotation to be applied, whether to flip the image in X or
     Y dimensions, and an update interval measured in seconds.  You can also
-    give the latitude of the camera in degrees (negative in the southern
-    hemisphere) as "latitude"; it is used to derotate the sky for the
-    differential image.  Without it, the latitude of the site selected in
-    SPOT is used, which is wrong if the camera is at a different site.
+    give the location of the camera in degrees as "latitude" (negative in
+    the southern hemisphere) and "longitude" (negative west of Greenwich).
+    The latitude is used to derotate the sky for the differential image,
+    and both are used to tell when it is night at the camera.  Without
+    them, the location of the site selected in SPOT is used, which is
+    wrong if the camera is at a different site.
+
+    Some cameras only publish an animated image (such as a GIF loop of the
+    last several images).  SPOT then uses the last frame of the animation,
+    which is normally the most recent one; to use a different frame, give
+    its number as "frame" (counting from 0, or from -1 for the last frame).
 
     The rotation and flips must turn the image so that North is up and
     East is to the left, as in the polar sky plot (in both hemispheres).
@@ -286,7 +297,8 @@ class SkyCam(GingaPlugin.LocalPlugin):
                                    diff_median_size=3,
                                    diff_work_size=700,
                                    diff_max_za_deg=75.0,
-                                   diff_color_map='skydiff_gray')
+                                   diff_color_map='skydiff_gray',
+                                   diff_max_sun_alt_deg=-12.0)
         self.settings.load(onError='silent')
 
         self.viewer = self.fitsimage
@@ -300,7 +312,14 @@ class SkyCam(GingaPlugin.LocalPlugin):
         self.cur_work_t = None
         self.old_work_t = None
         self.bin_factor = 1
-        self.cc_pct = None
+        self.cc_text = "--"
+        # image processing runs off the GUI thread; the lock serializes it,
+        # and the generation count lets us drop downloads that were started
+        # before the camera was changed
+        self.proc_lock = threading.Lock()
+        self.proc_gen = 0
+        # observer for a camera that is not at the selected site
+        self.cam_observer = None
 
         # The sky image is drawn with the viewer's color map and cut
         # levels, so the user can adjust them.  The normal and the
@@ -341,11 +360,6 @@ class SkyCam(GingaPlugin.LocalPlugin):
                                            False),
                           image_update_interval=self.config.get(
                               'update_interval', 120.0))
-
-        xc, yc = self.settings['image_center']
-        r = self.settings['image_radius']
-        self.crop_circ = self.dc.Circle(xc, yc, r)
-        self.crop_circ.crdmap = self.viewer.get_coordmap('data')
 
     def read_skycams_config(self):
         # see if user has a custom list of sky cams
@@ -541,19 +555,50 @@ class SkyCam(GingaPlugin.LocalPlugin):
             self.viewer.zoom_fit()
             self.viewer.set_pan(0.0, 0.0)
 
-    def update_image(self, imgpath):
-        # TODO: just keep updating a single image?
+    def _load_image(self, imgpath):
+        """Load an image file and return a ginga image object.
 
+        For a multi-frame image (e.g. an animated GIF loop) the frame
+        given by the camera's "frame" setting is used (default: the last
+        frame, which is usually the most recent).
+        """
+        if imgpath.endswith('.fits'):
+            img = AstroImage(logger=self.logger)
+            img.load_file(imgpath)
+            return img
+
+        img = RGBImage(logger=self.logger)
+        data_np = skydiff.read_multiframe(imgpath,
+                                          frame=self.config.get('frame', -1))
+        if data_np is not None:
+            img.set_data(data_np)
+        else:
+            img.load_file(imgpath)
+        return img
+
+    def _process_file(self, imgpath, gen):
+        """Process a downloaded image.  Runs off the GUI thread."""
+        with self.proc_lock:
+            if gen != self.proc_gen:
+                # the camera was changed after this download started
+                self.logger.info("discarding image from previous camera")
+                return
+            try:
+                self._update_image(imgpath)
+                self._refresh_locked()
+            except Exception as e:
+                self.logger.error(f"error processing sky image: {e}",
+                                  exc_info=True)
+                self.fv.gui_do(self._set_info_text,
+                               _tr("Error processing image, check log"))
+
+    def _update_image(self, imgpath):
         self.logger.info(f"image to be loaded is: {imgpath}")
         flip_x, flip_y, swap_xy = self.settings['image_transform']
         rot_deg = self.settings['image_rotation']
         cvt_mono = self.settings['image_convert_monochrome']
 
-        if imgpath.endswith('.fits'):
-            img = AstroImage(logger=self.logger)
-        else:
-            img = RGBImage(logger=self.logger)
-        img.load_file(imgpath)
+        img = self._load_image(imgpath)
 
         # cut out the sky circle into a square centered on the zenith
         # (padding it if the circle runs off the frame), rotate it about
@@ -581,7 +626,6 @@ class SkyCam(GingaPlugin.LocalPlugin):
                 data_np = data_np.reshape((ht, wd))
 
         self.cur_data = data_np
-        self.refresh_image()
 
     def _update_work_frame(self, data_np, coverage):
         """Reduce a newly arrived frame to a working frame for the
@@ -637,39 +681,70 @@ class SkyCam(GingaPlugin.LocalPlugin):
                     color_map_invert=False, color_map_rot_pct=0.0,
                     contrast=0.5, brightness=0.5, cuts=(-ds, ds))
 
-    def _get_latitude(self):
-        # prefer the camera's own latitude, since the camera need not be
-        # at the site selected in SPOT (it may even be in the other
-        # hemisphere, which would rotate the sky the wrong way)
-        lat = self.config.get('latitude', None)
-        if lat is not None:
-            return float(lat)
+    def _get_observer(self):
+        """Return a calcpos Observer at the camera.
+
+        This is the observer of the site selected in SPOT, unless
+        skycams.yml places the camera elsewhere (e.g. watching the GTC
+        camera with a Hawaii site selected), in which case an observer at
+        the camera's location is made.  Returns None if neither is known.
+        """
+        site_obs = None
         try:
             obj = self.channel.opmon.get_plugin('SiteSelector')
-            return obj.get_status()['latitude_deg']
+            site_obs = obj.get_site().observer
         except Exception as e:
-            self.logger.warning(f"can't get site latitude: {e}")
-            return None
+            self.logger.warning(f"can't get site observer: {e}")
+
+        lat = self.config.get('latitude', None)
+        lon = self.config.get('longitude', None)
+        if lat is None or lon is None:
+            return site_obs
+        lat, lon = float(lat), float(lon)
+        if (site_obs is not None and abs(site_obs.lat_deg - lat) < 1.0 and
+                abs((site_obs.lon_deg - lon + 180.0) % 360.0 - 180.0) < 1.0):
+            # camera is at the selected site
+            return site_obs
+        obs = self.cam_observer
+        if obs is None or (obs.lat_deg, obs.lon_deg) != (lat, lon):
+            obs = calcpos.Observer(self.img_src_name, latitude=lat,
+                                   longitude=lon)
+            self.cam_observer = obs
+        return obs
 
     def _make_diff_image(self):
         """Compute the differential image from the working frames.
         Returns a ginga AstroImage, or None if there are not two frames
-        yet.
+        yet.  Sets self.cc_text to the text for the cloud cover display.
         """
         if self.old_work is None or self.cur_work is None:
-            self.cc_pct = None
+            self.cc_text = "--"
             return None
+        obs = self._get_observer()
         res = skydiff.sky_diff(
             self.cur_work, self.old_work,
             dt_sec=self.cur_work_t - self.old_work_t,
-            lat_deg=self._get_latitude(),
+            lat_deg=None if obs is None else obs.lat_deg,
             derotate_sky=self.settings['diff_derotate'],
             threshold_sigma=self.settings['diff_threshold_sigma'],
             max_za_deg=self.settings['diff_max_za_deg'],
             noise_step=max(1, self.settings['diff_median_size']))
-        self.cc_pct = res['cc_pct']
-        self.logger.info("sky diff: CC=%.1f%% sigma=%.3g gain=%.3f" % (
-            res['cc_pct'], res['sigma'], res['gain']))
+        self.cc_text = "{:.1f}%".format(res['cc_pct'])
+
+        # the cloud cover means nothing while the sky is bright
+        sun_alt = None
+        if obs is not None:
+            dt = datetime.datetime.fromtimestamp(self.cur_work_t,
+                                                 tz=datetime.timezone.utc)
+            sun_alt = float(calcpos.get_ss('Sun').calc(obs, dt).alt_deg)
+        if sun_alt is not None:
+            if sun_alt > 0.0:
+                self.cc_text = _tr("Sun up")
+            elif sun_alt > self.settings['diff_max_sun_alt_deg']:
+                self.cc_text = _tr("Twilight")
+        self.logger.info("sky diff: CC=%.1f%% sigma=%.3g gain=%.3f "
+                         "sun_alt=%s" % (res['cc_pct'], res['sigma'],
+                                         res['gain'], sun_alt))
 
         sig = res['sig']
         valid = np.isfinite(sig)
@@ -680,44 +755,20 @@ class SkyCam(GingaPlugin.LocalPlugin):
         img.set(name=self.img_src_name, nothumb=True, path=None)
         return img
 
-    def _show_cloud_cover(self):
-        if not self.gui_up:
-            return
-        if self.flag_use_diff_image and self.cc_pct is not None:
-            self.w.cloud_cover.set_text("{:.1f}%".format(self.cc_pct))
-        else:
-            self.w.cloud_cover.set_text("--")
-
-    def refresh_image(self):
-        if self.flag_use_diff_image:
-            img = self._make_diff_image()
-            self._show_cloud_cover()
-            if img is not None:
-                self.w.select_image_info.set_text('')
-                self.fv.gui_do(self.__update_display, img,
-                               scale=self.bin_factor, mode='diff')
-                return
-            # no previous frame yet--show the plain image meanwhile
-            self.w.select_image_info.set_text(
-                _tr("Waiting for the next image to create a differential sky..."))
-        else:
-            self._show_cloud_cover()
-            self.w.select_image_info.set_text('')
-
+    def _make_sky_image(self):
+        """Make the (normal) sky image from the current frame, or return
+        None if there is none.
+        """
         data_np = self.cur_data
         if data_np is None:
-            return
+            return None
         ht, wd = data_np.shape[:2]
 
-        img = AstroImage(data_np=data_np, logger=self.logger)
-        ctr_x, ctr_y = wd // 2, ht // 2
-        self.crop_circ.x = ctr_x
-        self.crop_circ.y = ctr_y
-        self.crop_circ.radius = ctr_x
-        mask = img.get_shape_mask(self.crop_circ)
+        # mask out everything outside the sky circle and the camera's field
+        _x, _y, r = skydiff.radial_coords(data_np.shape)
+        mask = r <= wd * 0.5
         if (self.cur_coverage is not None and
                 self.cur_coverage.shape == mask.shape):
-            # hide areas outside the camera's field
             mask &= self.cur_coverage
 
         mn, mx = trcalc.get_minmax_dtype(data_np.dtype)
@@ -729,13 +780,53 @@ class SkyCam(GingaPlugin.LocalPlugin):
             data_np = trcalc.add_alpha(data_np, alpha=alpha)
         data_np[:, :, -1] = mask * mx
 
-        img.set_data(data_np)
+        img = AstroImage(data_np=data_np, logger=self.logger)
         img.set(name=self.img_src_name, nothumb=True, path=None)
+        return img
 
-        self.fv.gui_do(self.__update_display, img)
+    def refresh_image(self):
+        """Recompute and redisplay the image (e.g. after a setting was
+        changed), off the GUI thread.
+        """
+        self.fv.nongui_do(self._refresh_task)
 
-    def __update_display(self, img, scale=1, mode='normal'):
+    def _refresh_task(self):
+        with self.proc_lock:
+            self._refresh_locked()
+
+    def _refresh_locked(self):
+        """Make the image to display and hand it to the GUI thread.
+        Must be called with self.proc_lock held.
+        """
+        info_text = None
+        if self.flag_use_diff_image:
+            img = self._make_diff_image()
+            if img is not None:
+                self.fv.gui_do(self.__update_display, img,
+                               scale=self.bin_factor, mode='diff',
+                               cc_text=self.cc_text)
+                return
+            # no previous frame yet--show the plain image meanwhile
+            info_text = _tr("Waiting for the next image to create a "
+                            "differential sky...")
+
+        img = self._make_sky_image()
+        if img is None:
+            if info_text is not None:
+                self.fv.gui_do(self._set_info_text, info_text)
+            return
+        self.fv.gui_do(self.__update_display, img, info_text=info_text)
+
+    def _set_info_text(self, text):
+        if self.gui_up:
+            self.w.select_image_info.set_text(text)
+
+    def __update_display(self, img, scale=1, mode='normal', cc_text="--",
+                         info_text=None):
         self.fv.assert_gui_thread()
+        if not self.gui_up:
+            # plugin was closed while the image was being processed
+            return
         with self.viewer.suppress_redraw:
             self._set_view_mode(mode)
             wd, ht = img.get_size()
@@ -757,10 +848,12 @@ class SkyCam(GingaPlugin.LocalPlugin):
                 self.viewer.auto_levels()
                 self.need_autolevels = False
             self.viewer.redraw(whence=0)
-        image_timestamp = datetime.datetime.now()
-        image_info_text = "Image download complete, displayed at: " + \
-            image_timestamp.strftime("%D %H:%M:%S")
-        self.w.select_image_info.set_text(image_info_text)
+        self.w.cloud_cover.set_text(cc_text)
+        if info_text is None:
+            image_timestamp = datetime.datetime.now()
+            info_text = "Image download complete, displayed at: " + \
+                image_timestamp.strftime("%D %H:%M:%S")
+        self.w.select_image_info.set_text(info_text)
 
     def download_sky_image(self):
         try:
@@ -781,13 +874,13 @@ class SkyCam(GingaPlugin.LocalPlugin):
             # routing through a CORS proxy).
             future = Future.Future()
             future.add_callback('resolved', self._sky_image_downloaded_cb,
-                                start_time)
+                                start_time, self.proc_gen)
             self.fv.nongui_do(self.fv.download_file, url, outpath, future)
 
         except Exception as e:
             self._notify_download_failed(e)
 
-    def _sky_image_downloaded_cb(self, future, start_time):
+    def _sky_image_downloaded_cb(self, future, start_time, gen):
         try:
             filepath = future.get_value(block=False)
         except Exception as e:
@@ -796,23 +889,23 @@ class SkyCam(GingaPlugin.LocalPlugin):
         self.logger.info("download finished in %.4f sec" % (
             time.time() - start_time))
         self.sky_image_path = filepath
-        self.fv.gui_do(self.update_sky_image)
+        # image processing can take a noticeable time for large images,
+        # so keep it off the GUI thread
+        self.fv.nongui_do(self._process_file, filepath, gen)
 
     def _notify_download_failed(self, e):
         image_timestamp = datetime.datetime.now()
         image_info_text = "Image download failed at: " + \
             image_timestamp.strftime("%D %H:%M:%S")
-        self.fv.gui_do(self.w.select_image_info.set_text, image_info_text)
+        self.fv.gui_do(self._set_info_text, image_info_text)
         self.logger.error("failed to download/update sky image: {}"
                           .format(e), exc_info=True)
 
     def update_sky_image(self):
-        self.fv.assert_gui_thread()
-        with self.viewer.suppress_redraw:
-            if self.sky_image_path is not None:
-                self.update_image(self.sky_image_path)
-
-            self.viewer.redraw(whence=0)
+        """Reprocess the last downloaded image (off the GUI thread)."""
+        if self.sky_image_path is not None:
+            self.fv.nongui_do(self._process_file, self.sky_image_path,
+                              self.proc_gen)
 
     def get_scale(self):
         """Return scale in pix/deg"""
@@ -847,17 +940,13 @@ class SkyCam(GingaPlugin.LocalPlugin):
 
     def mono_image_toggle_cb(self, w, tf):
         self.settings.set(image_convert_monochrome=tf)
-        # reload the current image (the differential image always works
+        # reprocess the current image (the differential image always works
         # from luminance, so it is not affected)
-        self.cur_data = None
-        self.fv.gui_do(self.update_sky_image)
+        self.update_sky_image()
 
     def diff_image_toggle_cb(self, w, tf):
         self.flag_use_diff_image = tf
         self.settings.set(show_diff_image=tf)
-        message = "Waiting for the next image to create a differential sky..."
-        if self.flag_use_diff_image and self.old_work is None:
-            self.w.select_image_info.set_text(message)
         self.refresh_image()
 
     def derotate_toggle_cb(self, w, tf):
@@ -881,26 +970,19 @@ class SkyCam(GingaPlugin.LocalPlugin):
     def image_source_cb(self, w, idx):
         which = w.get_text()
         self.img_src_name = which
-        config = self.configs[which]
-        self.config = {
-            'url': config['url'],
-            'title': config['title'],
-            'ctr_x': config['ctr_x'],
-            'ctr_y': config['ctr_y'],
-            'radius': config['radius'],
-            'rot_deg': config['rot_deg'],
-            'flip_y': config['flip_y'],
-            'flip_x': config['flip_x'],
-            'update_interval': config['update_interval'],
-            'latitude': config.get('latitude', None),
-        }
-        self.update_settings()
-        self.cur_data = None
-        self.cur_work = self.old_work = None
-        self.cur_work_t = self.old_work_t = None
-        self.cc_pct = None
+        self.config = dict(self.configs[which])
+        with self.proc_lock:
+            # forget the previous camera's images, and any downloads of
+            # them still in progress
+            self.proc_gen += 1
+            self.update_settings()
+            self.sky_image_path = None
+            self.cur_data = self.cur_coverage = None
+            self.cur_work = self.old_work = None
+            self.cur_work_t = self.old_work_t = None
+            self.cc_text = "--"
         self.need_autolevels = True
-        self._show_cloud_cover()
+        self.w.cloud_cover.set_text(self.cc_text)
         try:
             self.canvas.delete_all_objects()
             self._sky_image_canvas_setup()

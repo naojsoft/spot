@@ -18,8 +18,17 @@ Ver 1.5.3 (unreleased)
 - SkyCam: fixed the sky image being off-center (misaligned with the polar
   plot) for cameras whose sky circle runs off the edge of the frame, such
   as GTC.
-- skycams.yml: cameras can give their own "latitude", used to derotate the
-  sky; the GTC camera URL now uses https.
+- SkyCam: the cloud cover shows "Twilight" or "Sun up" instead of a
+  value while the Sun is above -12 degrees at the camera.
+- SkyCam: image processing now runs off the GUI thread, so large camera
+  images no longer make the interface pause.
+- SkyCam: animated images (e.g. GIF loops) are supported; the last frame
+  is used unless a "frame" is given in skycams.yml.  The CFHT Nana ao
+  cameras, whose still images are no longer published, now use their
+  GIF loops (and the Mid-IR camera has new geometry).
+- skycams.yml: cameras can give their own "latitude" and "longitude",
+  used to derotate the sky and to tell when it is night at the camera;
+  the GTC camera URL now uses https.
 
 
 Ver 1.5.2 (2026-09-22)
