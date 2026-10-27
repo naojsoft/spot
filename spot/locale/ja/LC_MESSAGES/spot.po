@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: spot VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 10:10-1000\n"
+"POT-Creation-Date: 2026-10-27 11:27-1000\n"
 "PO-Revision-Date: 2026-08-05 14:59-1000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ja\n"
@@ -48,7 +48,7 @@ msgstr "ターゲットをリストに追加"
 msgid "All"
 msgstr "すべて"
 
-#: spot/plugins/SkyCam.py:392
+#: spot/plugins/SkyCam.py:407
 msgid "All Sky Camera"
 msgstr "全天カメラ"
 
@@ -81,7 +81,7 @@ msgstr "方位角:"
 msgid "Bad coordinate for '{}': RA={} DEC={} EQ={}: {}"
 msgstr "'{}' の座標が不正です: RA={} DEC={} EQ={}: {}"
 
-#: spot/plugins/SkyCam.py:134
+#: spot/plugins/SkyCam.py:135
 msgid "Blue/Red"
 msgstr "青/赤"
 
@@ -93,7 +93,11 @@ msgstr "参照"
 msgid "Browse for information about a target"
 msgstr "ターゲットの情報を参照"
 
-#: spot/plugins/SkyCam.py:396
+#: spot/plugins/SkyCam.py:490
+msgid "Camera"
+msgstr "カメラ"
+
+#: spot/plugins/SkyCam.py:411
 msgid "Camera Server:"
 msgstr "カメラサーバー:"
 
@@ -105,11 +109,11 @@ msgstr "画像を中央に配置"
 msgid "Center on target position"
 msgstr "ターゲット位置を中央に配置"
 
-#: spot/plugins/SkyCam.py:129
+#: spot/plugins/SkyCam.py:130
 msgid "Change"
 msgstr "変化量"
 
-#: spot/plugins/SkyCam.py:449
+#: spot/plugins/SkyCam.py:464
 msgid ""
 "Change (in units of the image noise) above which a pixel counts toward "
 "cloud cover"
@@ -139,10 +143,18 @@ msgstr "プロットする対象を選択"
 msgid "Civil:"
 msgstr "常用薄明:"
 
+#: spot/plugins/SkyCam.py:499
+msgid "Clear"
+msgstr "クリア"
+
+#: spot/plugins/SkyCam.py:501
+msgid "Clear the cloud cover history"
+msgstr "雲量の履歴を消去します"
+
 #: spot/plugins/FindImage.py:322 spot/plugins/InsFov.py:194
 #: spot/plugins/LGS.py:133 spot/plugins/PolarSky.py:237
 #: spot/plugins/SPOTMenubar.py:99 spot/plugins/SiteSelector.py:218
-#: spot/plugins/SkyCam.py:480 spot/plugins/TargetGenerator.py:202
+#: spot/plugins/SkyCam.py:512 spot/plugins/TargetGenerator.py:202
 #: spot/plugins/Targets.py:544 spot/plugins/TelescopePosition.py:232
 #: spot/plugins/Visibility.py:282
 msgid "Close"
@@ -161,9 +173,13 @@ msgstr "このワークスペースを閉じる"
 msgid "Close workspace {}"
 msgstr "ワークスペース {} を閉じる"
 
-#: spot/plugins/SkyCam.py:426
+#: spot/plugins/SkyCam.py:441
 msgid "Cloud Cover:"
 msgstr "雲量:"
+
+#: spot/plots/cloudcover.py:32
+msgid "Cloud cover (%)"
+msgstr "雲量 (%)"
 
 #: spot/plugins/Targets.py:468
 msgid "Collapse All"
@@ -177,11 +193,11 @@ msgstr "読み込んだすべてのファイルを折りたたむ"
 msgid "Color"
 msgstr "色"
 
-#: spot/plugins/SkyCam.py:425
+#: spot/plugins/SkyCam.py:440
 msgid "Color Map:"
 msgstr "カラーマップ:"
 
-#: spot/plugins/SkyCam.py:459
+#: spot/plugins/SkyCam.py:474
 msgid ""
 "Color map for the differential image (you can also pick any color map and"
 " adjust the cut levels and contrast with the usual viewer controls)"
@@ -195,7 +211,7 @@ msgstr "このプラグインの設定を行う"
 msgid "Contrast/bias with left/right/up/down"
 msgstr "上下左右でコントラスト/バイアスを調整"
 
-#: spot/plugins/SkyCam.py:414
+#: spot/plugins/SkyCam.py:429
 msgid "Convert a color image to monochrome by channel mixing"
 msgstr "チャンネルミキシングでカラー画像をモノクロに変換します"
 
@@ -245,11 +261,11 @@ msgstr "削除"
 msgid "Delete selected target from targets"
 msgstr "選択したターゲットを削除"
 
-#: spot/plugins/SkyCam.py:423
+#: spot/plugins/SkyCam.py:438
 msgid "Derotate Sky"
 msgstr "空の回転を補正"
 
-#: spot/plugins/SkyCam.py:421
+#: spot/plugins/SkyCam.py:436
 msgid "Differential Image"
 msgstr "差分画像"
 
@@ -293,7 +309,7 @@ msgstr "DateTime設定を有効化"
 msgid "Equinox:"
 msgstr "分点:"
 
-#: spot/plugins/SkyCam.py:981
+#: spot/plugins/SkyCam.py:1073
 msgid "Error downloading, check log"
 msgstr "ダウンロードエラー、ログを確認してください"
 
@@ -301,7 +317,7 @@ msgstr "ダウンロードエラー、ログを確認してください"
 msgid "Error getting coordinate: please check selected target"
 msgstr "座標の取得エラー: 選択したターゲットを確認してください"
 
-#: spot/plugins/SkyCam.py:591
+#: spot/plugins/SkyCam.py:623
 msgid "Error processing image, check log"
 msgstr "画像の処理中にエラー、ログを確認してください"
 
@@ -320,7 +336,7 @@ msgid "Error saving workspace {}: {}"
 msgstr "ワークスペース {} の保存中にエラー: {}"
 
 #: spot/plugins/FindImage.py:358 spot/plugins/SiteSelector.py:250
-#: spot/plugins/SkyCam.py:512 spot/plugins/Targets.py:576
+#: spot/plugins/SkyCam.py:544 spot/plugins/Targets.py:576
 #, python-brace-format
 msgid "Error saving {} config: {}"
 msgstr "{} の設定の保存中にエラー: {}"
@@ -398,18 +414,22 @@ msgstr "選択を取得"
 msgid "Get the coordinates from the selected target in Targets table"
 msgstr "Targetsテーブルで選択したターゲットの座標を取得"
 
-#: spot/plugins/SkyCam.py:126
+#: spot/plugins/SkyCam.py:127
 msgid "Gray"
 msgstr "グレー"
 
 #: spot/plugins/CPanel.py:151 spot/plugins/FindImage.py:325
 #: spot/plugins/InsFov.py:197 spot/plugins/LGS.py:136
 #: spot/plugins/PolarSky.py:240 spot/plugins/SPOTMenubar.py:73
-#: spot/plugins/SiteSelector.py:221 spot/plugins/SkyCam.py:483
+#: spot/plugins/SiteSelector.py:221 spot/plugins/SkyCam.py:515
 #: spot/plugins/TargetGenerator.py:205 spot/plugins/Targets.py:547
 #: spot/plugins/TelescopePosition.py:235 spot/plugins/Visibility.py:285
 msgid "Help"
 msgstr "ヘルプ"
+
+#: spot/plugins/SkyCam.py:505
+msgid "History"
+msgstr "履歴"
 
 #: spot/plugins/Targets.py:922 spot/plugins/Targets.py:1008
 #, python-brace-format
@@ -420,7 +440,7 @@ msgstr "'{}' 形式のファイルの読み込み方法が不明です"
 msgid "Illum:"
 msgstr "輝面比:"
 
-#: spot/plugins/FindImage.py:304 spot/plugins/SkyCam.py:467
+#: spot/plugins/FindImage.py:304 spot/plugins/SkyCam.py:482
 msgid "Image Download Info"
 msgstr "画像ダウンロード情報"
 
@@ -510,7 +530,7 @@ msgstr "ターゲットを統合"
 msgid "Modes are oneshot or locked"
 msgstr "モードはワンショットまたはロック"
 
-#: spot/plugins/SkyCam.py:395
+#: spot/plugins/SkyCam.py:410
 msgid "Monochrome"
 msgstr "モノクロ"
 
@@ -615,14 +635,14 @@ msgstr "ターゲットの位置へ移動"
 msgid "Pan with left, zoom with right"
 msgstr "左で移動、右でズーム"
 
-#: spot/plugins/SkyCam.py:463
+#: spot/plugins/SkyCam.py:478
 #, python-brace-format
 msgid ""
 "Percentage of the sky within {}° of the zenith that changed by more than "
 "the threshold"
 msgstr "天頂から {}° 以内の空のうち、しきい値より大きく変化した部分の割合"
 
-#: spot/plugins/SkyCam.py:409
+#: spot/plugins/SkyCam.py:424
 msgid "Place the all sky image on the background"
 msgstr "全天画像を背景に表示します"
 
@@ -638,7 +658,7 @@ msgstr "この機能を使うには 'oscript' モジュールをインストー�
 msgid "Please select 'Find image' to find your selected image"
 msgstr "選択した画像を探すには「画像を検索」を選んでください"
 
-#: spot/plugins/SkyCam.py:468
+#: spot/plugins/SkyCam.py:483
 msgid "Please select 'Show Sky Image' to display an image"
 msgstr "画像を表示するには「Show Sky Image」を選択してください"
 
@@ -766,7 +786,7 @@ msgstr "ターゲットの色を順に変える"
 msgid "Rotate target colors for each file loaded"
 msgstr "読み込むファイルごとにターゲットの色を変える"
 
-#: spot/plugins/SkyCam.py:443
+#: spot/plugins/SkyCam.py:458
 msgid ""
 "Rotate the previous image with the sky so that stars cancel (requires a "
 "correctly oriented camera and its latitude)"
@@ -785,7 +805,7 @@ msgid "Satellites / PAM"
 msgstr "衛星 / PAM"
 
 #: spot/plugins/FindImage.py:328 spot/plugins/SiteSelector.py:224
-#: spot/plugins/SkyCam.py:486 spot/plugins/Targets.py:550
+#: spot/plugins/SkyCam.py:518 spot/plugins/Targets.py:550
 msgid "Save config"
 msgstr "設定を保存"
 
@@ -793,7 +813,7 @@ msgstr "設定を保存"
 msgid "Save the size and position of workspace windows"
 msgstr "ワークスペースのウィンドウのサイズと位置を保存"
 
-#: spot/plugins/SiteSelector.py:226 spot/plugins/SkyCam.py:488
+#: spot/plugins/SiteSelector.py:226 spot/plugins/SkyCam.py:520
 msgid "Save this plugin's configuration for the workspace"
 msgstr "このワークスペース用にプラグインの設定を保存"
 
@@ -821,7 +841,7 @@ msgstr ""
 "{}"
 
 #: spot/plugins/FindImage.py:356 spot/plugins/SiteSelector.py:248
-#: spot/plugins/SkyCam.py:510 spot/plugins/Targets.py:574
+#: spot/plugins/SkyCam.py:542 spot/plugins/Targets.py:574
 #, python-brace-format
 msgid "Saved configuration for {}"
 msgstr "{} の設定を保存しました"
@@ -907,11 +927,11 @@ msgstr "可視性プロットの時間軸を設定"
 msgid "Settings"
 msgstr "設定"
 
-#: spot/plugins/SkyCam.py:422
+#: spot/plugins/SkyCam.py:437
 msgid "Show Differential Image"
 msgstr "差分画像を表示"
 
-#: spot/plugins/SkyCam.py:394
+#: spot/plugins/SkyCam.py:409
 msgid "Show Sky Image"
 msgstr "全天画像を表示"
 
@@ -919,7 +939,7 @@ msgstr "全天画像を表示"
 msgid "Show moon separation on plot lines"
 msgstr "プロット線上に月との離角を表示"
 
-#: spot/plugins/SkyCam.py:438
+#: spot/plugins/SkyCam.py:453
 msgid "Show the change since the previous image instead of the image itself"
 msgstr "画像そのものの代わりに、前の画像からの変化を表示します"
 
@@ -987,7 +1007,7 @@ msgstr "停止:"
 msgid "Sun"
 msgstr "太陽"
 
-#: spot/plugins/SkyCam.py:731
+#: spot/plugins/SkyCam.py:774
 msgid "Sun up"
 msgstr "日中"
 
@@ -1031,7 +1051,7 @@ msgstr "ターゲット可視性計算の進捗"
 msgid "Target:"
 msgstr "ターゲット:"
 
-#: spot/plugins/SkyCam.py:131
+#: spot/plugins/SkyCam.py:132
 msgid "Teal/Amber"
 msgstr "ティール/アンバー"
 
@@ -1047,7 +1067,7 @@ msgstr "ターゲットの赤緯"
 msgid "The Right Ascension at the target"
 msgstr "ターゲットの赤経"
 
-#: spot/plugins/SkyCam.py:424
+#: spot/plugins/SkyCam.py:439
 msgid "Threshold:"
 msgstr "しきい値:"
 
@@ -1075,7 +1095,7 @@ msgstr "時刻:"
 msgid "Track target by telescope position"
 msgstr "望遠鏡の位置でターゲットを追尾"
 
-#: spot/plugins/SkyCam.py:733
+#: spot/plugins/SkyCam.py:777
 msgid "Twilight"
 msgstr "薄明"
 
@@ -1107,7 +1127,7 @@ msgstr "表示を更新"
 msgid "View image metadata (Header plugin)"
 msgstr "画像メタデータを表示（Headerプラグイン）"
 
-#: spot/plugins/SkyCam.py:799
+#: spot/plugins/SkyCam.py:861
 msgid "Waiting for the next image to create a differential sky..."
 msgstr "差分画像を作成するため、次の画像を待っています..."
 

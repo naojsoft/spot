@@ -9,6 +9,11 @@ menu déroulant propose plusieurs sites au choix.
 Définir l'image du ciel
 =======================
 
+Le module comporte deux onglets : les commandes décrites ci-dessous se
+trouvent dans l'onglet « Caméra », et l'onglet « Historique » affiche la
+couverture nuageuse au fil du temps (voir « Historique de la couverture
+nuageuse »).
+
 Sélectionnez le serveur de caméra que vous souhaitez utiliser dans le menu
 déroulant sous « Caméra tout-ciel ». Cochez ensuite la case à côté de « Afficher l'image du ciel » pour afficher l'image dans la fenêtre `<wsname>_TGTS`. L'image
 du ciel peut mettre quelques instants à apparaître. Lorsque l'image est mise
@@ -74,7 +79,9 @@ Les commandes sont les suivantes :
   qui ne change pas n'apparaîtra pas. Tant que le Soleil est à moins de 12
   degrés sous l'horizon au niveau de la caméra, la luminosité du ciel
   change trop vite pour que la valeur ait un sens : « Crépuscule » ou
-  « Jour » est alors affiché à la place.
+  « Jour » est alors affiché à la place. La couverture nuageuse est mesurée
+  dès que deux images sont disponibles, même si l'image différentielle n'est
+  pas affichée.
 
 L'image différentielle conserve sa propre table de couleurs et ses propres
 niveaux de coupure (de -10 à +10 sigma par défaut), distincts de ceux de
@@ -89,6 +96,18 @@ Le bouton « Enregistrer la configuration » enregistre vos sélections actuelle
 caméra, « Afficher l'image du ciel », « Afficher l'image différentielle » et « Monochrome »)
 pour l'espace de travail, afin qu'elles soient restaurées à sa prochaine
 ouverture.
+
+Historique de la couverture nuageuse
+====================================
+
+L'onglet « Historique » affiche la couverture nuageuse des 12 dernières
+heures, avec les heures dans le fuseau horaire du site sélectionné dans
+SPOT. Un point est ajouté pour chaque nouvelle image de la caméra, que
+l'image différentielle soit affichée ou non. Les points obtenus au
+crépuscule ou de jour sont dessinés creux, et la ligne est interrompue là
+où des images manquent. Modifier le seuil ne change que le dernier point.
+« Effacer » vide l'historique, qui est aussi effacé quand vous sélectionnez
+une autre caméra.
 
 Ajouter de nouvelles caméras
 ============================

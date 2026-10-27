@@ -10,6 +10,11 @@ scegliere.
 Impostare l'immagine del cielo
 ==============================
 
+Il plugin ha due schede: i controlli descritti di seguito si trovano nella
+scheda "Fotocamera", mentre la scheda "Cronologia" mostra un grafico della
+copertura nuvolosa nel tempo (vedere "Cronologia della copertura
+nuvolosa").
+
 Selezionate il server della fotocamera che desiderate usare dal menu a
 discesa sotto "Fotocamera all-sky". Quindi spuntate la casella accanto a "Mostra immagine del cielo" per visualizzare l'immagine nella finestra `<wsname>_TGTS`.
 Potrebbe volerci qualche istante prima che l'immagine del cielo compaia.
@@ -74,7 +79,9 @@ I controlli sono:
   compare. Finché il Sole si trova a meno di 12 gradi sotto l'orizzonte
   presso la fotocamera, la luminosità del cielo cambia troppo rapidamente
   perché il valore abbia senso, quindi viene mostrato invece "Crepuscolo"
-  o "Sole alto".
+  o "Sole alto". La copertura nuvolosa viene misurata ogni volta che sono
+  disponibili due immagini, anche se l'immagine differenziale non è
+  mostrata.
 
 L'immagine differenziale mantiene una propria mappa di colori e propri
 livelli di taglio (per impostazione predefinita da -10 a +10 sigma),
@@ -89,6 +96,17 @@ viene ignorato.
 Il pulsante "Salva configurazione" registra le vostre selezioni attuali (server della
 fotocamera, "Mostra immagine del cielo", "Mostra immagine differenziale" e "Monocromatico") per
 lo spazio di lavoro, così che vengano ripristinate alla successiva apertura.
+
+Cronologia della copertura nuvolosa
+===================================
+
+La scheda "Cronologia" mostra la copertura nuvolosa delle ultime 12 ore, con
+gli orari nel fuso orario del sito selezionato in SPOT. Viene aggiunto un
+punto per ogni nuova immagine della fotocamera, che l'immagine differenziale
+sia mostrata o meno. I punti ottenuti durante il crepuscolo o di giorno sono
+disegnati vuoti, e la linea si interrompe dove mancano immagini. Cambiare la
+soglia modifica solo il punto più recente. "Cancella" svuota la cronologia,
+che viene svuotata anche quando si seleziona un'altra fotocamera.
 
 Aggiungere nuove fotocamere
 ===========================

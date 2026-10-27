@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: spot VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-27 10:10-1000\n"
+"POT-Creation-Date: 2026-10-27 11:27-1000\n"
 "PO-Revision-Date: 2026-08-22 10:58-1000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: de\n"
@@ -48,7 +48,7 @@ msgstr "Ziel zur Zielliste hinzufügen"
 msgid "All"
 msgstr "Alle"
 
-#: spot/plugins/SkyCam.py:392
+#: spot/plugins/SkyCam.py:407
 msgid "All Sky Camera"
 msgstr "Ganzhimmelkamera"
 
@@ -81,7 +81,7 @@ msgstr "Az:"
 msgid "Bad coordinate for '{}': RA={} DEC={} EQ={}: {}"
 msgstr "Ungültige Koordinate für '{}': RA={} DEC={} EQ={}: {}"
 
-#: spot/plugins/SkyCam.py:134
+#: spot/plugins/SkyCam.py:135
 msgid "Blue/Red"
 msgstr "Blau/Rot"
 
@@ -93,7 +93,11 @@ msgstr "Durchsuchen"
 msgid "Browse for information about a target"
 msgstr "Informationen zu einem Ziel durchsuchen"
 
-#: spot/plugins/SkyCam.py:396
+#: spot/plugins/SkyCam.py:490
+msgid "Camera"
+msgstr "Kamera"
+
+#: spot/plugins/SkyCam.py:411
 msgid "Camera Server:"
 msgstr "Kameraserver:"
 
@@ -105,11 +109,11 @@ msgstr "Bild zentrieren"
 msgid "Center on target position"
 msgstr "Auf Zielposition zentrieren"
 
-#: spot/plugins/SkyCam.py:129
+#: spot/plugins/SkyCam.py:130
 msgid "Change"
 msgstr "Veränderung"
 
-#: spot/plugins/SkyCam.py:449
+#: spot/plugins/SkyCam.py:464
 msgid ""
 "Change (in units of the image noise) above which a pixel counts toward "
 "cloud cover"
@@ -141,10 +145,18 @@ msgstr "Wählen, was dargestellt wird"
 msgid "Civil:"
 msgstr "Bürgerlich:"
 
+#: spot/plugins/SkyCam.py:499
+msgid "Clear"
+msgstr "Löschen"
+
+#: spot/plugins/SkyCam.py:501
+msgid "Clear the cloud cover history"
+msgstr "Den Bewölkungsverlauf löschen"
+
 #: spot/plugins/FindImage.py:322 spot/plugins/InsFov.py:194
 #: spot/plugins/LGS.py:133 spot/plugins/PolarSky.py:237
 #: spot/plugins/SPOTMenubar.py:99 spot/plugins/SiteSelector.py:218
-#: spot/plugins/SkyCam.py:480 spot/plugins/TargetGenerator.py:202
+#: spot/plugins/SkyCam.py:512 spot/plugins/TargetGenerator.py:202
 #: spot/plugins/Targets.py:544 spot/plugins/TelescopePosition.py:232
 #: spot/plugins/Visibility.py:282
 msgid "Close"
@@ -163,9 +175,13 @@ msgstr "Diesen Arbeitsbereich schließen"
 msgid "Close workspace {}"
 msgstr "Arbeitsbereich {} schließen"
 
-#: spot/plugins/SkyCam.py:426
+#: spot/plugins/SkyCam.py:441
 msgid "Cloud Cover:"
 msgstr "Bewölkung:"
+
+#: spot/plots/cloudcover.py:32
+msgid "Cloud cover (%)"
+msgstr "Bewölkung (%)"
 
 #: spot/plugins/Targets.py:468
 msgid "Collapse All"
@@ -179,11 +195,11 @@ msgstr "Alle geladenen Dateien einklappen"
 msgid "Color"
 msgstr "Farbe"
 
-#: spot/plugins/SkyCam.py:425
+#: spot/plugins/SkyCam.py:440
 msgid "Color Map:"
 msgstr "Farbtabelle:"
 
-#: spot/plugins/SkyCam.py:459
+#: spot/plugins/SkyCam.py:474
 msgid ""
 "Color map for the differential image (you can also pick any color map and"
 " adjust the cut levels and contrast with the usual viewer controls)"
@@ -200,7 +216,7 @@ msgstr "Einige Einstellungen für dieses Plugin konfigurieren"
 msgid "Contrast/bias with left/right/up/down"
 msgstr "Kontrast/Bias mit Links/Rechts/Oben/Unten"
 
-#: spot/plugins/SkyCam.py:414
+#: spot/plugins/SkyCam.py:429
 msgid "Convert a color image to monochrome by channel mixing"
 msgstr "Ein Farbbild durch Kanalmischung in Monochrom umwandeln"
 
@@ -250,11 +266,11 @@ msgstr "Löschen"
 msgid "Delete selected target from targets"
 msgstr "Ausgewähltes Ziel aus den Zielen löschen"
 
-#: spot/plugins/SkyCam.py:423
+#: spot/plugins/SkyCam.py:438
 msgid "Derotate Sky"
 msgstr "Himmelsdrehung ausgleichen"
 
-#: spot/plugins/SkyCam.py:421
+#: spot/plugins/SkyCam.py:436
 msgid "Differential Image"
 msgstr "Differenzbild"
 
@@ -298,7 +314,7 @@ msgstr "DateTime-Einstellung aktivieren"
 msgid "Equinox:"
 msgstr "Äquinoktium:"
 
-#: spot/plugins/SkyCam.py:981
+#: spot/plugins/SkyCam.py:1073
 msgid "Error downloading, check log"
 msgstr "Fehler beim Herunterladen, Protokoll prüfen"
 
@@ -306,7 +322,7 @@ msgstr "Fehler beim Herunterladen, Protokoll prüfen"
 msgid "Error getting coordinate: please check selected target"
 msgstr "Fehler beim Abrufen der Koordinate: bitte ausgewähltes Ziel prüfen"
 
-#: spot/plugins/SkyCam.py:591
+#: spot/plugins/SkyCam.py:623
 msgid "Error processing image, check log"
 msgstr "Fehler beim Verarbeiten des Bildes, siehe Protokoll"
 
@@ -325,7 +341,7 @@ msgid "Error saving workspace {}: {}"
 msgstr "Fehler beim Speichern des Arbeitsbereichs {}: {}"
 
 #: spot/plugins/FindImage.py:358 spot/plugins/SiteSelector.py:250
-#: spot/plugins/SkyCam.py:512 spot/plugins/Targets.py:576
+#: spot/plugins/SkyCam.py:544 spot/plugins/Targets.py:576
 #, python-brace-format
 msgid "Error saving {} config: {}"
 msgstr "Fehler beim Speichern der {}-Konfiguration: {}"
@@ -403,18 +419,22 @@ msgstr "Ausgewähltes abrufen"
 msgid "Get the coordinates from the selected target in Targets table"
 msgstr "Koordinaten des ausgewählten Ziels aus der Zieltabelle abrufen"
 
-#: spot/plugins/SkyCam.py:126
+#: spot/plugins/SkyCam.py:127
 msgid "Gray"
 msgstr "Grau"
 
 #: spot/plugins/CPanel.py:151 spot/plugins/FindImage.py:325
 #: spot/plugins/InsFov.py:197 spot/plugins/LGS.py:136
 #: spot/plugins/PolarSky.py:240 spot/plugins/SPOTMenubar.py:73
-#: spot/plugins/SiteSelector.py:221 spot/plugins/SkyCam.py:483
+#: spot/plugins/SiteSelector.py:221 spot/plugins/SkyCam.py:515
 #: spot/plugins/TargetGenerator.py:205 spot/plugins/Targets.py:547
 #: spot/plugins/TelescopePosition.py:235 spot/plugins/Visibility.py:285
 msgid "Help"
 msgstr "Hilfe"
+
+#: spot/plugins/SkyCam.py:505
+msgid "History"
+msgstr "Verlauf"
 
 #: spot/plugins/Targets.py:922 spot/plugins/Targets.py:1008
 #, python-brace-format
@@ -425,7 +445,7 @@ msgstr "Dateien vom Typ '{}' können nicht geladen werden"
 msgid "Illum:"
 msgstr "Beleucht.:"
 
-#: spot/plugins/FindImage.py:304 spot/plugins/SkyCam.py:467
+#: spot/plugins/FindImage.py:304 spot/plugins/SkyCam.py:482
 msgid "Image Download Info"
 msgstr "Bild-Download-Info"
 
@@ -515,7 +535,7 @@ msgstr "Ziele zusammenführen"
 msgid "Modes are oneshot or locked"
 msgstr "Modi sind Einzel oder Gesperrt"
 
-#: spot/plugins/SkyCam.py:395
+#: spot/plugins/SkyCam.py:410
 msgid "Monochrome"
 msgstr "Monochrom"
 
@@ -620,7 +640,7 @@ msgstr "Auf die Zielposition schwenken"
 msgid "Pan with left, zoom with right"
 msgstr "Mit links schwenken, mit rechts zoomen"
 
-#: spot/plugins/SkyCam.py:463
+#: spot/plugins/SkyCam.py:478
 #, python-brace-format
 msgid ""
 "Percentage of the sky within {}° of the zenith that changed by more than "
@@ -629,7 +649,7 @@ msgstr ""
 "Prozentsatz des Himmels innerhalb von {}° um den Zenit, der sich um mehr "
 "als den Schwellenwert verändert hat"
 
-#: spot/plugins/SkyCam.py:409
+#: spot/plugins/SkyCam.py:424
 msgid "Place the all sky image on the background"
 msgstr "Das Ganzhimmelbild in den Hintergrund legen"
 
@@ -645,7 +665,7 @@ msgstr "Bitte das Modul 'oscript' installieren, um diese Funktion zu nutzen"
 msgid "Please select 'Find image' to find your selected image"
 msgstr "Bitte 'Find image' wählen, um das ausgewählte Bild zu finden"
 
-#: spot/plugins/SkyCam.py:468
+#: spot/plugins/SkyCam.py:483
 msgid "Please select 'Show Sky Image' to display an image"
 msgstr "Bitte 'Show Sky Image' wählen, um ein Bild anzuzeigen"
 
@@ -773,7 +793,7 @@ msgstr "Zielfarben durchrotieren"
 msgid "Rotate target colors for each file loaded"
 msgstr "Zielfarben für jede geladene Datei durchrotieren"
 
-#: spot/plugins/SkyCam.py:443
+#: spot/plugins/SkyCam.py:458
 msgid ""
 "Rotate the previous image with the sky so that stars cancel (requires a "
 "correctly oriented camera and its latitude)"
@@ -795,7 +815,7 @@ msgid "Satellites / PAM"
 msgstr "Satelliten / PAM"
 
 #: spot/plugins/FindImage.py:328 spot/plugins/SiteSelector.py:224
-#: spot/plugins/SkyCam.py:486 spot/plugins/Targets.py:550
+#: spot/plugins/SkyCam.py:518 spot/plugins/Targets.py:550
 msgid "Save config"
 msgstr "Konfiguration speichern"
 
@@ -803,7 +823,7 @@ msgstr "Konfiguration speichern"
 msgid "Save the size and position of workspace windows"
 msgstr "Größe und Position der Arbeitsbereichsfenster speichern"
 
-#: spot/plugins/SiteSelector.py:226 spot/plugins/SkyCam.py:488
+#: spot/plugins/SiteSelector.py:226 spot/plugins/SkyCam.py:520
 msgid "Save this plugin's configuration for the workspace"
 msgstr "Konfiguration dieses Plugins für den Arbeitsbereich speichern"
 
@@ -831,7 +851,7 @@ msgstr ""
 "{}"
 
 #: spot/plugins/FindImage.py:356 spot/plugins/SiteSelector.py:248
-#: spot/plugins/SkyCam.py:510 spot/plugins/Targets.py:574
+#: spot/plugins/SkyCam.py:542 spot/plugins/Targets.py:574
 #, python-brace-format
 msgid "Saved configuration for {}"
 msgstr "Konfiguration für {} gespeichert"
@@ -917,11 +937,11 @@ msgstr "Zeitachse für das Sichtbarkeitsdiagramm festlegen"
 msgid "Settings"
 msgstr "Einstellungen"
 
-#: spot/plugins/SkyCam.py:422
+#: spot/plugins/SkyCam.py:437
 msgid "Show Differential Image"
 msgstr "Differenzbild anzeigen"
 
-#: spot/plugins/SkyCam.py:394
+#: spot/plugins/SkyCam.py:409
 msgid "Show Sky Image"
 msgstr "Himmelsbild anzeigen"
 
@@ -929,7 +949,7 @@ msgstr "Himmelsbild anzeigen"
 msgid "Show moon separation on plot lines"
 msgstr "Mondabstand auf den Diagrammlinien anzeigen"
 
-#: spot/plugins/SkyCam.py:438
+#: spot/plugins/SkyCam.py:453
 msgid "Show the change since the previous image instead of the image itself"
 msgstr "Statt des Bildes selbst die Veränderung seit dem vorherigen Bild anzeigen"
 
@@ -999,7 +1019,7 @@ msgstr "Ende:"
 msgid "Sun"
 msgstr "Sonne"
 
-#: spot/plugins/SkyCam.py:731
+#: spot/plugins/SkyCam.py:774
 msgid "Sun up"
 msgstr "Tag"
 
@@ -1043,7 +1063,7 @@ msgstr "Fortschritt der Zielsichtbarkeitsberechnung"
 msgid "Target:"
 msgstr "Ziel:"
 
-#: spot/plugins/SkyCam.py:131
+#: spot/plugins/SkyCam.py:132
 msgid "Teal/Amber"
 msgstr "Petrol/Bernstein"
 
@@ -1059,7 +1079,7 @@ msgstr "Die Deklination am Ziel"
 msgid "The Right Ascension at the target"
 msgstr "Die Rektaszension am Ziel"
 
-#: spot/plugins/SkyCam.py:424
+#: spot/plugins/SkyCam.py:439
 msgid "Threshold:"
 msgstr "Schwellenwert:"
 
@@ -1087,7 +1107,7 @@ msgstr "Zeit:"
 msgid "Track target by telescope position"
 msgstr "Ziel anhand der Teleskopposition verfolgen"
 
-#: spot/plugins/SkyCam.py:733
+#: spot/plugins/SkyCam.py:777
 msgid "Twilight"
 msgstr "Dämmerung"
 
@@ -1119,7 +1139,7 @@ msgstr "Ansicht aktualisieren"
 msgid "View image metadata (Header plugin)"
 msgstr "Bild-Metadaten anzeigen (Header-Plugin)"
 
-#: spot/plugins/SkyCam.py:799
+#: spot/plugins/SkyCam.py:861
 msgid "Waiting for the next image to create a differential sky..."
 msgstr ""
 "Warte auf das nächste Bild, um ein Differenzbild des Himmels zu "

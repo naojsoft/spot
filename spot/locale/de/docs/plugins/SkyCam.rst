@@ -10,6 +10,10 @@ Standorten zur Auswahl.
 Das Himmelsbild festlegen
 =========================
 
+Das Plugin hat zwei Reiter: Die unten beschriebenen Bedienelemente
+befinden sich auf dem Reiter „Kamera“, und der Reiter „Verlauf“ zeigt die
+Bewölkung im zeitlichen Verlauf (siehe „Bewölkungsverlauf“).
+
 Wählen Sie im Auswahlmenü unter „Ganzhimmelkamera“ den Kameraserver, den Sie
 verwenden möchten. Aktivieren Sie dann das Kontrollkästchen neben „Himmelsbild anzeigen“, um das Bild im Fenster `<wsname>_TGTS` anzuzeigen. Es kann einen
 Moment dauern, bis das Himmelsbild erscheint. Wenn das Bild aktualisiert
@@ -72,7 +76,8 @@ Die Bedienelemente sind:
   Solange die Sonne am Standort der Kamera weniger als 12 Grad unter dem
   Horizont steht, ändert sich die Himmelshelligkeit zu schnell, als dass
   der Wert aussagekräftig wäre; dann wird stattdessen „Dämmerung“ oder
-  „Tag“ angezeigt.
+  „Tag“ angezeigt. Die Bewölkung wird gemessen, sobald zwei Bilder
+  vorliegen, auch wenn das Differenzbild nicht angezeigt wird.
 
 Das Differenzbild behält eine eigene Farbtabelle und eigene Schnittwerte
 (standardmäßig -10 bis +10 Sigma), getrennt von denen des normalen Bildes,
@@ -87,6 +92,17 @@ Die Schaltfläche „Konfiguration speichern“ speichert Ihre aktuelle Auswahl
 (Kameraserver, „Himmelsbild anzeigen“, „Differenzbild anzeigen“ und
 „Monochrom“) für den Arbeitsbereich, sodass sie beim nächsten Öffnen
 wiederhergestellt wird.
+
+Bewölkungsverlauf
+=================
+
+Der Reiter „Verlauf“ zeigt die Bewölkung der letzten 12 Stunden, mit
+Uhrzeiten in der Zeitzone des in SPOT ausgewählten Standorts. Für jedes neue
+Bild der Kamera wird ein Punkt hinzugefügt, ob das Differenzbild angezeigt
+wird oder nicht. Punkte aus der Dämmerung oder vom Tag werden hohl
+gezeichnet, und die Linie ist unterbrochen, wo Bilder fehlen. Eine Änderung
+des Schwellenwerts ändert nur den letzten Punkt. „Löschen“ leert den
+Verlauf, der auch geleert wird, wenn Sie eine andere Kamera auswählen.
 
 Neue Kameras hinzufügen
 =======================

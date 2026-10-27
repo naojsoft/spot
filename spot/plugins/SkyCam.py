@@ -116,6 +116,7 @@ from ginga.util.paths import ginga_home
 from spot import __file__
 from spot.util.config import get_workspace_settings, save_settings
 from spot.util import skydiff, calcpos
+from spot.plots.cloudcover import CloudCoverPlot
 from spot.locale import _tr, N_, get_plugin_doc
 cfgdir = os.path.join(os.path.dirname(__file__), 'config')
 
@@ -164,6 +165,10 @@ class SkyCam(GingaPlugin.LocalPlugin):
 
     Setting the Sky Image
     =====================
+
+    The plugin has two tabs: the controls described below are on the
+    "Camera" tab, and the "History" tab plots the cloud cover over time
+    (see "Cloud Cover History").
 
     Select the camera server you would like to use from the drop down menu
     under "All Sky Camera". Then, press the checkbox next to "Show Sky Image"
@@ -227,7 +232,8 @@ class SkyCam(GingaPlugin.LocalPlugin):
       not change will not show up.  While the Sun is less than 12 degrees
       below the horizon at the camera the sky brightness changes too
       quickly for this to mean anything, so "Twilight" or "Sun up" is
-      shown instead.
+      shown instead.  The cloud cover is measured whenever two images are
+      available, even if the differential image is not shown.
 
     The differential image keeps its own color map and cut levels (by
     default -10 to +10 sigma), separate from those of the normal image, and
@@ -240,6 +246,17 @@ class SkyCam(GingaPlugin.LocalPlugin):
     The "Save config" button records your current selections (camera
     server, "Show Sky Image", "Show Differential Image" and "Monochrome")
     for the workspace, so they are restored the next time it is opened.
+
+    Cloud Cover History
+    ===================
+
+    The "History" tab plots the cloud cover over the last 12 hours, with
+    times in the time zone of the site selected in SPOT.  A point is added
+    for each new image from the camera, whether or not the differential
+    image is shown.  Points taken in twilight or daylight are drawn hollow,
+    and the line is broken where images are missing.  Changing the
+    threshold changes only the latest point.  "Clear" empties the history,
+    which is also cleared when you select another camera.
 
     Adding new cameras
     ==================
@@ -298,7 +315,8 @@ class SkyCam(GingaPlugin.LocalPlugin):
                                    diff_work_size=700,
                                    diff_max_za_deg=75.0,
                                    diff_color_map='skydiff_gray',
-                                   diff_max_sun_alt_deg=-12.0)
+                                   diff_max_sun_alt_deg=-12.0,
+                                   diff_history_hours=12.0)
         self.settings.load(onError='silent')
 
         self.viewer = self.fitsimage
@@ -320,6 +338,10 @@ class SkyCam(GingaPlugin.LocalPlugin):
         self.proc_gen = 0
         # observer for a camera that is not at the selected site
         self.cam_observer = None
+        # cloud cover history: (POSIX time, cloud cover %, night) tuples
+        self.cc_history = []
+        self.cc_plot = None
+        self._plotted_history = None
 
         # The sky image is drawn with the viewer's color map and cut
         # levels, so the user can adjust them.  The normal and the
@@ -391,6 +413,13 @@ class SkyCam(GingaPlugin.LocalPlugin):
 
         top = Widgets.VBox()
         top.set_border_width(4)
+
+        tabs = Widgets.TabWidget()
+        top.add_widget(tabs, stretch=1)
+
+        # --- "Camera" tab: camera and differential image controls
+        cam = Widgets.VBox()
+        cam.set_border_width(2)
         fr = Widgets.Frame(_tr("All Sky Camera"))
 
         captions = (('Show Sky Image', 'checkbox',
@@ -402,7 +431,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
         w, b = Widgets.build_info(captions)
         self.w = b
         fr.set_widget(w)
-        top.add_widget(fr, stretch=0)
+        cam.add_widget(fr, stretch=0)
 
         b.show_sky_image.set_state(self.flag_use_sky_image)
         b.show_sky_image.add_callback('activated',
@@ -431,7 +460,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
         w, b = Widgets.build_info(captions)
         self.w.update(b)
         fr.set_widget(w)
-        top.add_widget(fr, stretch=0)
+        cam.add_widget(fr, stretch=0)
 
         b.show_differential_image.set_state(self.flag_use_diff_image)
         b.show_differential_image.add_callback('activated',
@@ -471,9 +500,26 @@ class SkyCam(GingaPlugin.LocalPlugin):
         self.w.select_image_info = Widgets.Label(image_info_text)
 
         fr.set_widget(self.w.select_image_info)
-        top.add_widget(fr, stretch=0)
+        cam.add_widget(fr, stretch=0)
 
-        top.add_widget(Widgets.Label(''), stretch=1)
+        cam.add_widget(Widgets.Label(''), stretch=1)
+        tabs.add_widget(cam, title=_tr("Camera"))
+
+        # --- "History" tab: cloud cover over time
+        hist = Widgets.VBox()
+        hist.set_border_width(2)
+        self.cc_plot = CloudCoverPlot(400, 300, logger=self.logger)
+        hist.add_widget(self.cc_plot.get_ginga_widget(), stretch=1)
+        hbox = Widgets.HBox()
+        hbox.set_spacing(4)
+        btn = Widgets.Button(_tr("Clear"))
+        btn.add_callback('activated', self.clear_history_cb)
+        btn.set_tooltip(_tr("Clear the cloud cover history"))
+        hbox.add_widget(btn, stretch=0)
+        hbox.add_widget(Widgets.Label(''), stretch=1)
+        hist.add_widget(hbox, stretch=0)
+        tabs.add_widget(hist, title=_tr("History"))
+        self._plot_history(list(self.cc_history))
 
         btns = Widgets.HBox()
         btns.set_border_width(4)
@@ -715,7 +761,8 @@ class SkyCam(GingaPlugin.LocalPlugin):
     def _make_diff_image(self):
         """Compute the differential image from the working frames.
         Returns a ginga AstroImage, or None if there are not two frames
-        yet.  Sets self.cc_text to the text for the cloud cover display.
+        yet.  Sets self.cc_text to the text for the cloud cover display
+        and records the cloud cover in the history.
         """
         if self.old_work is None or self.cur_work is None:
             self.cc_text = "--"
@@ -737,11 +784,15 @@ class SkyCam(GingaPlugin.LocalPlugin):
             dt = datetime.datetime.fromtimestamp(self.cur_work_t,
                                                  tz=datetime.timezone.utc)
             sun_alt = float(calcpos.get_ss('Sun').calc(obs, dt).alt_deg)
+        night = True
         if sun_alt is not None:
             if sun_alt > 0.0:
                 self.cc_text = _tr("Sun up")
+                night = False
             elif sun_alt > self.settings['diff_max_sun_alt_deg']:
                 self.cc_text = _tr("Twilight")
+                night = False
+        self._record_history(self.cur_work_t, res['cc_pct'], night)
         self.logger.info("sky diff: CC=%.1f%% sigma=%.3g gain=%.3f "
                          "sun_alt=%s" % (res['cc_pct'], res['sigma'],
                                          res['gain'], sun_alt))
@@ -754,6 +805,19 @@ class SkyCam(GingaPlugin.LocalPlugin):
         img = AstroImage(data_np=data_np, logger=self.logger)
         img.set(name=self.img_src_name, nothumb=True, path=None)
         return img
+
+    def _record_history(self, t, cc_pct, night):
+        """Add (or, if this frame was already recorded, e.g. after the
+        threshold was changed, replace) a point in the cloud cover history,
+        and drop points older than the history window.
+        """
+        entry = (t, cc_pct, night)
+        if len(self.cc_history) > 0 and self.cc_history[-1][0] == t:
+            self.cc_history[-1] = entry
+        else:
+            self.cc_history.append(entry)
+        t_min = t - self.settings['diff_history_hours'] * 3600.0
+        self.cc_history = [e for e in self.cc_history if e[0] >= t_min]
 
     def _make_sky_image(self):
         """Make the (normal) sky image from the current frame, or return
@@ -798,13 +862,16 @@ class SkyCam(GingaPlugin.LocalPlugin):
         """Make the image to display and hand it to the GUI thread.
         Must be called with self.proc_lock held.
         """
+        # the cloud cover (and its history) is computed whether or not
+        # the differential image is shown
+        diff_img = self._make_diff_image()
+        status = dict(cc_text=self.cc_text, history=list(self.cc_history))
+
         info_text = None
         if self.flag_use_diff_image:
-            img = self._make_diff_image()
-            if img is not None:
-                self.fv.gui_do(self.__update_display, img,
-                               scale=self.bin_factor, mode='diff',
-                               cc_text=self.cc_text)
+            if diff_img is not None:
+                self.fv.gui_do(self.__update_display, diff_img,
+                               scale=self.bin_factor, mode='diff', **status)
                 return
             # no previous frame yet--show the plain image meanwhile
             info_text = _tr("Waiting for the next image to create a "
@@ -812,17 +879,47 @@ class SkyCam(GingaPlugin.LocalPlugin):
 
         img = self._make_sky_image()
         if img is None:
-            if info_text is not None:
-                self.fv.gui_do(self._set_info_text, info_text)
+            self.fv.gui_do(self._update_status, info_text=info_text,
+                           **status)
             return
-        self.fv.gui_do(self.__update_display, img, info_text=info_text)
+        self.fv.gui_do(self.__update_display, img, info_text=info_text,
+                       **status)
+
+    def _update_status(self, cc_text="--", history=None, info_text=None):
+        """Update the cloud cover readout and history plot, and the image
+        info text if given.  Runs on the GUI thread.
+        """
+        if not self.gui_up:
+            return
+        self.w.cloud_cover.set_text(cc_text)
+        if info_text is not None:
+            self.w.select_image_info.set_text(info_text)
+        if history is not None and history != self._plotted_history:
+            self._plot_history(history)
+
+    def _plot_history(self, history):
+        if self.cc_plot is None:
+            return
+        tz = datetime.timezone.utc
+        try:
+            obj = self.channel.opmon.get_plugin('SiteSelector')
+            tz = obj.get_datetime()[1]
+        except Exception as e:
+            self.logger.warning(f"can't get site time zone: {e}")
+        self.cc_plot.plot_history(history, tz)
+        self._plotted_history = history
+
+    def clear_history_cb(self, w):
+        with self.proc_lock:
+            self.cc_history = []
+        self._plot_history([])
 
     def _set_info_text(self, text):
         if self.gui_up:
             self.w.select_image_info.set_text(text)
 
     def __update_display(self, img, scale=1, mode='normal', cc_text="--",
-                         info_text=None):
+                         history=None, info_text=None):
         self.fv.assert_gui_thread()
         if not self.gui_up:
             # plugin was closed while the image was being processed
@@ -848,12 +945,12 @@ class SkyCam(GingaPlugin.LocalPlugin):
                 self.viewer.auto_levels()
                 self.need_autolevels = False
             self.viewer.redraw(whence=0)
-        self.w.cloud_cover.set_text(cc_text)
         if info_text is None:
             image_timestamp = datetime.datetime.now()
             info_text = "Image download complete, displayed at: " + \
                 image_timestamp.strftime("%D %H:%M:%S")
-        self.w.select_image_info.set_text(info_text)
+        self._update_status(cc_text=cc_text, history=history,
+                            info_text=info_text)
 
     def download_sky_image(self):
         try:
@@ -981,8 +1078,10 @@ class SkyCam(GingaPlugin.LocalPlugin):
             self.cur_work = self.old_work = None
             self.cur_work_t = self.old_work_t = None
             self.cc_text = "--"
+            self.cc_history = []
         self.need_autolevels = True
         self.w.cloud_cover.set_text(self.cc_text)
+        self._plot_history([])
         try:
             self.canvas.delete_all_objects()
             self._sky_image_canvas_setup()

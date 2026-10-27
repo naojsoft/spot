@@ -9,6 +9,11 @@ del cielo. Hay un menú desplegable con varios sitios entre los que elegir.
 Establecer la imagen del cielo
 ==============================
 
+El complemento tiene dos pestañas: los controles que se describen a
+continuación están en la pestaña "Cámara", y la pestaña "Historial" muestra
+un gráfico de la nubosidad a lo largo del tiempo (véase "Historial de la
+nubosidad").
+
 Seleccione el servidor de cámara que desee usar en el menú desplegable bajo
 "Cámara de todo el cielo". Después, marque la casilla junto a "Mostrar imagen del cielo" para
 mostrar la imagen en la ventana `<wsname>_TGTS`. La imagen del cielo puede
@@ -72,7 +77,8 @@ Los controles son:
   Mientras el Sol está a menos de 12 grados por debajo del horizonte en la
   cámara, el brillo del cielo cambia demasiado deprisa para que el valor
   tenga sentido, así que se muestra "Crepúsculo" o "Sol arriba" en su
-  lugar.
+  lugar. La nubosidad se mide siempre que hay dos imágenes disponibles,
+  aunque no se muestre la imagen diferencial.
 
 La imagen diferencial mantiene su propio mapa de colores y sus propios
 niveles de corte (de -10 a +10 sigma por defecto), separados de los de la
@@ -86,6 +92,17 @@ anterior (la cámara aún no se ha actualizado), se ignora.
 El botón "Guardar configuración" guarda sus selecciones actuales (servidor de cámara,
 "Mostrar imagen del cielo", "Mostrar imagen diferencial" y "Monocromo") para el espacio
 de trabajo, de modo que se restauren la próxima vez que se abra.
+
+Historial de la nubosidad
+=========================
+
+La pestaña "Historial" muestra la nubosidad de las últimas 12 horas, con las
+horas en la zona horaria del sitio seleccionado en SPOT. Se añade un punto
+por cada imagen nueva de la cámara, se muestre o no la imagen diferencial.
+Los puntos tomados durante el crepúsculo o de día se dibujan huecos, y la
+línea se interrumpe donde faltan imágenes. Cambiar el umbral solo cambia el
+último punto. "Borrar" vacía el historial, que también se borra al
+seleccionar otra cámara.
 
 Añadir cámaras nuevas
 =====================

@@ -20,6 +20,10 @@ Ver 1.5.3 (unreleased)
   as GTC.
 - SkyCam: the cloud cover shows "Twilight" or "Sun up" instead of a
   value while the Sun is above -12 degrees at the camera.
+- SkyCam: a "History" tab plots the cloud cover over the last 12 hours
+  (the controls moved to a "Camera" tab).  The cloud cover is now
+  measured for every new image, whether or not the differential image is
+  shown.
 - SkyCam: image processing now runs off the GUI thread, so large camera
   images no longer make the interface pause.
 - SkyCam: animated images (e.g. GIF loops) are supported; the last frame

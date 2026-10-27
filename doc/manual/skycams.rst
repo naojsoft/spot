@@ -12,6 +12,10 @@ drop-down menu with several sites to choose from.
 Setting the Sky Image
 =====================
 
+The plugin has two tabs: the controls described below are on the "Camera"
+tab, and the "History" tab plots the cloud cover over time (see `Cloud
+Cover History`_).
+
 Select the camera server you would like to use from the drop down menu
 under "All Sky Camera". Then, press the checkbox next to "Show Sky Image"
 to display the image in the Targets channel. It may take a few moments
@@ -76,7 +80,9 @@ The controls are:
   change between images; a uniform overcast that does not change will not
   show up.  While the Sun is less than 12 degrees below the horizon at the
   camera the sky brightness changes too quickly for this to mean anything,
-  so "Twilight" or "Sun up" is shown instead.
+  so "Twilight" or "Sun up" is shown instead.  The cloud cover is measured
+  whenever two images are available, even if the differential image is not
+  shown.
 
 The differential image keeps its own color map and cut levels (by default
 -10 to +10 sigma), separate from those of the normal image, and you can
@@ -85,6 +91,18 @@ adjust them with the usual viewer controls as well.
 After selecting a camera, the differential image appears once a second
 image has been received.  If a download returns the same image as the
 previous one (the camera has not updated yet), it is ignored.
+
+===================
+Cloud Cover History
+===================
+
+The "History" tab plots the cloud cover over the last 12 hours, with times
+in the time zone of the site selected in SPOT.  A point is added for each
+new image from the camera, whether or not the differential image is shown.
+Points taken in twilight or daylight are drawn hollow, and the line is
+broken where images are missing.  Changing the threshold changes only the
+latest point.  "Clear" empties the history, which is also cleared when you
+select another camera.
 
 ==================
 Adding new cameras
