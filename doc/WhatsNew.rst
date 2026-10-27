@@ -2,6 +2,25 @@
 What's New
 ++++++++++
 
+Ver 1.5.3 (unreleased)
+======================
+- SkyCam: reworked the differential sky image to make it useful for
+  spotting clouds.  Frames are median filtered to remove stars and noise,
+  scaled to cancel camera exposure changes, optionally derotated with the
+  sky so that stars cancel, and shown in units of the image noise.  A
+  cloud cover percentage is reported, with an adjustable threshold, and
+  there is a choice of color maps that keep the target overlays readable.
+  Fixed the old subtraction, which wrapped around for color images and
+  dropped areas that got darker for monochrome ones.
+- SkyCam: the sky image now uses the viewer's color map and cut levels,
+  so they can be adjusted (the normal and differential image each keep
+  their own); the image is no longer auto-leveled on every download.
+- SkyCam: fixed the sky image being off-center (misaligned with the polar
+  plot) for cameras whose sky circle runs off the edge of the frame, such
+  as GTC.
+- skycams.yml: cameras can give their own "latitude", used to derotate the
+  sky; the GTC camera URL now uses https.
+
 
 Ver 1.5.2 (2026-09-22)
 ======================

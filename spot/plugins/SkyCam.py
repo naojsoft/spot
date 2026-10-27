@@ -51,13 +51,15 @@ The second section, titled "Differential Image," has these controls:
       before subtracting it, so that stars cancel out
     * "Threshold" sets how large a change (in units of the image noise)
       counts as cloud
+    * "Color Map" picks the color map for the differential image
     * "Cloud Cover" shows the percentage of the sky within 75 degrees of
       the zenith that changed by more than the threshold
 
 The differential image shows the change between the current and previous
-images from the camera.  Brighter areas are shown in red and darker areas
-in blue; areas that did not change are black.  Both images are reduced to
-monochrome, downsampled and median filtered (which removes most stars),
+images from the camera, with areas that became brighter and darker shown
+on either side of the color map (in the default "Gray" color map, lighter
+and darker than the medium gray of an unchanged sky).  Both images are
+reduced to monochrome, downsampled and median filtered (which removes most stars),
 and the previous image is scaled to match the overall brightness of the
 current one, so that changes in camera exposure do not show up as clouds.
 The change is then divided by an estimate of the image noise.
@@ -67,7 +69,8 @@ between images.  With "Derotate Sky" selected, the previous image is
 rotated about the celestial pole by the time between the two images, so
 that only clouds (and other real changes) remain.  This relies on the
 camera orientation in skycams.yml being correct (North up, East left, as
-in the PolarSky plot) and on the latitude of the selected site.
+in the PolarSky plot) and on the camera's latitude ("latitude" in
+skycams.yml, or else the latitude of the selected site).
 
 If the source was recently selected from the "Camera Server" and a
 second image from the source has not been received yet, a message on
@@ -112,22 +115,22 @@ from ginga.util.paths import ginga_home
 from spot import __file__
 from spot.util.config import get_workspace_settings, save_settings
 from spot.util import skydiff
-from spot.locale import _tr, get_plugin_doc
+from spot.locale import _tr, N_, get_plugin_doc
 cfgdir = os.path.join(os.path.dirname(__file__), 'config')
 
 # Color maps for the differential image, as (label, name, control points).
 # Each control point is (position, r, g, b); position 0.5 is "no change".
 # They are chosen to keep the target and telescope overlays readable.
 diff_cmaps = [
-    ("Gray", 'skydiff_gray',
+    (N_("Gray"), 'skydiff_gray',
      [(0.0, 0.0, 0.0, 0.0), (0.5, 0.35, 0.35, 0.35), (1.0, 1.0, 1.0, 1.0)]),
     # magnitude of the change regardless of sign
-    ("Change", 'skydiff_change',
+    (N_("Change"), 'skydiff_change',
      [(0.0, 1.0, 1.0, 1.0), (0.5, 0.0, 0.0, 0.0), (1.0, 1.0, 1.0, 1.0)]),
-    ("Teal/Amber", 'skydiff_tealamber',
+    (N_("Teal/Amber"), 'skydiff_tealamber',
      [(0.0, 0.45, 0.85, 0.85), (0.25, 0.15, 0.4, 0.4), (0.5, 0.0, 0.0, 0.0),
       (0.75, 0.5, 0.4, 0.15), (1.0, 1.0, 0.85, 0.5)]),
-    ("Blue/Red", 'skydiff_bluered',
+    (N_("Blue/Red"), 'skydiff_bluered',
      [(0.0, 0.35, 0.65, 1.0), (0.25, 0.1, 0.35, 0.9), (0.5, 0.0, 0.0, 0.0),
       (0.75, 0.9, 0.25, 0.1), (1.0, 1.0, 0.75, 0.3)]),
 ]
@@ -168,14 +171,71 @@ class SkyCam(GingaPlugin.LocalPlugin):
     the time and date of the last image will be displayed at the bottom of the
     window underneath "Image Download Info".
 
-    The SkyCam plugin can also generate a differential image from the selected
-    channel server by selecting the checkbox next to "Show Differential Image".
-    Areas that became brighter since the previous image are shown in red,
-    and areas that became darker in blue.  Select "Derotate Sky" to rotate
-    the previous image with the sky so that stars cancel out (this requires
-    that the camera orientation in skycams.yml is correct).  "Cloud Cover"
-    shows the percentage of the sky near the zenith that changed by more
-    than "Threshold" times the image noise.
+    Some all-sky cameras produce color images.  Checking the "Monochrome"
+    checkbox converts these to a monochrome (grayscale) image; uncheck it to
+    show the original colors.
+
+    The sky image is drawn with the viewer's color map and cut levels, so
+    you can adjust its contrast and cut levels with the usual viewer
+    controls (for a color image only the cut levels apply).  Your settings
+    are kept when new images arrive.
+
+    Differential Image
+    ==================
+
+    Select the checkbox next to "Show Differential Image" to show how the
+    sky changed between the last two images from the camera, instead of the
+    image itself.  This makes moving or developing clouds much easier to
+    see.  With the default "Gray" color map, areas that did not change are
+    medium gray, areas that became brighter are lighter and areas that
+    became darker are darker.  Clouds lit by the Moon or by city lights
+    usually get brighter; clouds that hide the stars or the Milky Way get
+    darker.
+
+    To make the differential image, both images are converted to
+    monochrome, reduced in resolution and median filtered, which removes
+    most stars and noise.  The previous image is scaled to match the
+    overall brightness of the current one, so that changes in the camera's
+    exposure do not look like clouds.  The difference is then divided by
+    an estimate of the noise in the image, so the differential image is
+    in units of the noise ("sigma").
+
+    The controls are:
+
+    * "Derotate Sky": the sky rotates by about a quarter of a degree per
+      minute, so stars move between images.  With this checked, the
+      previous image is rotated about the celestial pole to the time of
+      the current image, so that the stars cancel out and only real
+      changes remain.  This needs the camera orientation in skycams.yml to
+      be correct (see "Adding new cameras").  Objects fixed in the camera
+      view, such as domes or trees near the horizon, may then leave curved
+      streaks.
+
+    * "Threshold": a change larger than this many sigma counts as cloud
+      for the cloud cover (default 5).
+
+    * "Color Map": the color map for the differential image.  "Gray" and
+      "Change" (which shows only the size of the change, not whether it
+      got brighter or darker) keep the target overlays easy to read;
+      "Teal/Amber" and "Blue/Red" show the direction of the change in
+      color.
+
+    * "Cloud Cover": the percentage of the sky within 75 degrees of the
+      zenith that changed by more than the threshold.  It measures clouds
+      that move or change between images; a uniform overcast that does
+      not change will not show up.
+
+    The differential image keeps its own color map and cut levels (by
+    default -10 to +10 sigma), separate from those of the normal image, and
+    you can adjust them with the usual viewer controls as well.
+
+    After selecting a camera, the differential image appears once a second
+    image has been received.  If a download returns the same image as the
+    previous one (the camera has not updated yet), it is ignored.
+
+    The "Save config" button records your current selections (camera
+    server, "Show Sky Image", "Show Differential Image" and "Monochrome")
+    for the workspace, so they are restored the next time it is opened.
 
     Adding new cameras
     ==================
@@ -188,11 +248,17 @@ class SkyCam(GingaPlugin.LocalPlugin):
     for downloading images, a title, a center pixel (X and Y coords) in the
     image representing the zenith, the radius of the circle to the horizon
     in pixels, a rotation to be applied, whether to flip the image in X or
-    Y dimensions, and an update interval measured in seconds.
-    You can also give the latitude of the camera in degrees (negative
-    in the southern hemisphere); this is used to derotate the sky for the
-    differential image.  Without it, the latitude of the selected site is
-    used.
+    Y dimensions, and an update interval measured in seconds.  You can also
+    give the latitude of the camera in degrees (negative in the southern
+    hemisphere) as "latitude"; it is used to derotate the sky for the
+    differential image.  Without it, the latitude of the site selected in
+    SPOT is used, which is wrong if the camera is at a different site.
+
+    The rotation and flips must turn the image so that North is up and
+    East is to the left, as in the polar sky plot (in both hemispheres).
+    A good check is that the Moon or a bright planet in the sky image
+    lines up with its position in SPOT, and that stars cancel out in the
+    differential image with "Derotate Sky" checked.
 
     Restart spot and you should be able to pick your new camera from the list.
     """
@@ -357,13 +423,13 @@ class SkyCam(GingaPlugin.LocalPlugin):
         b.show_differential_image.add_callback('activated',
                                                self.diff_image_toggle_cb)
         b.show_differential_image.set_tooltip(
-            _tr("Show the change since the previous image: "
-                "red is brighter, blue is darker"))
+            _tr("Show the change since the previous image instead of the "
+                "image itself"))
         b.derotate_sky.set_state(self.settings['diff_derotate'])
         b.derotate_sky.add_callback('activated', self.derotate_toggle_cb)
         b.derotate_sky.set_tooltip(
             _tr("Rotate the previous image with the sky so that stars cancel "
-                "(requires a correctly oriented camera and site latitude)"))
+                "(requires a correctly oriented camera and its latitude)"))
         b.threshold.set_limits(1.0, 50.0, incr_value=0.5)
         b.threshold.set_value(self.settings['diff_threshold_sigma'])
         b.threshold.add_callback('value-changed', self.threshold_cb)
