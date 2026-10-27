@@ -164,7 +164,7 @@ class Targets(GingaPlugin.LocalPlugin):
     the `<wsname>_TGTS` window. Selecting "All" will show all of the targets,
     selecting "Uncollapsed" will show any targets that are not collapsed
     (hidden) in the table as well as tagged and selected targets, selecting
-    "Tagged+Selected" will show all of the targets which have been
+    "Tagged+selected" will show all of the targets which have been
     tagged or are selected, and selecting "Selected" will show only the
     targets which are selected.
 
@@ -176,7 +176,7 @@ class Targets(GingaPlugin.LocalPlugin):
     * If you check "Merge Targets" then all targets loaded *after that*
       will be organized under a single heading of "Targets", instead of being
       grouped by file name.
-    * "List Unreferenced Targets" is a setting that just affects OPE files.
+    * "List unreferenced targets" is a setting that just affects OPE files.
       Normally, the Targets plugin will ignore targets that are not referenced
       in the commands. Checking this setting will show all targets regardless
       of whether they are referenced or not.  This can be used to show targets
@@ -186,7 +186,7 @@ class Targets(GingaPlugin.LocalPlugin):
 
     * The "Rotate target colors" option will mean that each file loaded will
       use a different automatically selected color for the targets (this will
-      only take effect if "Merge targets" is turned off).
+      only take effect if "Merge Targets" is turned off).
     * "Enable DateTime setting" is a option to enable the setting of a fixed
       date/time if the CSV file includes a "DateTime" column.  When enabled,
       selecting a single target in the table will set the date/time in the

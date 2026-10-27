@@ -89,7 +89,7 @@ options using left-click and a browser will open and run a search.
 
 The drop down menu next to "Plot:" changes which targets are plotted on
 the :ref:`TargetsChannel`. Selecting "All" will show all of the targets,
-selecting "Tagged+Selected" will show all of the targets which have been
+selecting "Tagged+selected" will show all of the targets which have been
 tagged or are selected, and selecting "Selected" will show only the
 target which is selected. Selecting "Uncollapsed" will show all of the
 targets from files which have not been collapsed in the target list.
@@ -104,7 +104,7 @@ settings.
 * If you check "Merge Targets" then all targets loaded *after that*
   will be organized under a single heading of "Targets", instead of being
   grouped by file name.
-* "List Unreferenced Targets" is a setting that just affects OPE files.
+* "List unreferenced targets" is a setting that just affects OPE files.
   Normally, the Targets plugin will ignore targets that are not referenced
   in the commands. Checking this setting will show all targets regardless
   of whether they are referenced or not.  This can be used to show targets
@@ -114,7 +114,7 @@ settings.
 
 * The "Rotate target colors" option will mean that each file loaded will
   use a different automatically selected color for the targets (this will
-  only take effect if "Merge targets" is turned off).
+  only take effect if "Merge Targets" is turned off).
 * "Enable DateTime setting" is a option to enable the setting of a fixed
   date/time if the CSV file includes a "DateTime" column.  When enabled,
   selecting a single target in the table will set the date/time in the

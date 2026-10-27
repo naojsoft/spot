@@ -24,13 +24,13 @@ pour la DEC). L'Equinox peut être spécifié par exemple comme J2000 ou 2000.0.
           cibles depuis un fichier OPE.
 
 Si vous souhaitez définir une couleur spécifique pour les cibles à tracer,
-cliquez sur le bouton « Color » pour sélectionner manuellement une couleur
+cliquez sur le bouton « Couleur » pour sélectionner manuellement une couleur
 avant de procéder à l'ouverture d'un fichier ; sinon, les cibles seront
-colorées selon l'option (décrite plus bas) nommée « Rotate target colors ».
+colorées selon l'option (décrite plus bas) nommée « Faire tourner les couleurs des cibles ».
 
-Appuyez sur le bouton « File » et naviguez jusqu'à sélectionner un fichier
+Appuyez sur le bouton « Fichier » et naviguez jusqu'à sélectionner un fichier
 CSV au format ci-dessus. Ou saisissez le chemin du fichier dans la case à
-côté du bouton « File » et appuyez sur « Set » (cette dernière méthode peut
+côté du bouton « Fichier » et appuyez sur « Définir » (cette dernière méthode peut
 aussi servir à recharger rapidement un fichier que vous avez modifié).
 
 Les cibles devraient remplir la table.
@@ -70,10 +70,10 @@ séparation lunaire.
 Utilisation
 ===========
 Pour « marquer » des cibles, sélectionnez une ou plusieurs cibles dans la
-liste et appuyez sur « Tag ». Une coche apparaîtra sur le côté gauche sous la
+liste et appuyez sur « Marquer ». Une coche apparaîtra sur le côté gauche sous la
 colonne « Tagged » pour indiquer quelles cibles ont été marquées. Pour
 démarquer une cible, sélectionnez une ou plusieurs cibles marquées dans la
-liste et appuyez sur « Untag ».
+liste et appuyez sur « Démarquer ».
 
 Dans la fenêtre `<wsname>_TGTS`, les cibles seront tracées à la position
 correspondant à l'heure définie dans le module SiteSelector. La couleur de la
@@ -83,45 +83,45 @@ avec une bordure rouge dans la fenêtre `<wsname>_TGTS`. Sinon, la cible sera
 colorée selon la couleur qui a été sélectionnée manuellement ou
 automatiquement lors du chargement du fichier contenant les cibles.
 
-Le bouton « Select All » sélectionnera toutes les cibles de la table.
+Le bouton « Tout sélectionner » sélectionnera toutes les cibles de la table.
 
-Sélectionner des cibles et appuyer sur « Delete » retirera les cibles
+Sélectionner des cibles et appuyer sur « Supprimer » retirera les cibles
 sélectionnées de la liste. Si seule une ligne de catégorie est sélectionnée
 (mais aucune cible), appuyer sur ce bouton supprimera toutes les cibles de la
 catégorie.
 
-Sélectionner une seule cible puis cliquer sur « Browse » ouvrira un menu
+Sélectionner une seule cible puis cliquer sur « Parcourir » ouvrira un menu
 d'options permettant de rechercher la cible par coordonnée et de présenter
 les résultats dans un navigateur web.
 
-Le menu déroulant à côté de « Plot: » change quelles cibles sont tracées dans
-la fenêtre `<wsname>_TGTS`. Sélectionner « All » affichera toutes les cibles,
-sélectionner « Uncollapsed » affichera les cibles qui ne sont pas repliées
+Le menu déroulant à côté de « Tracé : » change quelles cibles sont tracées dans
+la fenêtre `<wsname>_TGTS`. Sélectionner « Tous » affichera toutes les cibles,
+sélectionner « Développé » affichera les cibles qui ne sont pas repliées
 (masquées) dans la table ainsi que les cibles marquées et sélectionnées,
-sélectionner « Tagged+Selected » affichera toutes les cibles qui ont été
-marquées ou sont sélectionnées, et sélectionner « Selected » affichera
+sélectionner « Marqué+sélectionné » affichera toutes les cibles qui ont été
+marquées ou sont sélectionnées, et sélectionner « Sélectionné » affichera
 uniquement les cibles qui sont sélectionnées.
 
 Menu des paramètres
 ===================
-Cliquer sur le bouton « Settings » ouvrira un menu contextuel permettant
+Cliquer sur le bouton « Paramètres » ouvrira un menu contextuel permettant
 d'activer certains paramètres.
 
-* Si vous cochez « Merge Targets », toutes les cibles chargées *après cela*
+* Si vous cochez « Fusionner les cibles », toutes les cibles chargées *après cela*
   seront organisées sous un unique en-tête nommé « Targets », au lieu d'être
   regroupées par nom de fichier.
-* « List Unreferenced Targets » est un paramètre qui n'affecte que les
+* « Lister les cibles non référencées » est un paramètre qui n'affecte que les
   fichiers OPE. Normalement, le module Targets ignore les cibles qui ne sont
   pas référencées dans les commandes. Cocher ce paramètre affichera toutes
   les cibles, qu'elles soient référencées ou non. Cela peut servir à afficher
   les cibles des fichiers d'inclusion PRM.
-* Cocher l'option « Plot solar system objects » tracera le Soleil, la Lune de
+* Cocher l'option « Tracer les objets du système solaire » tracera le Soleil, la Lune de
   la Terre, les planètes et Pluton dans la fenêtre `<wsname>_TGTS`.
 
-* L'option « Rotate target colors » fera en sorte que chaque fichier chargé
+* L'option « Faire tourner les couleurs des cibles » fera en sorte que chaque fichier chargé
   utilise une couleur différente sélectionnée automatiquement pour les cibles
-  (cela ne prendra effet que si « Merge targets » est désactivé).
-* « Enable DateTime setting » est une option permettant d'activer le réglage
+  (cela ne prendra effet que si « Fusionner les cibles » est désactivé).
+* « Activer le réglage DateTime » est une option permettant d'activer le réglage
   d'une date/heure fixe si le fichier CSV comporte une colonne « DateTime ».
   Lorsqu'elle est activée, sélectionner une seule cible dans la table réglera
   la date/heure du module SiteSelector sur cette date et cette heure. Le

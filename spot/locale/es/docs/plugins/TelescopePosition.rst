@@ -14,13 +14,13 @@ Las posiciones del telescopio y del objetivo se muestran tanto en Ascensión
 Recta/Declinación como en Azimut/Elevación. La RA y la DEC se muestran en
 notación sexagesimal como HH:MM:SS.SSS para la RA y DD:MM:SS.SS para la DEC.
 El AZ y el EL se muestran ambos en grados como valores decimales. En la
-sección "Telescope" se muestra el estado del telescopio, como apuntando o en
+sección "Telescopio" se muestra el estado del telescopio, como apuntando o en
 giro, junto con el tiempo de giro en h:mm:ss.
 
-La opción "Plot telescope position" mostrará las posiciones del objetivo y
+La opción "Trazar la posición del telescopio" mostrará las posiciones del objetivo y
 del telescopio en la ventana Targets cuando la casilla esté marcada.
 
-La opción "Target follow telescope" hará que se seleccione un objetivo en la
+La opción "El objetivo sigue al telescopio" hará que se seleccione un objetivo en la
 tabla del complemento Targets cuando el telescopio esté "cerca" de ese
 objetivo (definiéndose cerca como dentro de aproximadamente 10 arcominutos).
 Se selecciona el objetivo real más cercano a la coordenada del telescopio.
@@ -30,7 +30,7 @@ Se selecciona el objetivo real más cercano a la coordenada del telescopio.
           restablecer el seguimiento del telescopio por parte del objetivo,
           simplemente vuelva a marcar la casilla.
 
-La opción "Pan to telescope position" hará que el visor TGTS se desplace a la
+La opción "Desplazar a la posición del telescopio" hará que el visor TGTS se desplace a la
 posición del telescopio. Esto puede ser útil cuando hay muchos objetivos
 trazados y ha ampliado para mostrar solo una parte del campo polar del cielo.
 

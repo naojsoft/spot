@@ -23,13 +23,13 @@ la DEC). L'Equinox può essere specificato ad esempio come J2000 o 2000.0.
           OPE.
 
 Se vuoi impostare un colore specifico per i target da tracciare, fai clic sul
-pulsante "Color" per selezionare manualmente un colore prima di procedere ad
+pulsante "Colore" per selezionare manualmente un colore prima di procedere ad
 aprire un file, altrimenti i target verranno colorati in base all'opzione
-(descritta più avanti) chiamata "Rotate target colors".
+(descritta più avanti) chiamata "Ruota i colori dei target".
 
 Premi il pulsante "File" e naviga fino a selezionare un file CSV con il
 formato sopra indicato. Oppure digita il percorso del file nella casella
-accanto al pulsante "File" e premi "Set" (quest'ultimo metodo può essere
+accanto al pulsante "File" e premi "Imposta" (quest'ultimo metodo può essere
 usato anche per ricaricare rapidamente un file che hai modificato).
 
 I target dovrebbero popolare la tabella.
@@ -66,10 +66,10 @@ dispersione atmosferica, angolo parallattico e separazione dalla Luna.
 Funzionamento
 =============
 Per "contrassegnare" i target, seleziona uno o più target nell'elenco e premi
-"Tag". Un segno di spunta comparirà sul lato sinistro sotto la colonna
+"Contrassegna". Un segno di spunta comparirà sul lato sinistro sotto la colonna
 "Tagged" per mostrare quali target sono stati contrassegnati. Per rimuovere
 il contrassegno da un target, seleziona uno o più target contrassegnati
-nell'elenco e premi "Untag".
+nell'elenco e premi "Rimuovi contrassegno".
 
 Nella finestra `<wsname>_TGTS`, i target verranno tracciati nella posizione
 corrispondente all'orario impostato nel plugin SiteSelector. Il colore del
@@ -79,45 +79,45 @@ con un bordo rosso nella finestra `<wsname>_TGTS`. Altrimenti il target verrà
 colorato in base al colore selezionato manualmente o automaticamente al
 momento del caricamento del file contenente i target.
 
-Il pulsante "Select All" selezionerà tutti i target della tabella.
+Il pulsante "Seleziona tutto" selezionerà tutti i target della tabella.
 
-Selezionando dei target e premendo "Delete" verranno rimossi i target
+Selezionando dei target e premendo "Elimina" verranno rimossi i target
 selezionati dall'elenco. Se è selezionata solo una riga di categoria (ma
 nessun target), premendo questo pulsante verranno eliminati tutti i target
 della categoria.
 
-Selezionando un singolo target e facendo poi clic su "Browse" si aprirà un
+Selezionando un singolo target e facendo poi clic su "Sfoglia" si aprirà un
 menu di opzioni per cercare il target per coordinata e presentare i risultati
 in un browser web.
 
-Il menu a discesa accanto a "Plot:" cambia quali target vengono tracciati
-nella finestra `<wsname>_TGTS`. Selezionando "All" verranno mostrati tutti i
-target, selezionando "Uncollapsed" verranno mostrati i target non compressi
+Il menu a discesa accanto a "Grafico:" cambia quali target vengono tracciati
+nella finestra `<wsname>_TGTS`. Selezionando "Tutti" verranno mostrati tutti i
+target, selezionando "Non compresso" verranno mostrati i target non compressi
 (nascosti) nella tabella, oltre a quelli contrassegnati e selezionati,
-selezionando "Tagged+Selected" verranno mostrati tutti i target che sono
-stati contrassegnati o sono selezionati, e selezionando "Selected" verranno
+selezionando "Contrassegnato+selezionato" verranno mostrati tutti i target che sono
+stati contrassegnati o sono selezionati, e selezionando "Selezionato" verranno
 mostrati solo i target selezionati.
 
 Menu delle impostazioni
 =======================
-Facendo clic sul pulsante "Settings" verrà aperto un menu a comparsa per
+Facendo clic sul pulsante "Impostazioni" verrà aperto un menu a comparsa per
 abilitare determinate impostazioni.
 
-* Se spunti "Merge Targets", tutti i target caricati *dopo di ciò* verranno
+* Se spunti "Unisci target", tutti i target caricati *dopo di ciò* verranno
   organizzati sotto un'unica intestazione chiamata "Targets", invece di
   essere raggruppati per nome di file.
-* "List Unreferenced Targets" è un'impostazione che riguarda solo i file OPE.
+* "Elenca i target non referenziati" è un'impostazione che riguarda solo i file OPE.
   Normalmente, il plugin Targets ignora i target che non sono referenziati
   nei comandi. Spuntando questa impostazione verranno mostrati tutti i target
   indipendentemente dal fatto che siano referenziati o meno. Questo può
   essere usato per mostrare i target nei file di inclusione PRM.
-* Spuntando l'opzione "Plot solar system objects" verranno tracciati il Sole,
+* Spuntando l'opzione "Traccia gli oggetti del sistema solare" verranno tracciati il Sole,
   la Luna della Terra, i pianeti e Plutone nella finestra `<wsname>_TGTS`.
 
-* L'opzione "Rotate target colors" farà sì che ogni file caricato usi un
+* L'opzione "Ruota i colori dei target" farà sì che ogni file caricato usi un
   diverso colore selezionato automaticamente per i target (questo avrà
-  effetto solo se "Merge targets" è disattivato).
-* "Enable DateTime setting" è un'opzione per abilitare l'impostazione di una
+  effetto solo se "Unisci target" è disattivato).
+* "Abilita l'impostazione DateTime" è un'opzione per abilitare l'impostazione di una
   data/ora fissa se il file CSV include una colonna "DateTime". Quando è
   abilitata, selezionando un singolo target nella tabella si imposterà la
   data/ora nel plugin SiteSelector su quella data e ora. Il formato di questa

@@ -10,7 +10,7 @@ Einen Arbeitsbereich erstellen
 Um einen Arbeitsbereich zu öffnen, wählen Sie einen aus dem bearbeitbaren
 Auswahlfeld (es wird mit den in ``$HOME/.spot/workspaces`` gefundenen
 Arbeitsbereichen gefüllt) – oder geben Sie einen neuen Namen ein – und
-drücken Sie die Schaltfläche „Open Workspace“ rechts daneben. Die Namen der
+drücken Sie die Schaltfläche „Arbeitsbereich öffnen“ rechts daneben. Die Namen der
 Arbeitsbereiche müssen eindeutig sein. Wenn Sie das Feld leer lassen, wird
 ein Arbeitsbereich mit einem generischen Namen erstellt.
 
@@ -19,9 +19,9 @@ dort geöffneten Plugins zu sehen und mit ihnen zu arbeiten.
 
 Einen Arbeitsbereich zum Starten eines Plugins auswählen
 --------------------------------------------------------
-Wählen Sie über das Auswahlmenü „Select Workspace“ einen geöffneten
+Wählen Sie über das Auswahlmenü „Arbeitsbereich auswählen“ einen geöffneten
 Arbeitsbereich, in dem Sie eines der SPOT-Planungs-Plugins starten möchten
-(beachten Sie, dass der Arbeitsbereich zuvor mit „Open Workspace“ geöffnet
+(beachten Sie, dass der Arbeitsbereich zuvor mit „Arbeitsbereich öffnen“ geöffnet
 worden sein muss). Verwenden Sie dann die Kontrollkästchen darunter, um ein
 Plugin zu starten (ankreuzen) oder zu stoppen (abwählen).
 
@@ -49,7 +49,7 @@ schaffen.
 
 Das Arbeitsbereichs-Layout speichern
 ------------------------------------
-Durch Drücken der Schaltfläche „Save <wsname> layout“ speichern Sie die
+Durch Drücken der Schaltfläche „<wsname>-Layout speichern“ speichern Sie die
 aktuelle Größe und Position der Plugin-Fenster, die Sie im angegebenen
 Arbeitsbereich geöffnet haben, zusammen mit den derzeit laufenden Plugins.
 Das Layout jedes Arbeitsbereichs wird separat in

@@ -14,14 +14,14 @@ kommandierten (Ziel-)Positionen an.
 Die Positionen von Teleskop und Ziel werden sowohl in Rektaszension/Deklination
 als auch in Azimut/Elevation angezeigt. RA und DEC werden in sexagesimaler
 Schreibweise als HH:MM:SS.SSS für RA und DD:MM:SS.SS für DEC angezeigt. AZ und
-EL werden beide in Grad als Dezimalwerte angezeigt. Im Abschnitt „Telescope“
+EL werden beide in Grad als Dezimalwerte angezeigt. Im Abschnitt „Teleskop“
 wird der Teleskopstatus, etwa Ausrichten oder Schwenken, zusammen mit der
 Schwenkzeit im Format h:mm:ss angezeigt.
 
-Die Option „Plot telescope position“ zeigt die Ziel- und Teleskoppositionen
+Die Option „Teleskopposition darstellen“ zeigt die Ziel- und Teleskoppositionen
 im Targets-Fenster an, wenn das Kontrollkästchen aktiviert ist.
 
-Die Option „Target follow telescope“ bewirkt, dass in der Tabelle des Plugins
+Die Option „Ziel folgt dem Teleskop“ bewirkt, dass in der Tabelle des Plugins
 Targets ein Ziel ausgewählt wird, wenn das Teleskop diesem Ziel „nahe“ ist
 (nahe ist definiert als innerhalb von etwa 10 Bogenminuten). Das der
 Teleskopkoordinate tatsächlich nächstgelegene Ziel wird ausgewählt.
@@ -31,7 +31,7 @@ Teleskopkoordinate tatsächlich nächstgelegene Ziel wird ausgewählt.
           Zielverfolgung des Teleskops wiederherzustellen, aktivieren Sie
           einfach das Kästchen erneut.
 
-Die Option „Pan to telescope position“ bewirkt, dass der TGTS-Betrachter zur
+Die Option „Auf Teleskopposition schwenken“ bewirkt, dass der TGTS-Betrachter zur
 Teleskopposition schwenkt. Das kann hilfreich sein, wenn viele Ziele
 eingezeichnet sind und Sie hineingezoomt haben, um nur einen Teil des polaren
 Himmelsfelds anzuzeigen.

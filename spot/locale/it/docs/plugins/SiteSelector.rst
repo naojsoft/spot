@@ -8,7 +8,7 @@ degli aspetti degli altri plugin visibili nell'area di lavoro.
 
 Impostare il luogo di osservazione
 ----------------------------------
-Usa il menu a discesa "Site:" per selezionare il luogo di osservazione. Sono
+Usa il menu a discesa "Sito:" per selezionare il luogo di osservazione. Sono
 disponibili diversi siti predefiniti.
 
 Aggiungere un proprio luogo di osservazione personalizzato
@@ -23,16 +23,16 @@ e dovresti riuscire a vedere il tuo nuovo luogo.
 Impostare l'orario di osservazione
 ----------------------------------
 L'orario può essere impostato sull'ora corrente o su un orario fisso. Per
-impostarlo sull'ora corrente, scegli "Now" dal menu a discesa "Time mode:".
+impostarlo sull'ora corrente, scegli "Adesso" dal menu a discesa "Modalità orario:".
 
-Per impostare un orario fisso, scegli "Fixed": questo abiliterà i controlli
-"Date time:" e "UTC offset (min):". Inserisci la data/ora nella prima casella
-nel formato YYYY-MM-DD HH:MM:SS e premi "Set".
+Per impostare un orario fisso, scegli "Fisso": questo abiliterà i controlli
+"Data e ora:" e "Offset UTC (min):". Inserisci la data/ora nella prima casella
+nel formato YYYY-MM-DD HH:MM:SS e premi "Imposta".
 
 Per impostazione predefinita, lo scostamento UTC dell'orario fisso verrà
 impostato su quello del fuso orario del luogo di osservazione; ma puoi
 inserire uno scostamento personalizzato (in *minuti*) rispetto all'UTC
-nell'altra casella e premere "Set" per indicare uno scostamento speciale con
+nell'altra casella e premere "Imposta" per indicare uno scostamento speciale con
 cui interpretare l'orario.
 
 .. note:: questo NON cambia il fuso orario del luogo di osservazione;

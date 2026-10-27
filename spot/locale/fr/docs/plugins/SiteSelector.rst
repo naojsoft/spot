@@ -8,7 +8,7 @@ de nombreux aspects des autres modules visibles dans l'espace de travail.
 
 Définir le lieu d'observation
 -----------------------------
-Utilisez le menu déroulant « Site: » pour sélectionner le lieu
+Utilisez le menu déroulant « Site : » pour sélectionner le lieu
 d'observation. Plusieurs sites prédéfinis sont disponibles.
 
 Ajouter votre propre lieu d'observation personnalisé
@@ -23,17 +23,16 @@ Redémarrez spot et vous devriez pouvoir voir votre nouveau lieu.
 Définir l'heure d'observation
 -----------------------------
 L'heure peut être réglée sur l'heure actuelle ou sur une heure fixe. Pour la
-régler sur l'heure actuelle, choisissez « Now » dans le menu déroulant « Time
-mode: ».
+régler sur l'heure actuelle, choisissez « Maintenant » dans le menu déroulant « Mode horaire : ».
 
-Pour définir une heure fixe, choisissez « Fixed » : cela activera les
-commandes « Date time: » et « UTC offset (min): ». Saisissez la date/heure
-dans la première case au format YYYY-MM-DD HH:MM:SS et appuyez sur « Set ».
+Pour définir une heure fixe, choisissez « Fixe » : cela activera les
+commandes « Date et heure : » et « Décalage UTC (min) : ». Saisissez la date/heure
+dans la première case au format YYYY-MM-DD HH:MM:SS et appuyez sur « Définir ».
 
 Par défaut, le décalage UTC de l'heure fixe sera réglé sur celui du fuseau
 horaire du lieu d'observation ; mais vous pouvez saisir un décalage
 personnalisé (en *minutes*) par rapport à UTC dans l'autre case et appuyer
-sur « Set » pour indiquer un décalage spécial d'interprétation de l'heure.
+sur « Définir » pour indiquer un décalage spécial d'interprétation de l'heure.
 
 .. note:: cela NE change PAS le fuseau horaire du lieu d'observation ; cela
           règle seulement l'interprétation de l'heure fixe que vous

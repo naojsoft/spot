@@ -109,8 +109,8 @@ class FindImage(GingaPlugin.LocalPlugin):
     Once RA/DEC coordinates are displayed in the "Pointing" area, an image
     can be downloaded using the controls in the "Image Source" area.
     Choose an image source from the drop-down control labeled "Source",
-    select a size (in arcminutes) using the "Size" control and click the
-    "Find Image" button.  It may take a little while for the image to be
+    select a size (in arcminutes) using the "Size (arcmin)" control and click the
+    "Find image" button.  It may take a little while for the image to be
     downloaded and displayed in the finder viewer.
 
     .. note:: Alternatively, "Load FITS" can be used to load a local FITS

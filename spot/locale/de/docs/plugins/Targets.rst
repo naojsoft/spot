@@ -23,13 +23,13 @@ Equinox kann z. B. als J2000 oder 2000.0 angegeben werden.
           einer OPE-Datei.
 
 Wenn Sie eine bestimmte Farbe für die einzuzeichnenden Ziele festlegen
-möchten, klicken Sie auf die Schaltfläche „Color“, um vor dem Öffnen einer
+möchten, klicken Sie auf die Schaltfläche „Farbe“, um vor dem Öffnen einer
 Datei manuell eine Farbe auszuwählen; andernfalls werden die Ziele gemäß der
-(weiter unten beschriebenen) Option „Rotate target colors“ eingefärbt.
+(weiter unten beschriebenen) Option „Zielfarben durchrotieren“ eingefärbt.
 
-Drücken Sie die Schaltfläche „File“ und navigieren Sie zu einer CSV-Datei im
+Drücken Sie die Schaltfläche „Datei“ und navigieren Sie zu einer CSV-Datei im
 obigen Format und wählen Sie diese aus. Oder geben Sie den Pfad der Datei in
-das Feld neben der Schaltfläche „File“ ein und drücken Sie „Set“ (die
+das Feld neben der Schaltfläche „Datei“ ein und drücken Sie „Setzen“ (die
 letztere Methode kann auch verwendet werden, um eine von Ihnen bearbeitete
 Datei schnell neu zu laden).
 
@@ -68,10 +68,10 @@ parallaktischem Winkel und Mondabstand.
 Bedienung
 =========
 Um Ziele zu „taggen“, wählen Sie ein oder mehrere Ziele in der Liste aus und
-drücken Sie „Tag“. Auf der linken Seite unter der Spalte „Tagged“ erscheint
+drücken Sie „Taggen“. Auf der linken Seite unter der Spalte „Tagged“ erscheint
 ein Häkchen, um anzuzeigen, welche Ziele getaggt wurden. Um das Tag eines
 Ziels zu entfernen, wählen Sie ein oder mehrere getaggte Ziele in der Liste
-aus und drücken Sie „Untag“.
+aus und drücken Sie „Tag entfernen“.
 
 Im Fenster `<wsname>_TGTS` werden die Ziele an der Position der im
 SiteSelector-Plugin eingestellten Zeit eingezeichnet. Die Farbe des Ziels ist
@@ -81,43 +81,43 @@ mit rotem Rand. Andernfalls wird das Ziel gemäß der Farbe eingefärbt, die
 beim Laden der Datei mit den Zielen manuell oder automatisch ausgewählt
 wurde.
 
-Die Schaltfläche „Select All“ wählt alle Ziele in der Tabelle aus.
+Die Schaltfläche „Alle auswählen“ wählt alle Ziele in der Tabelle aus.
 
-Das Auswählen von Zielen und Drücken von „Delete“ entfernt die ausgewählten
+Das Auswählen von Zielen und Drücken von „Löschen“ entfernt die ausgewählten
 Ziele aus der Liste. Ist nur eine Kategoriezeile ausgewählt (aber keine
 Ziele), löscht das Drücken dieser Schaltfläche alle Ziele der Kategorie.
 
-Das Auswählen eines einzelnen Ziels und anschließende Klicken auf „Browse“
+Das Auswählen eines einzelnen Ziels und anschließende Klicken auf „Durchsuchen“
 öffnet ein Optionsmenü, um das Ziel nach Koordinate nachzuschlagen und die
 Ergebnisse in einem Webbrowser anzuzeigen.
 
-Das Auswahlmenü neben „Plot:“ ändert, welche Ziele im Fenster `<wsname>_TGTS`
-eingezeichnet werden. Die Auswahl von „All“ zeigt alle Ziele an, die Auswahl
-von „Uncollapsed“ zeigt alle Ziele an, die in der Tabelle nicht eingeklappt
+Das Auswahlmenü neben „Diagramm:“ ändert, welche Ziele im Fenster `<wsname>_TGTS`
+eingezeichnet werden. Die Auswahl von „Alle“ zeigt alle Ziele an, die Auswahl
+von „Ausgeklappt“ zeigt alle Ziele an, die in der Tabelle nicht eingeklappt
 (ausgeblendet) sind, sowie die getaggten und ausgewählten Ziele, die Auswahl
-von „Tagged+Selected“ zeigt alle Ziele an, die getaggt oder ausgewählt sind,
-und die Auswahl von „Selected“ zeigt nur die ausgewählten Ziele an.
+von „Getaggt+ausgewählt“ zeigt alle Ziele an, die getaggt oder ausgewählt sind,
+und die Auswahl von „Ausgewählt“ zeigt nur die ausgewählten Ziele an.
 
 Einstellungsmenü
 ================
-Ein Klick auf die Schaltfläche „Settings“ öffnet ein Popup-Menü zum
+Ein Klick auf die Schaltfläche „Einstellungen“ öffnet ein Popup-Menü zum
 Aktivieren bestimmter Einstellungen.
 
-* Wenn Sie „Merge Targets“ aktivieren, werden alle *danach* geladenen Ziele
+* Wenn Sie „Ziele zusammenführen“ aktivieren, werden alle *danach* geladenen Ziele
   unter einer einzigen Überschrift namens „Targets“ organisiert, anstatt nach
   Dateiname gruppiert zu werden.
-* „List Unreferenced Targets“ ist eine Einstellung, die nur OPE-Dateien
+* „Nicht referenzierte Ziele auflisten“ ist eine Einstellung, die nur OPE-Dateien
   betrifft. Normalerweise ignoriert das Targets-Plugin Ziele, die in den
   Befehlen nicht referenziert werden. Das Aktivieren dieser Einstellung zeigt
   alle Ziele an, unabhängig davon, ob sie referenziert werden oder nicht.
   Damit lassen sich Ziele in PRM-Include-Dateien anzeigen.
-* Das Aktivieren der Option „Plot solar system objects“ zeichnet die Sonne,
+* Das Aktivieren der Option „Objekte des Sonnensystems darstellen“ zeichnet die Sonne,
   den Erdmond, die Planeten und Pluto im Fenster `<wsname>_TGTS` ein.
 
-* Die Option „Rotate target colors“ bewirkt, dass jede geladene Datei eine
+* Die Option „Zielfarben durchrotieren“ bewirkt, dass jede geladene Datei eine
   andere automatisch ausgewählte Farbe für die Ziele verwendet (dies wirkt
-  sich nur aus, wenn „Merge targets“ deaktiviert ist).
-* „Enable DateTime setting“ ist eine Option, um das Festlegen eines festen
+  sich nur aus, wenn „Ziele zusammenführen“ deaktiviert ist).
+* „DateTime-Einstellung aktivieren“ ist eine Option, um das Festlegen eines festen
   Datums/einer festen Uhrzeit zu aktivieren, falls die CSV-Datei eine Spalte
   „DateTime“ enthält. Wenn aktiviert, setzt das Auswählen eines einzelnen
   Ziels in der Tabelle das Datum/die Uhrzeit im SiteSelector-Plugin auf

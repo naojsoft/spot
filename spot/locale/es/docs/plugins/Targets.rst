@@ -25,11 +25,11 @@ especificarse como, por ejemplo, J2000 o 2000.0.
 Si desea establecer un color específico para los objetivos que se van a
 trazar, haga clic en el botón "Color" para seleccionar manualmente un color
 antes de abrir un archivo; de lo contrario, los objetivos se colorearán según
-la opción (descrita más abajo) llamada "Rotate target colors".
+la opción (descrita más abajo) llamada "Rotar los colores de los objetivos".
 
-Pulse el botón "File" y navegue hasta seleccionar un archivo CSV con el
+Pulse el botón "Archivo" y navegue hasta seleccionar un archivo CSV con el
 formato anterior. O escriba la ruta del archivo en el cuadro junto al botón
-"File" y pulse "Set" (este último método también sirve para recargar
+"Archivo" y pulse "Establecer" (este último método también sirve para recargar
 rápidamente un archivo que haya editado).
 
 Los objetivos deberían rellenar la tabla.
@@ -67,10 +67,10 @@ atmosférica, ángulo paraláctico y separación de la Luna.
 Funcionamiento
 ==============
 Para "marcar" objetivos, seleccione uno o varios objetivos de la lista y
-pulse "Tag". Aparecerá una marca de verificación en el lado izquierdo, bajo
+pulse "Marcar". Aparecerá una marca de verificación en el lado izquierdo, bajo
 la columna "Tagged", para mostrar qué objetivos se han marcado. Para
 desmarcar un objetivo, seleccione uno o varios objetivos marcados de la lista
-y pulse "Untag".
+y pulse "Desmarcar".
 
 En la ventana `<wsname>_TGTS`, los objetivos se trazarán en la posición
 correspondiente a la hora establecida en el complemento SiteSelector. El
@@ -80,45 +80,45 @@ blanco con un borde rojo en la ventana `<wsname>_TGTS`. De lo contrario, el
 objetivo se coloreará según el color que se seleccionó manual o
 automáticamente al cargar el archivo que contenía los objetivos.
 
-El botón "Select All" seleccionará todos los objetivos de la tabla.
+El botón "Seleccionar todo" seleccionará todos los objetivos de la tabla.
 
-Seleccionar objetivos y pulsar "Delete" quitará los objetivos seleccionados
+Seleccionar objetivos y pulsar "Eliminar" quitará los objetivos seleccionados
 de la lista. Si solo se selecciona una fila de categoría (pero ningún
 objetivo), al pulsar este botón se eliminarán todos los objetivos de la
 categoría.
 
-Seleccionar un único objetivo y luego hacer clic en "Browse" abrirá un menú
+Seleccionar un único objetivo y luego hacer clic en "Examinar" abrirá un menú
 de opciones para buscar el objetivo por coordenada y presentar los resultados
 en un navegador web.
 
-El menú desplegable junto a "Plot:" cambia qué objetivos se trazan en la
-ventana `<wsname>_TGTS`. Seleccionar "All" mostrará todos los objetivos,
-seleccionar "Uncollapsed" mostrará los objetivos que no estén contraídos
+El menú desplegable junto a "Gráfico:" cambia qué objetivos se trazan en la
+ventana `<wsname>_TGTS`. Seleccionar "Todos" mostrará todos los objetivos,
+seleccionar "Sin contraer" mostrará los objetivos que no estén contraídos
 (ocultos) en la tabla, así como los marcados y seleccionados, seleccionar
-"Tagged+Selected" mostrará todos los objetivos que hayan sido marcados o
-estén seleccionados, y seleccionar "Selected" mostrará solo los objetivos que
+"Marcado+seleccionado" mostrará todos los objetivos que hayan sido marcados o
+estén seleccionados, y seleccionar "Seleccionado" mostrará solo los objetivos que
 estén seleccionados.
 
 Menú de ajustes
 ===============
-Al hacer clic en el botón "Settings" se abrirá un menú emergente para
+Al hacer clic en el botón "Ajustes" se abrirá un menú emergente para
 habilitar ciertos ajustes.
 
-* Si marca "Merge Targets", todos los objetivos cargados *después de eso* se
+* Si marca "Combinar objetivos", todos los objetivos cargados *después de eso* se
   organizarán bajo un único encabezado llamado "Targets", en lugar de
   agruparse por nombre de archivo.
-* "List Unreferenced Targets" es un ajuste que solo afecta a los archivos
+* "Listar objetivos sin referencia" es un ajuste que solo afecta a los archivos
   OPE. Normalmente, el complemento Targets ignora los objetivos que no se
   referencian en los comandos. Marcar este ajuste mostrará todos los
   objetivos, estén o no referenciados. Esto puede usarse para mostrar
   objetivos en archivos de inclusión PRM.
-* Marcar la opción "Plot solar system objects" trazará el Sol, la Luna de la
+* Marcar la opción "Trazar objetos del sistema solar" trazará el Sol, la Luna de la
   Tierra, los planetas y Plutón en la ventana `<wsname>_TGTS`.
 
-* La opción "Rotate target colors" hará que cada archivo cargado use un color
+* La opción "Rotar los colores de los objetivos" hará que cada archivo cargado use un color
   distinto seleccionado automáticamente para los objetivos (esto solo surtirá
-  efecto si "Merge targets" está desactivado).
-* "Enable DateTime setting" es una opción para habilitar el ajuste de una
+  efecto si "Combinar objetivos" está desactivado).
+* "Habilitar el ajuste DateTime" es una opción para habilitar el ajuste de una
   fecha/hora fija si el archivo CSV incluye una columna "DateTime". Cuando
   está habilitada, seleccionar un único objetivo en la tabla fijará la
   fecha/hora del complemento SiteSelector a esa fecha y hora. El formato de

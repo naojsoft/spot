@@ -23,30 +23,30 @@ Den Darstellungsbereich festlegen
 =================================
 
 Um das dargestellte Zeitintervall zu ändern, drücken Sie die Schaltfläche mit
-der Bezeichnung „Time axis:“, um ein Auswahlmenü zu öffnen. Es stehen drei
-Optionen zur Verfügung: Night Center, Day Center und Current. „Night Center“
+der Bezeichnung „Zeitachse:“, um ein Auswahlmenü zu öffnen. Es stehen drei
+Optionen zur Verfügung: Night Center, Day Center und Current. „Nachtmitte“
 zentriert die Zeitachse auf die Mitte der Nacht, die im Fenster
 :doc:`polarsky` zu finden ist. Die Zeitachse reicht von kurz vor
-Sonnenuntergang bis kurz nach Sonnenaufgang. „Day Center“ zentriert die
+Sonnenuntergang bis kurz nach Sonnenaufgang. „Tagesmitte“ zentriert die
 Zeitachse auf die Mitte des Tages, und die Zeitachse reicht von
-Sonnenaufgang bis Sonnenuntergang. „Current“ setzt die Zeitachse so, dass sie
+Sonnenaufgang bis Sonnenuntergang. „Aktuell“ setzt die Zeitachse so, dass sie
 von etwa -2 bis +7 Stunden reicht, und passt sich mit fortschreitender Zeit
 automatisch an.
 
 Zielauswahl
 ===========
 
-Das Auswahlmenü neben „Plot:“ steuert, welche Ziele im Sichtbarkeitsdiagramm
-dargestellt werden. Die Auswahl von „All“ zeigt alle Ziele an, die Auswahl
-von „Uncollapsed“ zeigt alle Ziele an, die in der Zieltabelle nicht
+Das Auswahlmenü neben „Diagramm:“ steuert, welche Ziele im Sichtbarkeitsdiagramm
+dargestellt werden. Die Auswahl von „Alle“ zeigt alle Ziele an, die Auswahl
+von „Ausgeklappt“ zeigt alle Ziele an, die in der Zieltabelle nicht
 eingeklappt (ausgeblendet) sind, sowie die getaggten und ausgewählten Ziele,
-die Auswahl von „Tagged+Selected“ zeigt alle Ziele an, die getaggt oder
-ausgewählt sind, und die Auswahl von „Selected“ zeigt nur die ausgewählten
+die Auswahl von „Getaggt+ausgewählt“ zeigt alle Ziele an, die getaggt oder
+ausgewählt sind, und die Auswahl von „Ausgewählt“ zeigt nur die ausgewählten
 Ziele an.
 
 Einstellungsmenü
 ================
-Ein Klick auf die Schaltfläche „Settings“ öffnet ein Popup-Menü zum
+Ein Klick auf die Schaltfläche „Einstellungen“ öffnet ein Popup-Menü zum
 Aktivieren bestimmter Einstellungen.
 
 * Mondabstand darstellen. Das Aktivieren dieser Option zeigt den Abstand in
