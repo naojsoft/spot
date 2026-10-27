@@ -8,7 +8,7 @@ de los aspectos de los otros complementos visibles en el espacio de trabajo.
 
 Establecer el lugar de observación
 ----------------------------------
-Use el menú desplegable "Site:" para seleccionar el lugar de observación. Hay
+Use el menú desplegable "Sitio:" para seleccionar el lugar de observación. Hay
 varios sitios predefinidos disponibles.
 
 Añadir su propio lugar de observación personalizado
@@ -23,15 +23,14 @@ spot y debería poder ver su nuevo lugar.
 Establecer la hora de observación
 ---------------------------------
 La hora puede fijarse a la hora actual o a una hora fija. Para fijarla a la
-hora actual, elija "Now" en el menú desplegable "Time mode:".
+hora actual, elija "Ahora" en el menú desplegable "Modo de hora:".
 
-Para fijar una hora fija, elija "Fixed": esto habilitará los controles "Date
-time:" y "UTC offset (min):". Introduzca la fecha/hora en el primer cuadro
-con el formato YYYY-MM-DD HH:MM:SS y pulse "Set".
+Para fijar una hora fija, elija "Fijo": esto habilitará los controles "Fecha y hora:" y "Desfase UTC (min):". Introduzca la fecha/hora en el primer cuadro
+con el formato YYYY-MM-DD HH:MM:SS y pulse "Establecer".
 
 De forma predeterminada, el desfase UTC de la hora fija se establecerá al de
 la zona horaria del lugar de observación; pero puede introducir un desfase
-personalizado (en *minutos*) respecto a UTC en el otro cuadro y pulsar "Set"
+personalizado (en *minutos*) respecto a UTC en el otro cuadro y pulsar "Establecer"
 para indicar un desfase especial con el que interpretar la hora.
 
 .. note:: esto NO cambia la zona horaria del lugar de observación; solo fija

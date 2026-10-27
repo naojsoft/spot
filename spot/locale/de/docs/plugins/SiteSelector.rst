@@ -8,7 +8,7 @@ Aspekte der anderen im Arbeitsbereich sichtbaren Plugins steuert.
 
 Den Beobachtungsort festlegen
 -----------------------------
-Verwenden Sie das Auswahlmenü „Site:“, um den Beobachtungsort auszuwählen. Es
+Verwenden Sie das Auswahlmenü „Standort:“, um den Beobachtungsort auszuwählen. Es
 stehen mehrere vordefinierte Standorte zur Verfügung.
 
 Einen eigenen benutzerdefinierten Beobachtungsort hinzufügen
@@ -24,17 +24,17 @@ Ihren neuen Ort sehen können.
 Die Beobachtungszeit festlegen
 ------------------------------
 Die Zeit kann auf die aktuelle Zeit oder eine feste Zeit gesetzt werden. Um
-sie auf die aktuelle Zeit zu setzen, wählen Sie „Now“ aus dem Auswahlmenü
-„Time mode:“.
+sie auf die aktuelle Zeit zu setzen, wählen Sie „Jetzt“ aus dem Auswahlmenü
+„Zeitmodus:“.
 
-Um eine feste Zeit festzulegen, wählen Sie „Fixed“ – dadurch werden die
-Steuerelemente „Date time:“ und „UTC offset (min):“ aktiviert. Geben Sie
+Um eine feste Zeit festzulegen, wählen Sie „Fest“ – dadurch werden die
+Steuerelemente „Datum/Uhrzeit:“ und „UTC-Versatz (Min.):“ aktiviert. Geben Sie
 Datum/Uhrzeit im ersten Feld im Format YYYY-MM-DD HH:MM:SS ein und drücken
-Sie „Set“.
+Sie „Setzen“.
 
 Standardmäßig wird der UTC-Versatz der festen Zeit auf den der Zeitzone des
 Beobachtungsorts gesetzt; Sie können jedoch im anderen Feld einen
-benutzerdefinierten Versatz (in *Minuten*) gegenüber UTC eingeben und „Set“
+benutzerdefinierten Versatz (in *Minuten*) gegenüber UTC eingeben und „Setzen“
 drücken, um einen speziellen Versatz für die Interpretation der Zeit
 anzugeben.
 

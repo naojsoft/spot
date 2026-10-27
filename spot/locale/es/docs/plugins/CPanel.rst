@@ -10,7 +10,7 @@ Crear un espacio de trabajo
 Para abrir un espacio de trabajo, elija uno del cuadro desplegable editable
 (se rellena con los espacios de trabajo encontrados en
 ``$HOME/.spot/workspaces``) —o escriba un nombre nuevo en él— y pulse el
-botón "Open Workspace" situado a su derecha. Los nombres de los espacios de
+botón "Abrir espacio de trabajo" situado a su derecha. Los nombres de los espacios de
 trabajo deben ser únicos. Si deja el cuadro vacío, se crea un espacio de
 trabajo con un nombre genérico.
 
@@ -19,10 +19,10 @@ los complementos que se abrirán allí.
 
 Seleccionar un espacio de trabajo para iniciar un complemento
 -------------------------------------------------------------
-Con el menú desplegable "Select Workspace", elija un espacio de trabajo
+Con el menú desplegable "Seleccionar espacio de trabajo", elija un espacio de trabajo
 abierto en el que desee iniciar uno de los complementos de planificación de
 SPOT (tenga en cuenta que el espacio de trabajo debe haberse abierto primero
-con "Open Workspace"). Luego use las casillas de abajo para iniciar (marcar)
+con "Abrir espacio de trabajo"). Luego use las casillas de abajo para iniciar (marcar)
 o detener (desmarcar) un complemento.
 
 Casi siempre querrá iniciar el complemento "SiteSelector", porque controla
@@ -48,7 +48,7 @@ espacio para otros complementos.
 
 Guardar la disposición del espacio de trabajo
 ---------------------------------------------
-Al pulsar el botón "Save <wsname> layout", guardará el tamaño y la posición
+Al pulsar el botón "Guardar el diseño de <wsname>", guardará el tamaño y la posición
 actuales de las ventanas de los complementos que haya abierto en ese espacio
 de trabajo, junto con los complementos que se están ejecutando actualmente.
 La disposición de cada espacio de trabajo se guarda por separado en

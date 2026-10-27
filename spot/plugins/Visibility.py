@@ -85,7 +85,7 @@ class Visibility(GingaPlugin.LocalPlugin):
     visibility plot. Selecting "All" will show all of the targets,
     selecting "Uncollapsed" will show any targets that are not collapsed
     (hidden) in the Target table as well as tagged and selected targets,
-    selecting "Tagged+Selected" will show all of the targets which have been
+    selecting "Tagged+selected" will show all of the targets which have been
     tagged or are selected, and selecting "Selected" will show only the
     targets which are selected.
 

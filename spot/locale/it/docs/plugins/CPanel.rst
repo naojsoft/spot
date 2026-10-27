@@ -10,7 +10,7 @@ Creare un'area di lavoro
 Per aprire un'area di lavoro, scegline una dalla casella a discesa
 modificabile (che viene popolata con le aree di lavoro trovate in
 ``$HOME/.spot/workspaces``) — oppure digitavi un nuovo nome — e premi il
-pulsante "Open Workspace" alla sua destra. I nomi delle aree di lavoro devono
+pulsante "Apri area di lavoro" alla sua destra. I nomi delle aree di lavoro devono
 essere univoci. Se lasci la casella vuota, viene creata un'area di lavoro con
 un nome generico.
 
@@ -19,9 +19,9 @@ utilizzare i plugin che vi verranno aperti.
 
 Selezionare un'area di lavoro per avviare un plugin
 ---------------------------------------------------
-Usando il menu a discesa "Select Workspace", scegli un'area di lavoro aperta
+Usando il menu a discesa "Seleziona area di lavoro", scegli un'area di lavoro aperta
 in cui vuoi avviare uno dei plugin di pianificazione di SPOT (nota che l'area
-di lavoro deve prima essere stata aperta con "Open Workspace"). Poi usa le
+di lavoro deve prima essere stata aperta con "Apri area di lavoro"). Poi usa le
 caselle di spunta qui sotto per avviare (spunta) o arrestare (togli la
 spunta) un plugin.
 
@@ -46,7 +46,7 @@ plugin per ridurlo a icona e liberare spazio per altri plugin.
 
 Salvare la disposizione dell'area di lavoro
 -------------------------------------------
-Premendo il pulsante "Save <wsname> layout", salverai la dimensione e la
+Premendo il pulsante "Salva il layout di <wsname>", salverai la dimensione e la
 posizione attuali delle finestre dei plugin che hai aperto nell'area di
 lavoro indicata, insieme ai plugin attualmente in esecuzione. La disposizione
 di ciascuna area di lavoro viene salvata separatamente in

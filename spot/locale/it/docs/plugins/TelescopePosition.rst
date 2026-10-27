@@ -14,13 +14,13 @@ Le posizioni del telescopio e del target sono mostrate sia in Ascensione
 Retta/Declinazione sia in Azimut/Elevazione. La RA e la DEC sono visualizzate
 in notazione sessagesimale come HH:MM:SS.SSS per la RA e DD:MM:SS.SS per la
 DEC. L'AZ e l'EL sono entrambi visualizzati in gradi come valori decimali.
-Nella sezione "Telescope" viene mostrato lo stato del telescopio, come
+Nella sezione "Telescopio" viene mostrato lo stato del telescopio, come
 puntamento o spostamento, insieme al tempo di spostamento in h:mm:ss.
 
-L'opzione "Plot telescope position" mostrerà le posizioni del target e del
+L'opzione "Traccia la posizione del telescopio" mostrerà le posizioni del target e del
 telescopio nella finestra Targets quando la casella è selezionata.
 
-L'opzione "Target follow telescope" farà sì che venga selezionato un target
+L'opzione "Il target segue il telescopio" farà sì che venga selezionato un target
 nella tabella del plugin Targets quando il telescopio è "vicino" a quel
 target (vicino essendo definito come entro circa 10 arcominuti). Viene
 selezionato il target reale più vicino alla coordinata del telescopio.
@@ -30,7 +30,7 @@ selezionato il target reale più vicino alla coordinata del telescopio.
           automaticamente. Per ripristinare l'inseguimento del telescopio da
           parte del target, basta rispuntare la casella.
 
-L'opzione "Pan to telescope position" farà sì che il visore TGTS si sposti
+L'opzione "Sposta alla posizione del telescopio" farà sì che il visore TGTS si sposti
 sulla posizione del telescopio. Questo può essere utile quando sono tracciati
 molti target e hai ingrandito per mostrare solo una parte del campo polare
 del cielo.

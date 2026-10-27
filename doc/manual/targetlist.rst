@@ -76,6 +76,13 @@ appear in the color assigned to the target file and tagged targets will appear
 in magenta. If a target is selected it will appear in blue, and the name
 will have a white background with a red border on the :ref:`TargetsChannel`.
 
+If the :doc:`skycams` plugin is showing a sky camera image with "Flag
+Clouded Targets" checked, targets that are in or near clouds are shown in
+orange-red instead, whatever their other color.  This color can be changed
+with the ``color_clouded`` setting in the Targets plugin's configuration
+(``$HOME/.spot/workspaces/<workspacename>/Targets.cfg``, written by its
+"Save config" button).
+
 The "Select All" button will select every loaded target in collapsed and
 uncollapsed files. Pressing "Delete" will delete every selected target from
 the target list. If the target was added from a file, reloading the file by
@@ -89,7 +96,7 @@ options using left-click and a browser will open and run a search.
 
 The drop down menu next to "Plot:" changes which targets are plotted on
 the :ref:`TargetsChannel`. Selecting "All" will show all of the targets,
-selecting "Tagged+Selected" will show all of the targets which have been
+selecting "Tagged+selected" will show all of the targets which have been
 tagged or are selected, and selecting "Selected" will show only the
 target which is selected. Selecting "Uncollapsed" will show all of the
 targets from files which have not been collapsed in the target list.
@@ -104,7 +111,7 @@ settings.
 * If you check "Merge Targets" then all targets loaded *after that*
   will be organized under a single heading of "Targets", instead of being
   grouped by file name.
-* "List Unreferenced Targets" is a setting that just affects OPE files.
+* "List unreferenced targets" is a setting that just affects OPE files.
   Normally, the Targets plugin will ignore targets that are not referenced
   in the commands. Checking this setting will show all targets regardless
   of whether they are referenced or not.  This can be used to show targets
@@ -114,7 +121,10 @@ settings.
 
 * The "Rotate target colors" option will mean that each file loaded will
   use a different automatically selected color for the targets (this will
-  only take effect if "Merge targets" is turned off).
+  only take effect if "Merge Targets" is turned off).  The colors (after
+  the default green: yellow, orange, plum, chartreuse and pink) are chosen
+  to show up well on the sky camera images and to be different from the
+  colors used for selected, tagged and clouded targets.
 * "Enable DateTime setting" is a option to enable the setting of a fixed
   date/time if the CSV file includes a "DateTime" column.  When enabled,
   selecting a single target in the table will set the date/time in the

@@ -150,6 +150,10 @@ class Targets(GingaPlugin.LocalPlugin):
     colored according to the color that was manually or automatically selected
     when the file containing the targets was loaded.
 
+    If the SkyCam plugin is showing a sky camera image with "Flag Clouded
+    Targets" checked, targets that are in or near clouds are shown in
+    orange-red instead, whatever their other color.
+
     The "Select All" button will select all of the targets in the table.
 
     Selecting targets and pressing "Delete" will remove selected targets
@@ -164,7 +168,7 @@ class Targets(GingaPlugin.LocalPlugin):
     the `<wsname>_TGTS` window. Selecting "All" will show all of the targets,
     selecting "Uncollapsed" will show any targets that are not collapsed
     (hidden) in the table as well as tagged and selected targets, selecting
-    "Tagged+Selected" will show all of the targets which have been
+    "Tagged+selected" will show all of the targets which have been
     tagged or are selected, and selecting "Selected" will show only the
     targets which are selected.
 
@@ -176,7 +180,7 @@ class Targets(GingaPlugin.LocalPlugin):
     * If you check "Merge Targets" then all targets loaded *after that*
       will be organized under a single heading of "Targets", instead of being
       grouped by file name.
-    * "List Unreferenced Targets" is a setting that just affects OPE files.
+    * "List unreferenced targets" is a setting that just affects OPE files.
       Normally, the Targets plugin will ignore targets that are not referenced
       in the commands. Checking this setting will show all targets regardless
       of whether they are referenced or not.  This can be used to show targets
@@ -186,7 +190,7 @@ class Targets(GingaPlugin.LocalPlugin):
 
     * The "Rotate target colors" option will mean that each file loaded will
       use a different automatically selected color for the targets (this will
-      only take effect if "Merge targets" is turned off).
+      only take effect if "Merge Targets" is turned off).
     * "Enable DateTime setting" is a option to enable the setting of a fixed
       date/time if the CSV file includes a "DateTime" column.  When enabled,
       selecting a single target in the table will set the date/time in the
@@ -208,6 +212,7 @@ class Targets(GingaPlugin.LocalPlugin):
                                    color_selected='royalblue',
                                    color_tagged='mediumorchid1',
                                    color_normal='seagreen2',
+                                   color_clouded='orangered',
                                    plot_color=None,
                                    plot_ss_objects=True,
                                    load_directory=user_home,
@@ -235,10 +240,15 @@ class Targets(GingaPlugin.LocalPlugin):
         # configured color_normal when one was never saved
         self._tgt_color = (self.settings.get('plot_color', None) or
                            self.settings['color_normal'])
-        self.tgt_colors = [self._tgt_color, 'slateblue2',
-                           'coral', 'olivedrab', 'chocolate', 'darkorange2',
-                           'khaki4', 'deeppink2', 'purple']
+        # bright colors that read well on the sky camera images (dark
+        # sky, the gray differential image) and are distinct from the
+        # colors with a meaning: selected, tagged, clouded, the telescope,
+        # and the PolarSky grid and labels
+        self.tgt_colors = [self._tgt_color, 'yellow', 'orange', 'plum1',
+                           'chartreuse2', 'pink1']
         self._tgt_color_idx = 0
+        # cloud map from the SkyCam plugin (skydiff.CloudMap), if any
+        self.cloud_map = None
         self.base_circ = None
         self.target_dict = {}
         self.full_tgt_list = []
@@ -353,6 +363,13 @@ class Targets(GingaPlugin.LocalPlugin):
         obj.cb.add_callback('site-changed', self.site_changed_cb)
         self.dt_utc, self.cur_tz = obj.get_datetime()
         obj.cb.add_callback('time-changed', self.time_changed_cb)
+
+        # follow the clouds seen by the sky camera, if there is one
+        try:
+            obj = self.channel.opmon.get_plugin('SkyCam')
+            obj.cb.add_callback('clouds-changed', self.clouds_changed_cb)
+        except Exception as e:
+            self.logger.info(f"not following SkyCam clouds: {e}")
 
         top = Widgets.VBox()
         top.set_border_width(4)
@@ -1271,8 +1288,20 @@ class Targets(GingaPlugin.LocalPlugin):
 
         self.cb.make_callback('tagged-changed', self.tagged)
 
+    def _is_clouded(self, tgt):
+        """Is the target in or near clouds seen by the sky camera?"""
+        if self.cloud_map is None:
+            return False
+        try:
+            return bool(self.cloud_map.is_cloudy(tgt['az_deg'],
+                                                 tgt['alt_deg']))
+        except Exception:
+            return False
+
     def _get_target_color(self, tgt):
-        if tgt in self.selected:
+        if self._is_clouded(tgt):
+            color = self.settings['color_clouded']
+        elif tgt in self.selected:
             color = self.settings['color_selected']
         elif tgt in self.tagged:
             color = self.settings['color_tagged']
@@ -1315,6 +1344,18 @@ class Targets(GingaPlugin.LocalPlugin):
                     text.bgalpha = text.borderalpha = 0.0
 
         self.fitsimage.redraw(whence=3)
+
+    def clouds_changed_cb(self, cb, cloud_map):
+        """Called by the SkyCam plugin when its view of the clouds changes
+        (`cloud_map` is None when it has no current one)."""
+        if cloud_map is None and self.cloud_map is None:
+            return
+        self.cloud_map = cloud_map
+        if not self.gui_up:
+            return
+        targets = [tgt for tgt in self.full_tgt_list
+                   if tgt.get('plotted', None) is not None]
+        self._update_target_colors(targets)
 
     def target_selection_cb(self, w, sel_dct):
         """Called when a selection is made in the targets table."""

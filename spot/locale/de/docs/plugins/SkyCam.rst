@@ -10,30 +10,161 @@ Standorten zur Auswahl.
 Das Himmelsbild festlegen
 =========================
 
-Wählen Sie den gewünschten Kameraserver aus dem Auswahlmenü unter „All Sky
-Camera“. Aktivieren Sie dann das Kontrollkästchen neben „Show Sky Image“, um
-das Bild im Fenster `<wsname>_TGTS` anzuzeigen. Es kann einige Augenblicke
-dauern, bis das Himmelsbild erscheint. Wenn das Bild aktualisiert wird,
-werden die Uhrzeit und das Datum des letzten Bildes am unteren Rand des
-Fensters unter „Image Download Info“ angezeigt.
+Das Plugin hat zwei Reiter: Die unten beschriebenen Bedienelemente
+befinden sich auf dem Reiter „Kamera“, und der Reiter „Verlauf“ zeigt die
+Bewölkung im zeitlichen Verlauf (siehe „Bewölkungsverlauf“).
 
-Das SkyCam-Plugin kann außerdem ein Differenzbild aus dem ausgewählten
-Kanalserver erzeugen, indem Sie das Kontrollkästchen neben „Show Differential
-Image“ aktivieren.
+Wählen Sie im Auswahlmenü unter „Ganzhimmelkamera“ den Kameraserver, den Sie
+verwenden möchten. Aktivieren Sie dann das Kontrollkästchen neben „Himmelsbild anzeigen“, um das Bild im Fenster `<wsname>_TGTS` anzuzeigen. Es kann einen
+Moment dauern, bis das Himmelsbild erscheint. Wenn das Bild aktualisiert
+wird, werden Datum und Uhrzeit des letzten Bildes unten im Fenster unter
+„Bild-Download-Info“ angezeigt.
+
+Manche Ganzhimmelkameras liefern Farbbilder. Wenn Sie das Kontrollkästchen
+„Monochrom“ aktivieren, werden diese in ein monochromes (Graustufen-)Bild
+umgewandelt; deaktivieren Sie es, um die Originalfarben anzuzeigen.
+
+Das Himmelsbild wird mit der Farbtabelle und den Schnittwerten des
+Betrachters gezeichnet, sodass Sie Kontrast und Schnittwerte mit den
+üblichen Bedienelementen des Betrachters einstellen können (bei einem
+Farbbild wirken nur die Schnittwerte). Ihre Einstellungen bleiben erhalten,
+wenn neue Bilder eintreffen.
+
+Differenzbild
+=============
+
+Aktivieren Sie das Kontrollkästchen neben „Differenzbild anzeigen“, um
+statt des Bildes selbst anzuzeigen, wie sich der Himmel zwischen den beiden
+letzten Bildern der Kamera verändert hat. So lassen sich ziehende oder sich
+bildende Wolken viel leichter erkennen. Mit der voreingestellten Farbtabelle
+„Grau“ erscheinen unveränderte Bereiche mittelgrau, heller gewordene
+Bereiche heller und dunkler gewordene Bereiche dunkler. Wolken, die vom Mond
+oder von Stadtlichtern beleuchtet werden, werden meist heller; Wolken, die
+die Sterne oder die Milchstraße verdecken, werden dunkler.
+
+Für das Differenzbild werden beide Bilder in Monochrom umgewandelt, in der
+Auflösung reduziert und mit einem Medianfilter bearbeitet, der die meisten
+Sterne und das Rauschen entfernt. Das vorherige Bild wird an die
+Gesamthelligkeit des aktuellen angepasst, damit Änderungen der
+Kamerabelichtung nicht wie Wolken aussehen. Anschließend wird die Differenz
+durch eine Schätzung des Bildrauschens geteilt, sodass das Differenzbild in
+Einheiten des Rauschens („Sigma“) angegeben ist.
+
+Die Bedienelemente sind:
+
+* „Himmelsdrehung ausgleichen“: Der Himmel dreht sich um etwa ein Viertelgrad pro Minute,
+  daher bewegen sich die Sterne zwischen den Bildern. Ist diese Option
+  aktiviert, wird das vorherige Bild um den Himmelspol auf den Zeitpunkt
+  des aktuellen Bildes gedreht, sodass sich die Sterne aufheben und nur
+  echte Veränderungen übrig bleiben. Dazu muss die Ausrichtung der Kamera in
+  skycams.yml stimmen (siehe „Neue Kameras hinzufügen“). Im Kamerabild
+  feststehende Objekte wie Kuppeln oder Bäume nahe dem Horizont können dann
+  gekrümmte Streifen hinterlassen.
+
+* „Wolkenbewegung anzeigen“: einen Pfeil für Richtung und Geschwindigkeit
+  der Wolken anzeigen (siehe „Wolkenbewegung und Ziele in Wolken“).
+
+* „Ziele in Wolken hervorheben“: Ziele in oder nahe Wolken im
+  Targets-Plugin in der Farbe für Ziele in Wolken anzeigen (standardmäßig
+  Orangerot).
+
+* „Schwellenwert“: Eine Veränderung von mehr als so vielen Sigma zählt für den
+  Bewölkungsgrad als Wolke (Voreinstellung 5).
+
+* „Farbtabelle“: die Farbtabelle für das Differenzbild. „Grau“ und „Veränderung“
+  (das nur die Stärke der Veränderung zeigt, nicht ob es heller oder dunkler
+  wurde) halten die Ziel-Overlays gut lesbar; „Petrol/Bernstein“ und „Blau/Rot“
+  zeigen die Richtung der Veränderung farbig an.
+
+* „Bewölkung“: der Prozentsatz des Himmels innerhalb von 75 Grad um den
+  Zenit, der sich um mehr als den Schwellenwert verändert hat. Er erfasst
+  Wolken, die sich zwischen den Bildern bewegen oder verändern; eine
+  gleichmäßige Bewölkung, die sich nicht verändert, erscheint nicht.
+  Solange die Sonne am Standort der Kamera weniger als 12 Grad unter dem
+  Horizont steht, ändert sich die Himmelshelligkeit zu schnell, als dass
+  der Wert aussagekräftig wäre; dann wird stattdessen „Dämmerung“ oder
+  „Tag“ angezeigt. Die Bewölkung wird gemessen, sobald zwei Bilder
+  vorliegen, auch wenn das Differenzbild nicht angezeigt wird.
+
+Das Differenzbild behält eine eigene Farbtabelle und eigene Schnittwerte
+(standardmäßig -10 bis +10 Sigma), getrennt von denen des normalen Bildes,
+und auch diese können Sie mit den üblichen Bedienelementen des Betrachters
+einstellen.
+
+Nach der Auswahl einer Kamera erscheint das Differenzbild, sobald ein
+zweites Bild empfangen wurde. Liefert ein Download dasselbe Bild wie der
+vorherige (die Kamera hat sich noch nicht aktualisiert), wird es ignoriert.
+
+Die Schaltfläche „Konfiguration speichern“ speichert Ihre aktuelle Auswahl
+(Kameraserver, „Himmelsbild anzeigen“, „Differenzbild anzeigen“ und
+„Monochrom“) für den Arbeitsbereich, sodass sie beim nächsten Öffnen
+wiederhergestellt wird.
+
+Wolkenbewegung und Ziele in Wolken
+==================================
+
+Nachts ermittelt SkyCam außerdem, wo sich Wolken befinden, und verfolgt ihre
+Bewegung. Eine Stelle am Himmel gilt als bewölkt, wenn sich mehr als 20 %
+des Himmels im Umkreis von etwa 3 Grad um mehr als den Schwellenwert
+verändert haben; so werden Ziele nahe einer Wolke ebenso hervorgehoben wie
+Ziele direkt dahinter. Ist „Ziele in Wolken hervorheben“ aktiviert, zeigt
+das Targets-Plugin diese Ziele in der Farbe für Ziele in Wolken an.
+
+Sobald drei Bilder empfangen wurden, wird die Wolkenbewegung durch den
+Vergleich der letzten beiden Differenzen zwischen den Bildern bestimmt, was
+Kuppeln, Vignettierung und Mondlicht entfernt. Ist „Wolkenbewegung
+anzeigen“ aktiviert, zeigt ein weißer Pfeil vom Zenit, in welche Richtung
+sich die Wolken bewegen und wie weit sie in etwa 5 Minuten ziehen, beschriftet
+mit ihrer Geschwindigkeit am Himmel in Grad pro Minute. (Die Höhe der Wolken
+ist nicht bekannt, daher lässt sich ihre Geschwindigkeit in Kilometern pro
+Stunde nicht angeben.) Der Pfeil wird nur angezeigt, wenn die Bewegung
+eindeutig ist; eine Wolkenschicht bewegt sich meist als Ganzes, daher wird
+für den ganzen Himmel ein einziger Pfeil angezeigt.
+
+In der Dämmerung und bei Tag wird beides nicht angezeigt. Die Einstellungen,
+die sie steuern, sind im SPOT-Handbuch beschrieben.
+
+Bewölkungsverlauf
+=================
+
+Der Reiter „Verlauf“ zeigt die Bewölkung der letzten 12 Stunden, mit
+Uhrzeiten in der Zeitzone des in SPOT ausgewählten Standorts. Für jedes neue
+Bild der Kamera wird ein Punkt hinzugefügt, ob das Differenzbild angezeigt
+wird oder nicht. Punkte aus der Dämmerung oder vom Tag werden hohl
+gezeichnet, und die Linie ist unterbrochen, wo Bilder fehlen. Eine Änderung
+des Schwellenwerts ändert nur den letzten Punkt. „Löschen“ leert den
+Verlauf, der auch geleert wird, wenn Sie eine andere Kamera auswählen.
 
 Neue Kameras hinzufügen
 =======================
 
-Sie können leicht Ihre eigenen Ganzhimmelkamera-Bilder hinzufügen, wenn Sie
-über einen geeigneten Bildstrom verfügen, der über Web-Protokolle abgerufen
-werden kann. Wenn Sie den SPOT-Quellcode ausgecheckt haben, finden Sie die
+Sie können ganz einfach eigene Ganzhimmelkamera-Bilder hinzufügen, wenn Sie
+über einen geeigneten Bild-Feed verfügen, der sich über Webprotokolle
+abrufen lässt. Wenn Sie den SPOT-Quellcode ausgecheckt haben, finden Sie die
 Datei „skycams.yml“ in .../spot/spot/config/. Kopieren Sie diese Datei nach
 $HOME/.spot und bearbeiten Sie sie, um Ihre eigene Kamera hinzuzufügen. Sie
-müssen eine URL zum Herunterladen von Bildern, einen Titel, einen
-Mittelpunktpixel (X- und Y-Koordinaten) im Bild, der den Zenit darstellt, den
+müssen eine URL zum Herunterladen der Bilder angeben, einen Titel, ein
+Mittelpixel (X- und Y-Koordinaten) im Bild, das den Zenit darstellt, den
 Radius des Kreises bis zum Horizont in Pixeln, eine anzuwendende Drehung, ob
-das Bild in X- oder Y-Richtung gespiegelt werden soll, und ein
-Aktualisierungsintervall in Sekunden angeben.
+das Bild in X- oder Y-Richtung gespiegelt werden soll, sowie ein
+Aktualisierungsintervall in Sekunden. Sie können außerdem den Standort der
+Kamera in Grad als „latitude“ (auf der Südhalbkugel negativ) und
+„longitude“ (westlich von Greenwich negativ) angeben. Die Breite wird
+verwendet, um im Differenzbild die Drehung des Himmels auszugleichen, und
+beide zusammen, um festzustellen, wann es an der Kamera Nacht ist. Fehlen
+sie, wird der Standort des in SPOT ausgewählten Ortes verwendet, was falsch
+ist, wenn sich die Kamera an einem anderen Standort befindet.
 
-Starten Sie spot neu, und Sie sollten Ihre neue Kamera aus der Liste
+Manche Kameras veröffentlichen nur ein animiertes Bild (etwa eine GIF-Schleife
+der letzten Bilder). SPOT verwendet dann das letzte Bild der Animation, das
+normalerweise das neueste ist; um ein anderes Bild zu verwenden, geben Sie
+dessen Nummer als „frame“ an (ab 0 gezählt, oder ab -1 für das letzte).
+
+Drehung und Spiegelungen müssen das Bild so ausrichten, dass Norden oben und
+Osten links liegt, wie im polaren Himmelsdiagramm (auf beiden
+Halbkugeln). Eine gute Kontrolle ist, dass der Mond oder ein heller Planet
+im Himmelsbild mit seiner Position in SPOT übereinstimmt und dass sich die
+Sterne im Differenzbild bei aktiviertem „Himmelsdrehung ausgleichen“ aufheben.
+
+Starten Sie spot neu, dann sollten Sie Ihre neue Kamera aus der Liste
 auswählen können.

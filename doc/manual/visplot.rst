@@ -41,7 +41,7 @@ Plot Options
 
 The drop down menu by "Plot:" controls which targets are plotted on the 
 visibility plot. Selecting "All" will show all of the targets, 
-selecting "Tagged+Selected" will show all of the targets which have been 
+selecting "Tagged+selected" will show all of the targets which have been 
 tagged or are selected, and selecting "Selected" will show only the 
 target which is selected. Selecting "Uncollapsed" will show all of the 
 targets from files which have not been collapsed in the target list.

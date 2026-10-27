@@ -23,29 +23,29 @@ Définir la plage du tracé
 =========================
 
 Pour changer l'intervalle de temps tracé, appuyez sur le bouton étiqueté
-« Time axis: » pour ouvrir un menu déroulant. Trois options sont disponibles :
-Night Center, Day Center et Current. « Night Center » centrera l'axe temporel
+« Axe temporel : » pour ouvrir un menu déroulant. Trois options sont disponibles :
+Night Center, Day Center et Current. « Milieu de la nuit » centrera l'axe temporel
 sur le milieu de la nuit, que l'on peut trouver dans la fenêtre
 :doc:`polarsky`. L'axe temporel s'étendra d'un peu avant le coucher du Soleil
-à un peu après le lever. « Day Center » centrera l'axe temporel sur le milieu
+à un peu après le lever. « Milieu du jour » centrera l'axe temporel sur le milieu
 de la journée, et l'axe temporel s'étendra du lever au coucher du Soleil.
-« Current » réglera l'axe temporel pour qu'il s'étende d'environ -2 à +7
+« Actuel » réglera l'axe temporel pour qu'il s'étende d'environ -2 à +7
 heures, et s'ajustera automatiquement au fil du temps.
 
 Sélection des cibles
 ====================
 
-Le menu déroulant à côté de « Plot: » contrôle quelles cibles sont tracées
-sur le tracé de visibilité. Sélectionner « All » affichera toutes les cibles,
-sélectionner « Uncollapsed » affichera les cibles qui ne sont pas repliées
+Le menu déroulant à côté de « Tracé : » contrôle quelles cibles sont tracées
+sur le tracé de visibilité. Sélectionner « Tous » affichera toutes les cibles,
+sélectionner « Développé » affichera les cibles qui ne sont pas repliées
 (masquées) dans la table des cibles ainsi que les cibles marquées et
-sélectionnées, sélectionner « Tagged+Selected » affichera toutes les cibles
-qui ont été marquées ou sont sélectionnées, et sélectionner « Selected »
+sélectionnées, sélectionner « Marqué+sélectionné » affichera toutes les cibles
+qui ont été marquées ou sont sélectionnées, et sélectionner « Sélectionné »
 affichera uniquement les cibles qui sont sélectionnées.
 
 Menu des paramètres
 ===================
-Cliquer sur le bouton « Settings » ouvrira un menu contextuel permettant
+Cliquer sur le bouton « Paramètres » ouvrira un menu contextuel permettant
 d'activer certains paramètres.
 
 * Tracer la séparation lunaire. Cocher cette option affichera la séparation

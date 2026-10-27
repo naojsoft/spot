@@ -2,6 +2,46 @@
 What's New
 ++++++++++
 
+Ver 1.5.3 (unreleased)
+======================
+- SkyCam: reworked the differential sky image to make it useful for
+  spotting clouds.  Frames are median filtered to remove stars and noise,
+  scaled to cancel camera exposure changes, optionally derotated with the
+  sky so that stars cancel, and shown in units of the image noise.  A
+  cloud cover percentage is reported, with an adjustable threshold, and
+  there is a choice of color maps that keep the target overlays readable.
+  Fixed the old subtraction, which wrapped around for color images and
+  dropped areas that got darker for monochrome ones.
+- SkyCam: the sky image now uses the viewer's color map and cut levels,
+  so they can be adjusted (the normal and differential image each keep
+  their own); the image is no longer auto-leveled on every download.
+- SkyCam: fixed the sky image being off-center (misaligned with the polar
+  plot) for cameras whose sky circle runs off the edge of the frame, such
+  as GTC.
+- SkyCam: the cloud cover shows "Twilight" or "Sun up" instead of a
+  value while the Sun is above -12 degrees at the camera.
+- SkyCam: at night a white arrow from the zenith shows the direction and
+  speed (degrees per minute) of the clouds, and targets in or near clouds
+  are shown in orange-red in the Targets plugin ("Show Cloud Motion" and
+  "Flag Clouded Targets").  The motion is found by correlating the last two
+  differences between images, which removes fixed features such as domes.
+- Targets: the rotating target colors are now bright colors that show up
+  on the sky camera images and are distinct from the selected, tagged and
+  clouded target colors (green, yellow, orange, plum, chartreuse, pink).
+- SkyCam: a "History" tab plots the cloud cover over the last 12 hours
+  (the controls moved to a "Camera" tab).  The cloud cover is now
+  measured for every new image, whether or not the differential image is
+  shown.
+- SkyCam: image processing now runs off the GUI thread, so large camera
+  images no longer make the interface pause.
+- SkyCam: animated images (e.g. GIF loops) are supported; the last frame
+  is used unless a "frame" is given in skycams.yml.  The CFHT Nana ao
+  cameras, whose still images are no longer published, now use their
+  GIF loops (and the Mid-IR camera has new geometry).
+- skycams.yml: cameras can give their own "latitude" and "longitude",
+  used to derotate the sky and to tell when it is night at the camera;
+  the GTC camera URL now uses https.
+
 
 Ver 1.5.2 (2026-09-22)
 ======================

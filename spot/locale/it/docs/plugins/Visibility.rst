@@ -23,29 +23,29 @@ Impostare l'intervallo del grafico
 ==================================
 
 Per cambiare l'intervallo di tempo rappresentato, premi il pulsante
-etichettato "Time axis:" per aprire un menu a discesa. Sono disponibili tre
-opzioni: Night Center, Day Center e Current. "Night Center" centrerà l'asse
+etichettato "Asse temporale:" per aprire un menu a discesa. Sono disponibili tre
+opzioni: Night Center, Day Center e Current. "Centro della notte" centrerà l'asse
 temporale sulla metà della notte, che può essere trovata nella finestra
 :doc:`polarsky`. L'asse temporale si estenderà da poco prima del tramonto a
-poco dopo il sorgere del Sole. "Day Center" centrerà l'asse temporale sulla
+poco dopo il sorgere del Sole. "Centro del giorno" centrerà l'asse temporale sulla
 metà del giorno, e l'asse temporale si estenderà dal sorgere al tramonto del
-Sole. "Current" imposterà l'asse temporale in modo che si estenda da circa -2
+Sole. "Attuale" imposterà l'asse temporale in modo che si estenda da circa -2
 a +7 ore, e si regolerà automaticamente con il passare del tempo.
 
 Selezione dei target
 ====================
 
-Il menu a discesa accanto a "Plot:" controlla quali target vengono tracciati
-sul grafico di visibilità. Selezionando "All" verranno mostrati tutti i
-target, selezionando "Uncollapsed" verranno mostrati i target non compressi
+Il menu a discesa accanto a "Grafico:" controlla quali target vengono tracciati
+sul grafico di visibilità. Selezionando "Tutti" verranno mostrati tutti i
+target, selezionando "Non compresso" verranno mostrati i target non compressi
 (nascosti) nella tabella dei target, oltre a quelli contrassegnati e
-selezionati, selezionando "Tagged+Selected" verranno mostrati tutti i target
-che sono stati contrassegnati o sono selezionati, e selezionando "Selected"
+selezionati, selezionando "Contrassegnato+selezionato" verranno mostrati tutti i target
+che sono stati contrassegnati o sono selezionati, e selezionando "Selezionato"
 verranno mostrati solo i target selezionati.
 
 Menu delle impostazioni
 =======================
-Facendo clic sul pulsante "Settings" verrà aperto un menu a comparsa per
+Facendo clic sul pulsante "Impostazioni" verrà aperto un menu a comparsa per
 abilitare determinate impostazioni.
 
 * Traccia la separazione dalla Luna. Spuntando questa opzione verrà

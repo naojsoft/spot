@@ -23,29 +23,29 @@ Establecer el rango del gráfico
 ===============================
 
 Para cambiar el intervalo de tiempo representado, pulse el botón etiquetado
-"Time axis:" para abrir un menú desplegable. Hay tres opciones disponibles:
-Night Center, Day Center y Current. "Night Center" centrará el eje temporal
+"Eje temporal:" para abrir un menú desplegable. Hay tres opciones disponibles:
+Night Center, Day Center y Current. "Centro de la noche" centrará el eje temporal
 en la mitad de la noche, que puede encontrarse en la ventana :doc:`polarsky`.
 El eje temporal se extenderá desde un poco antes del ocaso hasta un poco
-después del orto. "Day Center" centrará el eje temporal en la mitad del día,
-y el eje temporal se extenderá del orto al ocaso. "Current" ajustará el eje
+después del orto. "Centro del día" centrará el eje temporal en la mitad del día,
+y el eje temporal se extenderá del orto al ocaso. "Actual" ajustará el eje
 temporal para que se extienda desde unas -2 hasta +7 horas, y se ajustará
 automáticamente a medida que pase el tiempo.
 
 Selección de objetivos
 ======================
 
-El menú desplegable junto a "Plot:" controla qué objetivos se trazan en el
-gráfico de visibilidad. Seleccionar "All" mostrará todos los objetivos,
-seleccionar "Uncollapsed" mostrará los objetivos que no estén contraídos
+El menú desplegable junto a "Gráfico:" controla qué objetivos se trazan en el
+gráfico de visibilidad. Seleccionar "Todos" mostrará todos los objetivos,
+seleccionar "Sin contraer" mostrará los objetivos que no estén contraídos
 (ocultos) en la tabla de objetivos, así como los marcados y seleccionados,
-seleccionar "Tagged+Selected" mostrará todos los objetivos que hayan sido
-marcados o estén seleccionados, y seleccionar "Selected" mostrará solo los
+seleccionar "Marcado+seleccionado" mostrará todos los objetivos que hayan sido
+marcados o estén seleccionados, y seleccionar "Seleccionado" mostrará solo los
 objetivos que estén seleccionados.
 
 Menú de ajustes
 ===============
-Al hacer clic en el botón "Settings" se abrirá un menú emergente para
+Al hacer clic en el botón "Ajustes" se abrirá un menú emergente para
 habilitar ciertos ajustes.
 
 * Trazar la separación de la Luna. Al marcar esta opción se mostrará la

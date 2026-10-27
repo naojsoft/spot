@@ -44,27 +44,42 @@ different sizes. To set an image to the size of the current screen locate
 the button portraying a magnifying glass with "[:]" within it. This is found
 in the bottom row of plugins of the UI.
 
-The second section, titled "Differential Image," has one control:
+The second section, titled "Differential Image," has these controls:
 
     * select "Show Differential Image" to portray a differential image
+    * select "Derotate Sky" to rotate the previous image with the sky
+      before subtracting it, so that stars cancel out
+    * "Threshold" sets how large a change (in units of the image noise)
+      counts as cloud
+    * "Color Map" picks the color map for the differential image
+    * "Cloud Cover" shows the percentage of the sky within 75 degrees of
+      the zenith that changed by more than the threshold
 
-The differential image for a specific image source is created using the current
-and previous images retrieved from said image source. It subtracts the current
-image from the previous, resulting in the changes between images left behind.
-These changes are what is portrayed.  Note that if you change from color to
-monochrome, it may take an extra download cycle to show the differential image.
+The differential image shows the change between the current and previous
+images from the camera, with areas that became brighter and darker shown
+on either side of the color map (in the default "Gray" color map, lighter
+and darker than the medium gray of an unchanged sky).  Both images are
+reduced to monochrome, downsampled and median filtered (which removes most stars),
+and the previous image is scaled to match the overall brightness of the
+current one, so that changes in camera exposure do not show up as clouds.
+The change is then divided by an estimate of the image noise.
+
+The sky rotates by about a quarter of a degree per minute, so stars move
+between images.  With "Derotate Sky" selected, the previous image is
+rotated about the celestial pole by the time between the two images, so
+that only clouds (and other real changes) remain.  This relies on the
+camera orientation in skycams.yml being correct (North up, East left, as
+in the PolarSky plot) and on the camera's latitude ("latitude" in
+skycams.yml, or else the latitude of the selected site).
 
 If the source was recently selected from the "Camera Server" and a
-second image from the source has not been displayed yet, a message on screen
-will appear telling the user that it is waiting to recieve a second image to
-put into the differential image equation.
+second image from the source has not been received yet, a message on
+screen will appear telling the user that it is waiting to receive a second
+image to create the differential image.
 
-Lastly, the images are updated in a timer specific to the skycams.yml file and
-not matched to the image sources from the many observatories. This could
-possibly allow for some discrepancies between image refresh timing, resulting
-in the image becoming completely black. The user will have to wait until the
-next image from the source is transmitted and read by the SkyCam plugin, which
-will then show the differential image.
+Images are downloaded on a timer set in skycams.yml, which is not
+synchronized with the camera.  If a download returns the same image as the
+previous one, it is ignored and the existing differential image is kept.
 
 **User Configuration**
 
@@ -82,6 +97,7 @@ naojsoft packages
 import os
 import time
 import datetime
+import threading
 
 # 3rd party
 import numpy as np
@@ -89,18 +105,53 @@ import yaml
 import tempfile
 
 # ginga
-from ginga import trcalc
+from ginga import trcalc, cmap
 from ginga.AstroImage import AstroImage
 from ginga.RGBImage import RGBImage
 from ginga import GingaPlugin
 from ginga.misc import Future
+from ginga.misc.Callback import Callbacks
 from ginga.util.paths import ginga_home
 
 # where our config files are stored
 from spot import __file__
 from spot.util.config import get_workspace_settings, save_settings
-from spot.locale import _tr, get_plugin_doc
+from spot.util import skydiff, calcpos
+from spot.plots.cloudcover import CloudCoverPlot
+from spot.locale import _tr, N_, get_plugin_doc
 cfgdir = os.path.join(os.path.dirname(__file__), 'config')
+
+# Color maps for the differential image, as (label, name, control points).
+# Each control point is (position, r, g, b); position 0.5 is "no change".
+# They are chosen to keep the target and telescope overlays readable.
+diff_cmaps = [
+    (N_("Gray"), 'skydiff_gray',
+     [(0.0, 0.0, 0.0, 0.0), (0.5, 0.35, 0.35, 0.35), (1.0, 1.0, 1.0, 1.0)]),
+    # magnitude of the change regardless of sign
+    (N_("Change"), 'skydiff_change',
+     [(0.0, 1.0, 1.0, 1.0), (0.5, 0.0, 0.0, 0.0), (1.0, 1.0, 1.0, 1.0)]),
+    (N_("Teal/Amber"), 'skydiff_tealamber',
+     [(0.0, 0.45, 0.85, 0.85), (0.25, 0.15, 0.4, 0.4), (0.5, 0.0, 0.0, 0.0),
+      (0.75, 0.5, 0.4, 0.15), (1.0, 1.0, 0.85, 0.5)]),
+    (N_("Blue/Red"), 'skydiff_bluered',
+     [(0.0, 0.35, 0.65, 1.0), (0.25, 0.1, 0.35, 0.9), (0.5, 0.0, 0.0, 0.0),
+      (0.75, 0.9, 0.25, 0.1), (1.0, 1.0, 0.75, 0.3)]),
+]
+
+
+def register_diff_cmaps():
+    """Add the differential image color maps to ginga (so that they also
+    show up in ginga's own color map choices).
+    """
+    names = cmap.get_names()
+    pos = np.linspace(0.0, 1.0, 256)
+    for _label, name, ctrl in diff_cmaps:
+        if name in names:
+            continue
+        ctrl = np.asarray(ctrl)
+        clst = tuple(zip(*[np.interp(pos, ctrl[:, 0], ctrl[:, i])
+                           for i in (1, 2, 3)]))
+        cmap.add_cmap(name, clst)
 
 
 class SkyCam(GingaPlugin.LocalPlugin):
@@ -116,6 +167,10 @@ class SkyCam(GingaPlugin.LocalPlugin):
     Setting the Sky Image
     =====================
 
+    The plugin has two tabs: the controls described below are on the
+    "Camera" tab, and the "History" tab plots the cloud cover over time
+    (see "Cloud Cover History").
+
     Select the camera server you would like to use from the drop down menu
     under "All Sky Camera". Then, press the checkbox next to "Show Sky Image"
     to display the image in the `<wsname>_TGTS` window. It may take a few
@@ -123,8 +178,116 @@ class SkyCam(GingaPlugin.LocalPlugin):
     the time and date of the last image will be displayed at the bottom of the
     window underneath "Image Download Info".
 
-    The SkyCam plugin can also generate a differential image from the selected
-    channel server by selecting the checkbox next to "Show Differential Image".
+    Some all-sky cameras produce color images.  Checking the "Monochrome"
+    checkbox converts these to a monochrome (grayscale) image; uncheck it to
+    show the original colors.
+
+    The sky image is drawn with the viewer's color map and cut levels, so
+    you can adjust its contrast and cut levels with the usual viewer
+    controls (for a color image only the cut levels apply).  Your settings
+    are kept when new images arrive.
+
+    Differential Image
+    ==================
+
+    Select the checkbox next to "Show Differential Image" to show how the
+    sky changed between the last two images from the camera, instead of the
+    image itself.  This makes moving or developing clouds much easier to
+    see.  With the default "Gray" color map, areas that did not change are
+    medium gray, areas that became brighter are lighter and areas that
+    became darker are darker.  Clouds lit by the Moon or by city lights
+    usually get brighter; clouds that hide the stars or the Milky Way get
+    darker.
+
+    To make the differential image, both images are converted to
+    monochrome, reduced in resolution and median filtered, which removes
+    most stars and noise.  The previous image is scaled to match the
+    overall brightness of the current one, so that changes in the camera's
+    exposure do not look like clouds.  The difference is then divided by
+    an estimate of the noise in the image, so the differential image is
+    in units of the noise ("sigma").
+
+    The controls are:
+
+    * "Derotate Sky": the sky rotates by about a quarter of a degree per
+      minute, so stars move between images.  With this checked, the
+      previous image is rotated about the celestial pole to the time of
+      the current image, so that the stars cancel out and only real
+      changes remain.  This needs the camera orientation in skycams.yml to
+      be correct (see "Adding new cameras").  Objects fixed in the camera
+      view, such as domes or trees near the horizon, may then leave curved
+      streaks.
+
+    * "Show Cloud Motion": show an arrow for the direction and speed of
+      the clouds (see "Cloud Motion and Clouded Targets").
+
+    * "Flag Clouded Targets": show targets in or near clouds in the
+      clouded target color in the Targets plugin (orange-red by default).
+
+    * "Threshold": a change larger than this many sigma counts as cloud
+      for the cloud cover (default 5).
+
+    * "Color Map": the color map for the differential image.  "Gray" and
+      "Change" (which shows only the size of the change, not whether it
+      got brighter or darker) keep the target overlays easy to read;
+      "Teal/Amber" and "Blue/Red" show the direction of the change in
+      color.
+
+    * "Cloud Cover": the percentage of the sky within 75 degrees of the
+      zenith that changed by more than the threshold.  It measures clouds
+      that move or change between images; a uniform overcast that does
+      not change will not show up.  While the Sun is less than 12 degrees
+      below the horizon at the camera the sky brightness changes too
+      quickly for this to mean anything, so "Twilight" or "Sun up" is
+      shown instead.  The cloud cover is measured whenever two images are
+      available, even if the differential image is not shown.
+
+    The differential image keeps its own color map and cut levels (by
+    default -10 to +10 sigma), separate from those of the normal image, and
+    you can adjust them with the usual viewer controls as well.
+
+    After selecting a camera, the differential image appears once a second
+    image has been received.  If a download returns the same image as the
+    previous one (the camera has not updated yet), it is ignored.
+
+    The "Save config" button records your current selections (camera
+    server, "Show Sky Image", "Show Differential Image" and "Monochrome")
+    for the workspace, so they are restored the next time it is opened.
+
+    Cloud Motion and Clouded Targets
+    ================================
+
+    At night, SkyCam also maps where the clouds are and follows how they
+    move.  A spot on the sky counts as clouded when more than 20% of the
+    sky within about 3 degrees of it changed by more than the threshold,
+    so targets close to a cloud are flagged as well as those right behind
+    one.  With "Flag Clouded Targets" checked, the Targets plugin shows
+    these targets in the clouded target color.
+
+    Once three images have been received, the motion of the clouds is
+    found by comparing the last two differences between images, which
+    removes domes, vignetting and moonlight.  With "Show Cloud Motion"
+    checked, a white arrow from the zenith shows the direction the clouds
+    are moving and how far they move in about 5 minutes, labeled with
+    their speed across the sky in degrees per minute.  (The height of the
+    clouds is not known, so their speed in kilometers per hour cannot be
+    given.)  The arrow is only shown when the motion is clear; one layer
+    of cloud usually moves as a whole, so a single arrow is shown for the
+    whole sky.
+
+    Neither is shown in twilight or daylight.  The settings that control
+    them are described in the SPOT manual.
+
+    Cloud Cover History
+    ===================
+
+    The "History" tab plots the cloud cover over the last 12 hours, with
+    times in the time zone of the site selected in SPOT.  A point is added
+    for each new image from the camera, whether or not the differential
+    image is shown.  Points taken in twilight or daylight are drawn hollow,
+    and the line is broken where images are missing.  Changing the
+    threshold changes only the latest point.  "Clear" empties the history,
+    which is also cleared when you select another camera.
 
     Adding new cameras
     ==================
@@ -137,13 +300,35 @@ class SkyCam(GingaPlugin.LocalPlugin):
     for downloading images, a title, a center pixel (X and Y coords) in the
     image representing the zenith, the radius of the circle to the horizon
     in pixels, a rotation to be applied, whether to flip the image in X or
-    Y dimensions, and an update interval measured in seconds.
+    Y dimensions, and an update interval measured in seconds.  You can also
+    give the location of the camera in degrees as "latitude" (negative in
+    the southern hemisphere) and "longitude" (negative west of Greenwich).
+    The latitude is used to derotate the sky for the differential image,
+    and both are used to tell when it is night at the camera.  Without
+    them, the location of the site selected in SPOT is used, which is
+    wrong if the camera is at a different site.
+
+    Some cameras only publish an animated image (such as a GIF loop of the
+    last several images).  SPOT then uses the last frame of the animation,
+    which is normally the most recent one; to use a different frame, give
+    its number as "frame" (counting from 0, or from -1 for the last frame).
+
+    The rotation and flips must turn the image so that North is up and
+    East is to the left, as in the polar sky plot (in both hemispheres).
+    A good check is that the Moon or a bright planet in the sky image
+    lines up with its position in SPOT, and that stars cancel out in the
+    differential image with "Derotate Sky" checked.
 
     Restart spot and you should be able to pick your new camera from the list.
     """
     def __init__(self, fv, fitsimage):
         # superclass defines some variables for us, like logger
         super().__init__(fv, fitsimage)
+
+        # other plugins (e.g. Targets) can follow the clouds: the callback
+        # gets a skydiff.CloudMap, or None when there is no current one
+        self.cb = Callbacks()
+        self.cb.enable_callback('clouds-changed')
 
         if not self.chname.endswith('_TGTS'):
             return
@@ -158,14 +343,66 @@ class SkyCam(GingaPlugin.LocalPlugin):
                                    show_sky_image=False,
                                    show_diff_image=False,
                                    image_convert_monochrome=True,
-                                   image_radius=1000)
+                                   image_radius=1000,
+                                   diff_derotate=True,
+                                   diff_threshold_sigma=5.0,
+                                   diff_display_sigma=10.0,
+                                   diff_median_size=3,
+                                   diff_work_size=700,
+                                   diff_max_za_deg=75.0,
+                                   diff_color_map='skydiff_gray',
+                                   diff_max_sun_alt_deg=-12.0,
+                                   diff_history_hours=12.0,
+                                   diff_show_motion=True,
+                                   diff_flag_targets=True,
+                                   diff_cloud_radius_deg=3.0,
+                                   diff_cloud_fraction=0.2,
+                                   diff_motion_minutes=5.0)
         self.settings.load(onError='silent')
 
         self.viewer = self.fitsimage
         self.dc = fv.get_draw_classes()
         self.std = np.array([0.2126, 0.7152, 0.0722])
-        self.old_data = None
         self.cur_data = None
+        self.cur_coverage = None
+        # reduced working frames for differencing, and their arrival times
+        self.cur_work = None
+        self.old_work = None
+        self.cur_work_t = None
+        self.old_work_t = None
+        # the frame before old_work, for the cloud motion
+        self.older_work = None
+        self.older_work_t = None
+        # latest cloud map and motion (dx, dy in data coords per
+        # diff_motion_minutes, speed in deg/min), or None
+        self.cloud_map = None
+        self.cloud_motion = None
+        self.bin_factor = 1
+        self.cc_text = "--"
+        # image processing runs off the GUI thread; the lock serializes it,
+        # and the generation count lets us drop downloads that were started
+        # before the camera was changed
+        self.proc_lock = threading.Lock()
+        self.proc_gen = 0
+        # observer for a camera that is not at the selected site
+        self.cam_observer = None
+        # cloud cover history: (POSIX time, cloud cover %, night) tuples
+        self.cc_history = []
+        self.cc_plot = None
+        self._plotted_history = None
+
+        # The sky image is drawn with the viewer's color map and cut
+        # levels, so the user can adjust them.  The normal and the
+        # differential image need very different ones, so we keep a
+        # snapshot of the viewer's settings for each mode and swap them
+        # when the mode changes.
+        register_diff_cmaps()
+        self.view_mode = 'normal'
+        self.view_state = dict(normal=None, diff=None)
+        self.view_keys = (list(self.viewer.get_rgbmap().settings_keys) +
+                          ['cuts'])
+        # auto-level the next normal image
+        self.need_autolevels = True
         self.img_src_name = self.settings.get('default_camera', None)
 
         self.read_skycams_config()
@@ -193,11 +430,6 @@ class SkyCam(GingaPlugin.LocalPlugin):
                                            False),
                           image_update_interval=self.config.get(
                               'update_interval', 120.0))
-
-        xc, yc = self.settings['image_center']
-        r = self.settings['image_radius']
-        self.crop_circ = self.dc.Circle(xc, yc, r)
-        self.crop_circ.crdmap = self.viewer.get_coordmap('data')
 
     def read_skycams_config(self):
         # see if user has a custom list of sky cams
@@ -229,6 +461,13 @@ class SkyCam(GingaPlugin.LocalPlugin):
 
         top = Widgets.VBox()
         top.set_border_width(4)
+
+        tabs = Widgets.TabWidget()
+        top.add_widget(tabs, stretch=1)
+
+        # --- "Camera" tab: camera and differential image controls
+        cam = Widgets.VBox()
+        cam.set_border_width(2)
         fr = Widgets.Frame(_tr("All Sky Camera"))
 
         captions = (('Show Sky Image', 'checkbox',
@@ -240,7 +479,7 @@ class SkyCam(GingaPlugin.LocalPlugin):
         w, b = Widgets.build_info(captions)
         self.w = b
         fr.set_widget(w)
-        top.add_widget(fr, stretch=0)
+        cam.add_widget(fr, stretch=0)
 
         b.show_sky_image.set_state(self.flag_use_sky_image)
         b.show_sky_image.add_callback('activated',
@@ -259,27 +498,89 @@ class SkyCam(GingaPlugin.LocalPlugin):
                                     self.image_source_cb)
 
         fr = Widgets.Frame(_tr("Differential Image"))
-        captions = (('Show Differential Image', 'checkbutton'),
+        captions = (('Show Differential Image', 'checkbutton',
+                     'Derotate Sky', 'checkbutton'),
+                    ('Show Cloud Motion', 'checkbutton',
+                     'Flag Clouded Targets', 'checkbutton'),
+                    ('Threshold:', 'label', 'Threshold', 'spinfloat'),
+                    ('Color Map:', 'label', 'Diff Color Map', 'combobox'),
+                    ('Cloud Cover:', 'label', 'Cloud Cover', 'llabel'),
                     )
 
         w, b = Widgets.build_info(captions)
         self.w.update(b)
         fr.set_widget(w)
-        top.add_widget(fr, stretch=0)
+        cam.add_widget(fr, stretch=0)
 
         b.show_differential_image.set_state(self.flag_use_diff_image)
         b.show_differential_image.add_callback('activated',
                                                self.diff_image_toggle_cb)
-        b.show_differential_image.set_tooltip(_tr("Use a differential image"))
+        b.show_differential_image.set_tooltip(
+            _tr("Show the change since the previous image instead of the "
+                "image itself"))
+        b.derotate_sky.set_state(self.settings['diff_derotate'])
+        b.derotate_sky.add_callback('activated', self.derotate_toggle_cb)
+        b.derotate_sky.set_tooltip(
+            _tr("Rotate the previous image with the sky so that stars cancel "
+                "(requires a correctly oriented camera and its latitude)"))
+        b.show_cloud_motion.set_state(self.settings['diff_show_motion'])
+        b.show_cloud_motion.add_callback('activated', self.show_motion_cb)
+        b.show_cloud_motion.set_tooltip(
+            _tr("Show an arrow at the zenith for the direction and speed "
+                "of the clouds"))
+        b.flag_clouded_targets.set_state(self.settings['diff_flag_targets'])
+        b.flag_clouded_targets.add_callback('activated',
+                                            self.flag_targets_cb)
+        b.flag_clouded_targets.set_tooltip(
+            _tr("Show targets in or near clouds in the clouded target "
+                "color"))
+        b.threshold.set_limits(1.0, 50.0, incr_value=0.5)
+        b.threshold.set_value(self.settings['diff_threshold_sigma'])
+        b.threshold.add_callback('value-changed', self.threshold_cb)
+        b.threshold.set_tooltip(
+            _tr("Change (in units of the image noise) above which a pixel "
+                "counts toward cloud cover"))
+        names = [name for _label, name, _ctrl in diff_cmaps]
+        for label, _name, _ctrl in diff_cmaps:
+            b.diff_color_map.append_text(_tr(label))
+        cm_name = self.settings['diff_color_map']
+        if cm_name in names:
+            b.diff_color_map.set_index(names.index(cm_name))
+        b.diff_color_map.add_callback('activated', self.diff_color_map_cb)
+        b.diff_color_map.set_tooltip(
+            _tr("Color map for the differential image (you can also pick "
+                "any color map and adjust the cut levels and contrast with "
+                "the usual viewer controls)"))
+        b.cloud_cover.set_tooltip(
+            _tr("Percentage of the sky within {}° of the zenith that "
+                "changed by more than the threshold").format(
+                    self.settings['diff_max_za_deg']))
 
         fr = Widgets.Frame(_tr("Image Download Info"))
         image_info_text = _tr("Please select 'Show Sky Image' to display an image")
         self.w.select_image_info = Widgets.Label(image_info_text)
 
         fr.set_widget(self.w.select_image_info)
-        top.add_widget(fr, stretch=0)
+        cam.add_widget(fr, stretch=0)
 
-        top.add_widget(Widgets.Label(''), stretch=1)
+        cam.add_widget(Widgets.Label(''), stretch=1)
+        tabs.add_widget(cam, title=_tr("Camera"))
+
+        # --- "History" tab: cloud cover over time
+        hist = Widgets.VBox()
+        hist.set_border_width(2)
+        self.cc_plot = CloudCoverPlot(400, 300, logger=self.logger)
+        hist.add_widget(self.cc_plot.get_ginga_widget(), stretch=1)
+        hbox = Widgets.HBox()
+        hbox.set_spacing(4)
+        btn = Widgets.Button(_tr("Clear"))
+        btn.add_callback('activated', self.clear_history_cb)
+        btn.set_tooltip(_tr("Clear the cloud cover history"))
+        hbox.add_widget(btn, stretch=0)
+        hbox.add_widget(Widgets.Label(''), stretch=1)
+        hist.add_widget(hbox, stretch=0)
+        tabs.add_widget(hist, title=_tr("History"))
+        self._plot_history(list(self.cc_history))
 
         btns = Widgets.HBox()
         btns.set_border_width(4)
@@ -340,6 +641,9 @@ class SkyCam(GingaPlugin.LocalPlugin):
 
     def stop(self):
         self.gui_up = False
+        self.cb.make_callback('clouds-changed', None)
+        # leave the viewer with the normal color map and cut levels
+        self._set_view_mode('normal')
         # remove the canvas from the image
         p_canvas = self.viewer.get_canvas()
         if self.canvas in p_canvas:
@@ -359,43 +663,66 @@ class SkyCam(GingaPlugin.LocalPlugin):
             self.viewer.zoom_fit()
             self.viewer.set_pan(0.0, 0.0)
 
-    def update_image(self, imgpath):
-        # TODO: just keep updating a single image?
+    def _load_image(self, imgpath):
+        """Load an image file and return a ginga image object.
 
+        For a multi-frame image (e.g. an animated GIF loop) the frame
+        given by the camera's "frame" setting is used (default: the last
+        frame, which is usually the most recent).
+        """
+        if imgpath.endswith('.fits'):
+            img = AstroImage(logger=self.logger)
+            img.load_file(imgpath)
+            return img
+
+        img = RGBImage(logger=self.logger)
+        data_np = skydiff.read_multiframe(imgpath,
+                                          frame=self.config.get('frame', -1))
+        if data_np is not None:
+            img.set_data(data_np)
+        else:
+            img.load_file(imgpath)
+        return img
+
+    def _process_file(self, imgpath, gen):
+        """Process a downloaded image.  Runs off the GUI thread."""
+        with self.proc_lock:
+            if gen != self.proc_gen:
+                # the camera was changed after this download started
+                self.logger.info("discarding image from previous camera")
+                return
+            try:
+                self._update_image(imgpath)
+                self._refresh_locked()
+            except Exception as e:
+                self.logger.error(f"error processing sky image: {e}",
+                                  exc_info=True)
+                self.fv.gui_do(self._set_info_text,
+                               _tr("Error processing image, check log"))
+
+    def _update_image(self, imgpath):
         self.logger.info(f"image to be loaded is: {imgpath}")
         flip_x, flip_y, swap_xy = self.settings['image_transform']
         rot_deg = self.settings['image_rotation']
         cvt_mono = self.settings['image_convert_monochrome']
 
-        if imgpath.endswith('.fits'):
-            img = AstroImage(logger=self.logger)
-        else:
-            img = RGBImage(logger=self.logger)
-        img.load_file(imgpath)
+        img = self._load_image(imgpath)
 
-        # cut out the center part and mask everything outside the circle
+        # cut out the sky circle into a square centered on the zenith
+        # (padding it if the circle runs off the frame), rotate it about
+        # the zenith and flip it as necessary; RGB images are also
+        # flipped vertically
         xc, yc = self.settings['image_center']
         r = self.settings['image_radius']
-        self.crop_circ.x = xc
-        self.crop_circ.y = yc
-        self.crop_circ.radius = r
-        view, mask = img.get_shape_view(self.crop_circ)
-        data_np = img._slice(view)
+        data_np, coverage = skydiff.orient_frame(
+            img.get_data(), xc, yc, r, rot_deg=rot_deg,
+            flip_x=flip_x, flip_y=flip_y, swap_xy=swap_xy,
+            flip_ud=isinstance(img, RGBImage))
+        self.cur_coverage = coverage
 
-        # rotate image as necessary
-        if not np.isclose(rot_deg, 0.0):
-            ht, wd = data_np.shape[:2]
-            ctr_x, ctr_y = wd // 2, ht // 2
-            data_np = trcalc.rotate_clip(data_np, rot_deg,
-                                         rotctr_x=ctr_x, rotctr_y=ctr_y)
-        # transform image as necessary
-        data_np = trcalc.transform(data_np, flip_x=flip_x,
-                                   flip_y=flip_y, swap_xy=swap_xy)
+        self._update_work_frame(data_np, coverage)
 
         if isinstance(img, RGBImage):
-            # flip RGB images
-            data_np = np.flipud(data_np)
-
             if len(data_np.shape) == 3 and data_np.shape[2] > 2 and cvt_mono:
                 # if this is a color RGB image, convert to monochrome
                 # via the standard channel mixing technique
@@ -406,29 +733,205 @@ class SkyCam(GingaPlugin.LocalPlugin):
                 ht, wd = data_np.shape[:2]
                 data_np = data_np.reshape((ht, wd))
 
-        self.old_data = self.cur_data
         self.cur_data = data_np
-        self.refresh_image()
 
-    def refresh_image(self):
+    def _update_work_frame(self, data_np, coverage):
+        """Reduce a newly arrived frame to a working frame for the
+        differential image, and shift the previous one to be the
+        reference.
+        """
+        t_start = time.time()
+        wd = data_np.shape[1]
+        self.bin_factor = skydiff.get_bin_factor(
+            wd, self.settings['diff_work_size'])
+        work = skydiff.make_work_frame(
+            data_np, bin_factor=self.bin_factor,
+            median_size=self.settings['diff_median_size'],
+            coverage=coverage)
+
+        if (self.cur_work is not None and work.shape == self.cur_work.shape
+                and np.array_equal(work, self.cur_work, equal_nan=True)):
+            # the camera has not produced a new image since our last
+            # download (or the same file was reloaded)--keep the
+            # existing pair so the difference stays meaningful
+            self.logger.info("sky image unchanged since last download")
+            return
+
+        if self.cur_work is not None and work.shape != self.cur_work.shape:
+            # camera changed size; start over
+            self.cur_work = self.old_work = None
+
+        self.older_work, self.older_work_t = self.old_work, self.old_work_t
+        self.old_work, self.old_work_t = self.cur_work, self.cur_work_t
+        self.cur_work, self.cur_work_t = work, t_start
+        self.logger.debug("work frame %s (bin %d) made in %.3f sec" % (
+            str(work.shape), self.bin_factor, time.time() - t_start))
+
+    def _set_view_mode(self, mode):
+        """Switch the viewer's color map, cut levels, etc. between those
+        for the normal ('normal') and differential ('diff') image.
+        """
+        if mode == self.view_mode:
+            return
+        t_ = self.viewer.get_settings()
+        self.view_state[self.view_mode] = {k: t_[k] for k in self.view_keys
+                                           if t_.has_key(k)}
+        self.view_mode = mode
+        state = self.view_state[mode]
+        if state is None:
+            # first time showing the differential image
+            state = self._default_diff_view_state()
+        t_.set(**state)
+
+    def _default_diff_view_state(self):
+        ds = self.settings['diff_display_sigma']
+        return dict(color_map=self.settings['diff_color_map'],
+                    intensity_map='ramp', color_algorithm='linear',
+                    color_map_invert=False, color_map_rot_pct=0.0,
+                    contrast=0.5, brightness=0.5, cuts=(-ds, ds))
+
+    def _get_observer(self):
+        """Return a calcpos Observer at the camera.
+
+        This is the observer of the site selected in SPOT, unless
+        skycams.yml places the camera elsewhere (e.g. watching the GTC
+        camera with a Hawaii site selected), in which case an observer at
+        the camera's location is made.  Returns None if neither is known.
+        """
+        site_obs = None
+        try:
+            obj = self.channel.opmon.get_plugin('SiteSelector')
+            site_obs = obj.get_site().observer
+        except Exception as e:
+            self.logger.warning(f"can't get site observer: {e}")
+
+        lat = self.config.get('latitude', None)
+        lon = self.config.get('longitude', None)
+        if lat is None or lon is None:
+            return site_obs
+        lat, lon = float(lat), float(lon)
+        if (site_obs is not None and abs(site_obs.lat_deg - lat) < 1.0 and
+                abs((site_obs.lon_deg - lon + 180.0) % 360.0 - 180.0) < 1.0):
+            # camera is at the selected site
+            return site_obs
+        obs = self.cam_observer
+        if obs is None or (obs.lat_deg, obs.lon_deg) != (lat, lon):
+            obs = calcpos.Observer(self.img_src_name, latitude=lat,
+                                   longitude=lon)
+            self.cam_observer = obs
+        return obs
+
+    def _make_diff_image(self):
+        """Compute the differential image from the working frames.
+        Returns a ginga AstroImage, or None if there are not two frames
+        yet.  Sets self.cc_text to the text for the cloud cover display
+        and records the cloud cover in the history.
+        """
+        self.cloud_map = None
+        self.cloud_motion = None
+        if self.old_work is None or self.cur_work is None:
+            self.cc_text = "--"
+            return None
+        obs = self._get_observer()
+        res = skydiff.sky_diff(
+            self.cur_work, self.old_work,
+            dt_sec=self.cur_work_t - self.old_work_t,
+            lat_deg=None if obs is None else obs.lat_deg,
+            derotate_sky=self.settings['diff_derotate'],
+            threshold_sigma=self.settings['diff_threshold_sigma'],
+            max_za_deg=self.settings['diff_max_za_deg'],
+            noise_step=max(1, self.settings['diff_median_size']))
+        self.cc_text = "{:.1f}%".format(res['cc_pct'])
+
+        # the cloud cover means nothing while the sky is bright
+        sun_alt = None
+        if obs is not None:
+            dt = datetime.datetime.fromtimestamp(self.cur_work_t,
+                                                 tz=datetime.timezone.utc)
+            sun_alt = float(calcpos.get_ss('Sun').calc(obs, dt).alt_deg)
+        night = True
+        if sun_alt is not None:
+            if sun_alt > 0.0:
+                self.cc_text = _tr("Sun up")
+                night = False
+            elif sun_alt > self.settings['diff_max_sun_alt_deg']:
+                self.cc_text = _tr("Twilight")
+                night = False
+        self._record_history(self.cur_work_t, res['cc_pct'], night)
+        if night:
+            self._find_clouds(res['sig'])
+        self.logger.info("sky diff: CC=%.1f%% sigma=%.3g gain=%.3f "
+                         "sun_alt=%s" % (res['cc_pct'], res['sigma'],
+                                         res['gain'], sun_alt))
+
+        sig = res['sig']
+        valid = np.isfinite(sig)
+        mx = np.finfo(np.float32).max
+        data_np = np.dstack((np.where(valid, sig, 0.0),
+                             valid * mx)).astype(np.float32)
+        img = AstroImage(data_np=data_np, logger=self.logger)
+        img.set(name=self.img_src_name, nothumb=True, path=None)
+        return img
+
+    def _find_clouds(self, sig):
+        """Make the cloud map and estimate the cloud motion from the
+        latest differential image `sig` (in units of sigma).
+        """
+        frac = skydiff.cloud_fraction(
+            sig, threshold_sigma=self.settings['diff_threshold_sigma'],
+            radius_deg=self.settings['diff_cloud_radius_deg'])
+        self.cloud_map = skydiff.CloudMap(
+            frac, threshold=self.settings['diff_cloud_fraction'])
+
+        if self.older_work is None:
+            return
+        # the frames are not derotated here: clouds move with the wind
+        res = skydiff.cloud_motion(self.cur_work - self.old_work,
+                                   self.old_work - self.older_work)
+        if res is None:
+            return
+        dx, dy, peak = res
+        # the two differences are, on average, half the time spanned by
+        # the three frames apart
+        dt_min = (self.cur_work_t - self.older_work_t) / 2.0 / 60.0
+        if dt_min <= 0:
+            return
+        scale = (self.cur_work.shape[1] * 0.5) / 90.0     # px/deg
+        speed = np.hypot(dx, dy) / scale / dt_min           # deg/min
+        # in display data coordinates, over diff_motion_minutes
+        f = self.bin_factor * self.settings['diff_motion_minutes'] / dt_min
+        self.cloud_motion = (dx * f, dy * f, speed)
+        self.logger.info("cloud motion: %.1f deg/min (peak %.2f)" % (
+            speed, peak))
+
+    def _record_history(self, t, cc_pct, night):
+        """Add (or, if this frame was already recorded, e.g. after the
+        threshold was changed, replace) a point in the cloud cover history,
+        and drop points older than the history window.
+        """
+        entry = (t, cc_pct, night)
+        if len(self.cc_history) > 0 and self.cc_history[-1][0] == t:
+            self.cc_history[-1] = entry
+        else:
+            self.cc_history.append(entry)
+        t_min = t - self.settings['diff_history_hours'] * 3600.0
+        self.cc_history = [e for e in self.cc_history if e[0] >= t_min]
+
+    def _make_sky_image(self):
+        """Make the (normal) sky image from the current frame, or return
+        None if there is none.
+        """
         data_np = self.cur_data
         if data_np is None:
-            return
+            return None
         ht, wd = data_np.shape[:2]
 
-        if not self.flag_use_diff_image or self.old_data is not None:
-            self.w.select_image_info.set_text('')
-
-        if self.flag_use_diff_image:
-            if self.old_data is not None:
-                data_np = data_np - self.old_data
-
-        img = AstroImage(data_np=data_np, logger=self.logger)
-        ctr_x, ctr_y = wd // 2, ht // 2
-        self.crop_circ.x = ctr_x
-        self.crop_circ.y = ctr_y
-        self.crop_circ.radius = ctr_x
-        mask = img.get_shape_mask(self.crop_circ)
+        # mask out everything outside the sky circle and the camera's field
+        _x, _y, r = skydiff.radial_coords(data_np.shape)
+        mask = r <= wd * 0.5
+        if (self.cur_coverage is not None and
+                self.cur_coverage.shape == mask.shape):
+            mask &= self.cur_coverage
 
         mn, mx = trcalc.get_minmax_dtype(data_np.dtype)
         data_np = data_np.clip(0, mx)
@@ -439,28 +942,145 @@ class SkyCam(GingaPlugin.LocalPlugin):
             data_np = trcalc.add_alpha(data_np, alpha=alpha)
         data_np[:, :, -1] = mask * mx
 
-        img.set_data(data_np)
+        img = AstroImage(data_np=data_np, logger=self.logger)
         img.set(name=self.img_src_name, nothumb=True, path=None)
+        return img
 
-        self.fv.gui_do(self.__update_display, img)
+    def refresh_image(self):
+        """Recompute and redisplay the image (e.g. after a setting was
+        changed), off the GUI thread.
+        """
+        self.fv.nongui_do(self._refresh_task)
 
-    def __update_display(self, img):
+    def _refresh_task(self):
+        with self.proc_lock:
+            self._refresh_locked()
+
+    def _refresh_locked(self):
+        """Make the image to display and hand it to the GUI thread.
+        Must be called with self.proc_lock held.
+        """
+        # the cloud cover (and its history) is computed whether or not
+        # the differential image is shown
+        diff_img = self._make_diff_image()
+        status = dict(cc_text=self.cc_text, history=list(self.cc_history),
+                      cloud_map=self.cloud_map, motion=self.cloud_motion)
+
+        info_text = None
+        if self.flag_use_diff_image:
+            if diff_img is not None:
+                self.fv.gui_do(self.__update_display, diff_img,
+                               scale=self.bin_factor, mode='diff', **status)
+                return
+            # no previous frame yet--show the plain image meanwhile
+            info_text = _tr("Waiting for the next image to create a "
+                            "differential sky...")
+
+        img = self._make_sky_image()
+        if img is None:
+            self.fv.gui_do(self._update_status, info_text=info_text,
+                           **status)
+            return
+        self.fv.gui_do(self.__update_display, img, info_text=info_text,
+                       **status)
+
+    def _update_status(self, cc_text="--", history=None, info_text=None,
+                       cloud_map=None, motion=None):
+        """Update the cloud cover readout and history plot, the cloud
+        motion arrow, the image info text if given, and let other plugins
+        know about the clouds.  Runs on the GUI thread.
+        """
+        if not self.gui_up:
+            return
+        self.w.cloud_cover.set_text(cc_text)
+        if info_text is not None:
+            self.w.select_image_info.set_text(info_text)
+        if history is not None and history != self._plotted_history:
+            self._plot_history(history)
+        self._draw_motion(motion)
+        if not self.settings['diff_flag_targets']:
+            cloud_map = None
+        self.cb.make_callback('clouds-changed', cloud_map)
+
+    def _draw_motion(self, motion):
+        """Draw (or remove) the cloud motion arrow at the zenith."""
+        self.canvas.delete_object_by_tag('motion', redraw=False)
+        if motion is not None and self.settings['diff_show_motion']:
+            dx, dy, speed = motion
+            # keep the arrow on the sky: at most half way to the horizon
+            r_max = 0.5 * self.settings['image_radius']
+            length = np.hypot(dx, dy)
+            if length > r_max:
+                dx, dy = dx * r_max / length, dy * r_max / length
+            color = 'white'
+            # a dark outline keeps the arrow visible on bright clouds
+            outline = self.dc.Line(0.0, 0.0, dx, dy, color='black',
+                                   linewidth=6, alpha=0.6, arrow='end',
+                                   showcap=False)
+            arrow = self.dc.Line(0.0, 0.0, dx, dy, color=color, linewidth=3,
+                                 arrow='end', showcap=False)
+            text = self.dc.Text(dx, dy, " {:.1f}°/min ".format(speed),
+                                color=color, fontscale=True,
+                                fontsize_min=12, fontsize_max=16,
+                                font="Roboto condensed bold",
+                                bgcolor='black', bgalpha=0.6)
+            self.canvas.add(self.dc.CompoundObject(outline, arrow, text),
+                            tag='motion', redraw=False)
+        self.viewer.redraw(whence=3)
+
+    def _plot_history(self, history):
+        if self.cc_plot is None:
+            return
+        tz = datetime.timezone.utc
+        try:
+            obj = self.channel.opmon.get_plugin('SiteSelector')
+            tz = obj.get_datetime()[1]
+        except Exception as e:
+            self.logger.warning(f"can't get site time zone: {e}")
+        self.cc_plot.plot_history(history, tz)
+        self._plotted_history = history
+
+    def clear_history_cb(self, w):
+        with self.proc_lock:
+            self.cc_history = []
+        self._plot_history([])
+
+    def _set_info_text(self, text):
+        if self.gui_up:
+            self.w.select_image_info.set_text(text)
+
+    def __update_display(self, img, scale=1, mode='normal', info_text=None,
+                         **status):
         self.fv.assert_gui_thread()
+        if not self.gui_up:
+            # plugin was closed while the image was being processed
+            return
         with self.viewer.suppress_redraw:
+            self._set_view_mode(mode)
             wd, ht = img.get_size()
-            rx, ry = wd * 0.5, ht * 0.5
-            cvs_img = self.dc.NormImage(-rx, -ry, img)
+            rx, ry = wd * scale * 0.5, ht * scale * 0.5
+            cvs_img = self.dc.NormImage(-rx, -ry, img,
+                                        scale_x=scale, scale_y=scale)
             cvs_img.is_data = True
             self.canvas.delete_all_objects()
             self.canvas.add(cvs_img)
             self.viewer.set_limits(((-rx * 1.25, -ry * 1.25),
                                     (rx * 1.25, ry * 1.25)))
-            self.viewer.auto_levels()
+            # the differential image is in units of sigma, so its cut
+            # levels stay meaningful from image to image; for the normal
+            # image, leave the user's cut levels alone unless the viewer
+            # is set to auto cut each new image
+            if mode == 'normal' and (self.need_autolevels or
+                                     self.viewer.get_settings().get(
+                                         'autocuts', 'off') != 'off'):
+                self.viewer.auto_levels()
+                self.need_autolevels = False
             self.viewer.redraw(whence=0)
-        image_timestamp = datetime.datetime.now()
-        image_info_text = "Image download complete, displayed at: " + \
-            image_timestamp.strftime("%D %H:%M:%S")
-        self.w.select_image_info.set_text(image_info_text)
+        if info_text is None:
+            image_timestamp = datetime.datetime.now()
+            info_text = "Image download complete, displayed at: " + \
+                image_timestamp.strftime("%D %H:%M:%S")
+        self._update_status(info_text=info_text, **status)
 
     def download_sky_image(self):
         try:
@@ -481,13 +1101,13 @@ class SkyCam(GingaPlugin.LocalPlugin):
             # routing through a CORS proxy).
             future = Future.Future()
             future.add_callback('resolved', self._sky_image_downloaded_cb,
-                                start_time)
+                                start_time, self.proc_gen)
             self.fv.nongui_do(self.fv.download_file, url, outpath, future)
 
         except Exception as e:
             self._notify_download_failed(e)
 
-    def _sky_image_downloaded_cb(self, future, start_time):
+    def _sky_image_downloaded_cb(self, future, start_time, gen):
         try:
             filepath = future.get_value(block=False)
         except Exception as e:
@@ -496,23 +1116,23 @@ class SkyCam(GingaPlugin.LocalPlugin):
         self.logger.info("download finished in %.4f sec" % (
             time.time() - start_time))
         self.sky_image_path = filepath
-        self.fv.gui_do(self.update_sky_image)
+        # image processing can take a noticeable time for large images,
+        # so keep it off the GUI thread
+        self.fv.nongui_do(self._process_file, filepath, gen)
 
     def _notify_download_failed(self, e):
         image_timestamp = datetime.datetime.now()
         image_info_text = "Image download failed at: " + \
             image_timestamp.strftime("%D %H:%M:%S")
-        self.fv.gui_do(self.w.select_image_info.set_text, image_info_text)
+        self.fv.gui_do(self._set_info_text, image_info_text)
         self.logger.error("failed to download/update sky image: {}"
                           .format(e), exc_info=True)
 
     def update_sky_image(self):
-        self.fv.assert_gui_thread()
-        with self.viewer.suppress_redraw:
-            if self.sky_image_path is not None:
-                self.update_image(self.sky_image_path)
-
-            self.viewer.redraw(whence=0)
+        """Reprocess the last downloaded image (off the GUI thread)."""
+        if self.sky_image_path is not None:
+            self.fv.nongui_do(self._process_file, self.sky_image_path,
+                              self.proc_gen)
 
     def get_scale(self):
         """Return scale in pix/deg"""
@@ -547,40 +1167,64 @@ class SkyCam(GingaPlugin.LocalPlugin):
 
     def mono_image_toggle_cb(self, w, tf):
         self.settings.set(image_convert_monochrome=tf)
-        # need similar depth of data for subtraction
-        self.cur_data = None
-        self.old_data = None
-        message = "Waiting for the next image to create a differential sky..."
-        if self.flag_use_diff_image:
-            self.w.select_image_info.set_text(message)
-        self.fv.gui_do(self.update_sky_image)
+        # reprocess the current image (the differential image always works
+        # from luminance, so it is not affected)
+        self.update_sky_image()
 
     def diff_image_toggle_cb(self, w, tf):
         self.flag_use_diff_image = tf
         self.settings.set(show_diff_image=tf)
-        message = "Waiting for the next image to create a differential sky..."
-        if self.flag_use_diff_image and self.old_data is None:
-            self.w.select_image_info.set_text(message)
         self.refresh_image()
+
+    def derotate_toggle_cb(self, w, tf):
+        self.settings.set(diff_derotate=tf)
+        if self.flag_use_diff_image:
+            self.refresh_image()
+
+    def diff_color_map_cb(self, w, idx):
+        _label, name, _ctrl = diff_cmaps[idx]
+        self.settings.set(diff_color_map=name)
+        if self.view_mode == 'diff':
+            self.viewer.set_color_map(name)
+        elif self.view_state['diff'] is not None:
+            self.view_state['diff']['color_map'] = name
+
+    def show_motion_cb(self, w, tf):
+        self.settings.set(diff_show_motion=tf)
+        self._draw_motion(self.cloud_motion)
+
+    def flag_targets_cb(self, w, tf):
+        self.settings.set(diff_flag_targets=tf)
+        self.cb.make_callback('clouds-changed',
+                              self.cloud_map if tf else None)
+
+    def threshold_cb(self, w, val):
+        self.settings.set(diff_threshold_sigma=float(val))
+        if self.flag_use_diff_image:
+            self.refresh_image()
 
     def image_source_cb(self, w, idx):
         which = w.get_text()
         self.img_src_name = which
-        config = self.configs[which]
-        self.config = {
-            'url': config['url'],
-            'title': config['title'],
-            'ctr_x': config['ctr_x'],
-            'ctr_y': config['ctr_y'],
-            'radius': config['radius'],
-            'rot_deg': config['rot_deg'],
-            'flip_y': config['flip_y'],
-            'flip_x': config['flip_x'],
-            'update_interval': config['update_interval']
-        }
-        self.update_settings()
-        self.cur_data = None
-        self.old_data = None
+        self.config = dict(self.configs[which])
+        with self.proc_lock:
+            # forget the previous camera's images, and any downloads of
+            # them still in progress
+            self.proc_gen += 1
+            self.update_settings()
+            self.sky_image_path = None
+            self.cur_data = self.cur_coverage = None
+            self.cur_work = self.old_work = None
+            self.cur_work_t = self.old_work_t = None
+            self.older_work = self.older_work_t = None
+            self.cloud_map = self.cloud_motion = None
+            self.cc_text = "--"
+            self.cc_history = []
+        self.need_autolevels = True
+        self.w.cloud_cover.set_text(self.cc_text)
+        self._plot_history([])
+        self._draw_motion(None)
+        self.cb.make_callback('clouds-changed', None)
         try:
             self.canvas.delete_all_objects()
             self._sky_image_canvas_setup()

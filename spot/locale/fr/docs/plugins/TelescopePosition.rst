@@ -14,14 +14,14 @@ Les positions du télescope et de la cible sont indiquées à la fois en
 Ascension droite/Déclinaison et en Azimut/Élévation. La RA et la DEC sont
 affichées en notation sexagésimale sous la forme HH:MM:SS.SSS pour la RA et
 DD:MM:SS.SS pour la DEC. L'AZ et l'EL sont tous deux affichés en degrés sous
-forme de valeurs décimales. Dans la section « Telescope », l'état du
+forme de valeurs décimales. Dans la section « Télescope », l'état du
 télescope, tel que pointage ou déplacement, est affiché avec la durée de
 déplacement au format h:mm:ss.
 
-L'option « Plot telescope position » affichera les positions de la cible et
+L'option « Tracer la position du télescope » affichera les positions de la cible et
 du télescope dans la fenêtre Targets lorsque la case est cochée.
 
-L'option « Target follow telescope » entraînera la sélection d'une cible dans
+L'option « La cible suit le télescope » entraînera la sélection d'une cible dans
 la table du module Targets lorsque le télescope est « proche » de cette cible
 (proche étant défini comme à moins d'environ 10 arcminutes). La cible réelle
 la plus proche de la coordonnée du télescope est sélectionnée.
@@ -31,7 +31,7 @@ la plus proche de la coordonnée du télescope est sélectionnée.
           rétablir le suivi du télescope par la cible, il suffit de recocher
           la case.
 
-L'option « Pan to telescope position » entraînera le déplacement de la
+L'option « Se déplacer vers la position du télescope » entraînera le déplacement de la
 visionneuse TGTS vers la position du télescope. Cela peut être utile lorsque
 de nombreuses cibles sont tracées et que vous avez zoomé pour n'afficher
 qu'une partie du champ céleste polaire.

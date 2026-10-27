@@ -10,7 +10,7 @@ Créer un espace de travail
 Pour ouvrir un espace de travail, choisissez-en un dans la liste déroulante
 modifiable (elle est remplie avec les espaces de travail trouvés dans
 ``$HOME/.spot/workspaces``) — ou saisissez-y un nouveau nom — puis appuyez
-sur le bouton « Open Workspace » à sa droite. Les noms des espaces de travail
+sur le bouton « Ouvrir l'espace de travail » à sa droite. Les noms des espaces de travail
 doivent être uniques. Si vous laissez la case vide, un espace de travail est
 créé avec un nom générique.
 
@@ -19,10 +19,10 @@ d'utiliser les modules qui y seront ouverts.
 
 Sélectionner un espace de travail pour démarrer un module
 ---------------------------------------------------------
-À l'aide du menu déroulant « Select Workspace », choisissez un espace de
+À l'aide du menu déroulant « Sélectionner l'espace de travail », choisissez un espace de
 travail ouvert dans lequel vous voulez lancer l'un des modules de
 planification de SPOT (notez que l'espace de travail doit d'abord avoir été
-ouvert avec « Open Workspace »). Utilisez ensuite les cases à cocher
+ouvert avec « Ouvrir l'espace de travail »). Utilisez ensuite les cases à cocher
 ci-dessous pour démarrer (cocher) ou arrêter (décocher) un module.
 
 Vous voudrez presque toujours démarrer le module « SiteSelector », car il
@@ -48,7 +48,7 @@ libérer de la place pour d'autres modules.
 
 Enregistrer la disposition de l'espace de travail
 -------------------------------------------------
-En appuyant sur le bouton « Save <wsname> layout », vous enregistrez la
+En appuyant sur le bouton « Enregistrer la disposition de <wsname> », vous enregistrez la
 taille et la position actuelles des fenêtres des modules que vous avez
 ouverts dans l'espace de travail donné, ainsi que les modules en cours
 d'exécution. La disposition de chaque espace de travail est enregistrée

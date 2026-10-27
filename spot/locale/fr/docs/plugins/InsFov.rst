@@ -13,14 +13,14 @@ sur une image de relevé dans la fenêtre `<wsname>_FIND`.
 Sélectionner l'instrument
 =========================
 
-L'instrument peut être sélectionné en appuyant sur le bouton « Choose » sous
+L'instrument peut être sélectionné en appuyant sur le bouton « Choisir » sous
 « Instrument », puis en naviguant dans le menu jusqu'à trouver l'instrument
 souhaité. Une fois l'instrument sélectionné, le nom sera renseigné dans
-« Instrument: » et un contour du champ de vision de l'instrument apparaîtra
+« Instrument : » et un contour du champ de vision de l'instrument apparaîtra
 dans la fenêtre `<wsname>_FIND`.
 
 L'angle de position peut être ajusté, ce qui ajustera l'angle de la
-superposition du FOV de l'instrument sur l'image. Si la case « Rotate w/PA »
+superposition du FOV de l'instrument sur l'image. Si la case « Pivoter avec PA »
 est cochée, l'image de la visionneuse sera pivotée afin que la superposition
 du FOV conserve la même orientation.
 
@@ -31,11 +31,11 @@ La RA et la DEC peuvent être spécifiées en valeurs décimales (degrés) ou en
 notation sexagésimale.
 
 Pour centrer l'image sur le pointage actuel du télescope, cochez la case en
-regard de « Follow telescope » dans l'interface du module ``FindImage``. Cela
+regard de « Suivre le télescope » dans l'interface du module ``FindImage``. Cela
 vous permettra d'observer un dithering en cours sur une zone du ciel si le
 WCS de l'image de recherche est raisonnablement précis.
 
-.. note:: Pour que la fonction « Follow telescope » fonctionne, vous devez
+.. note:: Pour que la fonction « Suivre le télescope » fonctionne, vous devez
           avoir écrit un module compagnon qui récupère l'état de votre
           télescope, comme décrit dans la documentation du module
           TelescopePosition.

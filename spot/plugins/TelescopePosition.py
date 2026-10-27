@@ -51,7 +51,7 @@ class TelescopePosition(GingaPlugin.LocalPlugin):
     The "Plot telescope position" option will show the Target and Telescope
     positions on the Targets window when the checkbox is selected.
 
-    The "Target follow telescope" option will cause a target to be selected
+    The "Target follows telescope" option will cause a target to be selected
     in the Targets plugin table when the telescope is "close" to that target
     (close being defined as within approximately 10 arc minutes). The closest
     actual target to the telescope's coordinate is selected.
