@@ -17,6 +17,6 @@ dependencies:
   - pyyaml
   - pip
   - pip:
-    - ginga>=7.2.0
+    - ginga>=7.6.0
 
 

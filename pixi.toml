@@ -26,7 +26,7 @@ jplephem = ">=2.21"
 skyfield = ">=1.53"
 python-dateutil = ">=2.8.2"
 matplotlib-base = ">=3.8"
-ginga = ">=7.1.0"
+ginga = ">=7.6.0"
 # default GUI toolkit binding (conda-forge `pyqt` is PyQt6)
 pyqt = ">=6"
 

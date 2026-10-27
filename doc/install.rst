@@ -31,7 +31,7 @@ REQUIRED
 * pillow
 * PyQt (v5 or v6)
 * QtPy
-* ginga (v. 7.0.0 or higher)
+* ginga (v. 7.6.0 or higher)
 
 RECOMMENDED
 ===========

@@ -31,7 +31,7 @@ dependencies = [
     "skyfield>=1.53",
     "python-dateutil>=2.8.2",
     "matplotlib>=3.8",
-    "ginga>=7.5.0",
+    "ginga>=7.6.0",
 ]
 
 [project.scripts]
