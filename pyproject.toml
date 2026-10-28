@@ -50,8 +50,8 @@ docs = [
 ]
 pg = [
     "websockets>=16.0",
-    "pgwidgets-js>=0.4.2",
-    "pgwidgets-python>=0.4.2",
+    "pgwidgets-js>=0.4.3",
+    "pgwidgets-python>=0.4.3",
 ]
 
 [tool.setuptools]

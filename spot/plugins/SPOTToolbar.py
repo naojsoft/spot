@@ -68,7 +68,7 @@ class SPOTToolbar_Ginga_Image(Toolbar_Ginga_Image):
              lambda w, tf: self.mode_cb(tf, 'pan')),
             ("Zoom", 'toggle', 'crosshair',
              _tr("Left/right click zooms in/out;\n"
-               "hold middle to pan freely over image"),
+                 "hold middle to pan freely over image"),
              lambda w, tf: self.mode_cb(tf, 'zoom')),
             ("Rotate", 'toggle', 'rotate',
              _tr("Drag left to rotate; click right to reset to 0 deg"),

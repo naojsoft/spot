@@ -45,6 +45,7 @@ Elevation: {el_deg:.1f} degrees
 min_closed_sec = 5
 max_closed_sec = 60
 
+
 def write_pam_target(out_f, dt_start, dt_stop, src_dct, tgt_dct,
                      num_windows=None):
     if num_windows is None:
@@ -86,7 +87,7 @@ def write_pam_target(out_f, dt_start, dt_stop, src_dct, tgt_dct,
                    fyday=fd.timetuple().tm_yday,
                    fhour=fd.hour, fmin=fd.minute, fsec=fd.second,
                    tyear=td.year, tmonth=months[td.month-1], tday=td.day,
-                   tyday = td.timetuple().tm_yday,
+                   tyday=td.timetuple().tm_yday,
                    thour=td.hour, tmin=td.minute, tsec=td.second,
                    durmin=durmin, dursec=dursec)
         print(hdr_template.format(**dct), file=out_f)

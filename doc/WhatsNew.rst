@@ -2,10 +2,12 @@
 What's New
 ++++++++++
 
-Ver 1.5.3 (unreleased)
+Ver 1.5.3 (2026-10-27)
 ======================
 - Update requirement to Ginga v7.6.0 (needed for the SkyCam differential
   image to stay in place when zoomed in)
+- Update the optional "pg" (web browser) requirements to pgwidgets-js
+  and pgwidgets-python v0.4.3
 - SkyCam: reworked the differential sky image to make it useful for
   spotting clouds.  Frames are median filtered to remove stars and noise,
   scaled to cancel camera exposure changes, optionally derotated with the

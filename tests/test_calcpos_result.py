@@ -23,6 +23,7 @@ test_data = [
          res_atmos_disp=dict(guiding=0.00015, observing=0.000155)),
     ]
 
+
 class TestCalcpos_Result:
 
     def do_calc(self, td):

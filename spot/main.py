@@ -31,11 +31,11 @@ default_layout = ['seq', {},
                                          group=99)],
                          stretch=0),
                     dict(row=['hpanel', dict(name='hpnl'),
-                     ['vbox', dict(name='main', width=600),
+                     ['vbox', dict(name='main', width=600),  # noqa
                       dict(row=['ws', dict(name='channels', wstype='tabs',
                                            group=1, use_toolbar=False,
                                            default=True),
-                                 ],
+                                 ],  # noqa
                            stretch=1),
                       # dict(row=['ws', dict(name='cbar', wstype='stack',
                       #                      group=99)], stretch=0),

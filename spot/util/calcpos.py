@@ -130,6 +130,7 @@ def _get_loader():
         _sf_loader = Loader(get_datadir(create=True))
     return _sf_loader
 
+
 # used for twilight calculations
 horizon_6 = -6.0
 horizon_12 = -12.0
